@@ -16,6 +16,8 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq android-sdk android-sdk-platform-23 dalvik-exchange apksigner zipalign
+      - name: Собрать index.html из src/
+        run: python3 tools/build.py
       - name: Собрать APK
         run: ./android/build.sh
       - uses: actions/upload-artifact@v4

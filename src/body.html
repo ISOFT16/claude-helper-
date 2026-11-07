@@ -1,0 +1,153 @@
+<div id="hud" class="hidden">
+  <canvas id="radar" width="200" height="125"></canvas>
+  <div id="top">
+    <div id="scorebar">
+      <span class="t0" data-i18n="team0"></span><span class="num t0" id="s0">0</span>
+      <div class="dots" id="dots0"></div>
+      <span id="timer">0:00</span>
+      <div class="dots" id="dots1"></div>
+      <span class="num t1" id="s1">0</span><span class="t1" data-i18n="team1"></span>
+    </div>
+    <div id="room" class="hidden"></div>
+    <div id="zone"><span id="zonetxt">—</span><div id="zonebars"><div class="zb" id="zb0"><i></i></div><div class="zb" id="zb1"><i></i></div></div></div>
+    <div id="lobby" class="hidden"></div>
+  </div>
+  <div id="feed"></div>
+  <div id="fps" class="hidden"></div>
+  <div id="cross"></div>
+  <div id="hit"></div>
+  <div id="dmg"></div>
+  <div id="dmgarrow"><i id="dmgi"></i></div>
+  <div id="dnums"></div>
+  <div id="scope" class="hidden"></div>
+  <div id="flashw"></div>
+  <div id="center"></div>
+  <div id="hint"></div>
+  <div id="chat"></div>
+  <input id="chatin" class="hidden" maxlength="120" autocomplete="off">
+  <div id="bl">
+    <div id="money">$800</div>
+    <div id="vitals"><span><small data-i18n="health"></small><span id="hp">100</span></span><span><small data-i18n="armor"></small><span id="ar">0</span></span></div>
+    <div id="dash"><span data-i18n="dash"></span>: <b id="dashv"></b></div>
+  </div>
+  <div id="br">
+    <div id="nades"></div>
+    <div id="wname">—</div>
+    <div id="ammo">12 <small>/ 48</small></div>
+  </div>
+</div>
+
+<div id="touch">
+  <div id="joyBase"><div id="joyKnob"></div></div>
+  <div class="tb" id="tFire" data-i18n-html="tFire"></div>
+  <div class="tb" id="tJump" data-i18n-html="tJump"></div>
+  <div class="tb" id="tCrouch" data-i18n-html="tCrouch"></div>
+  <div class="tb" id="tReload" data-i18n-html="tReload"></div>
+  <div class="tb" id="tSwap" data-i18n-html="tWeapon"></div>
+  <div class="tb" id="tDash" data-i18n-html="tDash"></div>
+  <div class="tb" id="tNade" data-i18n-html="tNade"></div>
+  <div class="tb tsm" id="tNadeSel">↻</div>
+  <div class="tb" id="tScope" data-i18n-html="tScope"></div>
+  <div class="tb tsm" id="tPause">❚❚</div>
+  <div class="tb tsm" id="tBoard">☰</div>
+  <div class="tb tsm" id="tChat">💬</div>
+  <div class="tb" id="tBuy" data-i18n-html="tShop"></div>
+  <div class="tb" id="tStart" data-i18n-html="tStart"></div>
+</div>
+<div id="rotate" data-i18n="rotate"></div>
+
+<div id="menu" class="overlay menu">
+  <div class="menuwrap">
+    <div class="nav">
+      <h1 data-i18n="title"></h1>
+      <p class="sub" id="desc" data-i18n="tagline"></p>
+      <button class="nb" data-screen="sp" data-i18n="mPlay"></button>
+      <button class="nb" data-screen="mp" data-i18n="mMulti"></button>
+      <button class="nb" data-open="settings" data-i18n="mSettings"></button>
+      <button class="nb" data-screen="help" data-i18n="mHelp"></button>
+      <div class="ver">v3.0</div>
+    </div>
+    <div class="panel" id="scr-sp">
+      <button class="backbtn" data-i18n="back"></button>
+      <h2 data-i18n="spTitle"></h2>
+      <p class="sub" data-i18n="spNote"></p>
+      <div class="field"><label data-i18n="difficulty"></label><div class="seg" id="optDiff"></div></div>
+      <div class="field"><label data-i18n="hp"></label><div class="seg" id="optHp"></div></div>
+      <div class="field"><label data-i18n="rounds"></label><div class="seg" id="optRounds"></div></div>
+      <div class="row"><button class="go" id="play" data-i18n="playBtn"></button></div>
+    </div>
+    <div class="panel" id="scr-mp">
+      <button class="backbtn" data-i18n="back"></button>
+      <h2 data-i18n="mpTitle"></h2>
+      <p class="sub" data-i18n="mpNote"></p>
+      <div class="field"><label data-i18n="nick"></label><input id="mpname" maxlength="14" data-i18n-ph="nickPh"></div>
+      <div class="mpcols">
+        <div class="mpcol">
+          <h3 data-i18n="createTitle"></h3>
+          <div class="field"><label data-i18n="hp"></label><div class="seg" id="optMpHp"></div></div>
+          <div class="field"><label data-i18n="rounds"></label><div class="seg" id="optMpRounds"></div></div>
+          <div class="field"><label data-i18n="autostart"></label><select id="optMpAuto"></select></div>
+          <button class="go" id="mphost" data-i18n="create"></button>
+        </div>
+        <div class="mpcol">
+          <h3 data-i18n="joinTitle"></h3>
+          <div class="field"><input id="mpcode" maxlength="5" data-i18n-ph="codePh" autocapitalize="characters" style="text-transform:uppercase;width:160px;font-size:20px;letter-spacing:3px"></div>
+          <button class="go" id="mpjoin" data-i18n="join"></button>
+        </div>
+      </div>
+      <p class="sub" id="mpstatus" style="margin:10px 0 0;color:#ffd85a"></p>
+    </div>
+    <div class="panel" id="scr-help">
+      <button class="backbtn" data-i18n="back"></button>
+      <h2 data-i18n="mHelp"></h2>
+      <p class="sub" data-i18n="h_rules"></p>
+      <p class="sub notouch" data-i18n="h_mouse"></p>
+      <p class="sub touchhelp" data-i18n="h_touch"></p>
+      <div class="keys notouch" id="helpkeys"></div>
+    </div>
+  </div>
+</div>
+
+<div id="settings" class="overlay hidden">
+  <div class="card setcard">
+    <div class="sethead"><h2 data-i18n="setTitle"></h2><button id="setclose" data-i18n="close"></button></div>
+    <div class="tabs" id="settabs"></div>
+    <div id="setbody"></div>
+  </div>
+</div>
+
+<div id="pause" class="overlay hidden">
+  <div class="card" style="max-width:440px;text-align:center">
+    <h2 style="margin-top:0" data-i18n="pause"></h2>
+    <p class="sub" id="pausemp" data-i18n="pauseMP"></p>
+    <div class="pbtns">
+      <button class="go" id="resume" data-i18n="resume"></button>
+      <button class="go hidden" id="pstart" data-i18n="startGame"></button>
+      <button class="hidden" id="pteam" data-i18n="changeTeam"></button>
+      <button id="psettings" data-i18n="mSettings"></button>
+      <button id="tomenu" data-i18n="toMenu"></button>
+    </div>
+  </div>
+</div>
+
+<div id="buy" class="overlay hidden">
+  <div class="card buycard">
+    <div class="sethead"><h2 data-i18n="shop"></h2><span class="price" id="buymoney"></span><button id="buyclose" data-i18n="close"></button></div>
+    <div class="tabs" id="buytabs"></div>
+    <div id="buylist"></div>
+    <p class="sub" id="buykeys" style="margin:8px 0 0;font-size:13px"></p>
+  </div>
+</div>
+
+<div id="board" class="overlay hidden" style="background:rgba(5,8,14,.55)">
+  <div class="card" id="boardc"></div>
+</div>
+
+<div id="over" class="overlay hidden">
+  <div class="card" style="max-width:460px;text-align:center">
+    <h1 id="overt" style="font-size:44px"></h1>
+    <p class="sub" id="overs"></p>
+    <div class="row" style="justify-content:center"><button class="go" id="again" data-i18n="again"></button></div>
+    <div class="row" style="justify-content:center"><button id="overmenu" data-i18n="toMenu"></button></div>
+  </div>
+</div>
