@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Перехват — 3D-шутер</title>
 <style>
   :root{--blue:#4fb3ff;--orange:#ff8a3d;--ink:#e9eef7;--dim:#93a0b8;--panel:rgba(10,14,24,.72)}
@@ -81,6 +81,32 @@
   #board tr.deadrow td{opacity:.45} #board tr.mine td{background:#1d2742}
   label{color:var(--dim);font-size:14px}
   input[type=range]{width:220px;vertical-align:middle}
+  /* сенсорное управление */
+  #touch{position:fixed;inset:0;z-index:5;touch-action:none;display:none}
+  body.touch #touch.on{display:block}
+  body.touch{touch-action:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+  .tb{position:absolute;width:62px;height:62px;border-radius:50%;background:rgba(20,28,45,.5);border:2px solid rgba(255,255,255,.28);color:#fff;font-weight:800;font-size:11px;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.1;touch-action:none;user-select:none;-webkit-user-select:none}
+  .tb.pr{background:rgba(255,255,255,.32)} .tb.on{background:rgba(125,255,176,.32);border-color:#7dffb0} .tb.off{opacity:.35}
+  #tFire{width:92px;height:92px;right:20px;bottom:36px;background:rgba(255,70,70,.38);border-color:rgba(255,140,140,.6);font-size:14px}
+  #tJump{right:126px;bottom:18px} #tCrouch{right:196px;bottom:18px} #tReload{right:126px;bottom:90px} #tSwap{right:196px;bottom:90px}
+  #tDash{right:20px;bottom:145px} #tNade{right:90px;bottom:165px} #tScope{right:160px;bottom:160px}
+  .tsm{width:46px;height:46px;border-radius:12px;font-size:18px}
+  #tPause{top:8px;right:8px} #tBoard{top:8px;right:60px} #tBuy{left:12px;top:108px;width:auto;padding:0 14px;height:40px;border-radius:10px;font-size:13px;background:rgba(40,120,70,.55)}
+  #joyBase{position:absolute;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;border:2px solid rgba(255,255,255,.3);background:rgba(255,255,255,.06);display:none;pointer-events:none}
+  #joyKnob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:rgba(255,255,255,.35)}
+  body.touch #radar{width:140px;height:88px;top:8px;left:8px}
+  body.touch #top{transform:translateX(-50%) scale(.78);transform-origin:top center;top:4px}
+  body.touch #feed{top:62px;right:8px;font-size:11px}
+  body.touch #bl{left:50%;bottom:4px;transform:translateX(-104%) scale(.7);transform-origin:bottom right}
+  body.touch #br{right:auto;left:50%;bottom:4px;transform:translateX(4%) scale(.7);transform-origin:bottom left;align-items:flex-start;text-align:left}
+  body.touch #dash{display:none}
+  body.touch #center{font-size:28px;top:32%}
+  body.touch #hint{bottom:auto;top:24%;font-size:13px}
+  body.touch .keys{display:none}
+  .touchhelp{display:none} body.touch .touchhelp{display:block}
+  #rotate{display:none;position:fixed;inset:0;z-index:50;background:#0b0f19;align-items:center;justify-content:center;text-align:center;font-size:20px;padding:30px}
+  @media (orientation:portrait){ body.touch #rotate{display:flex} }
+  @media (max-height:500px){ #buylist{display:grid;grid-template-columns:1fr 1fr;gap:0 8px} #buylist .item span span{display:none} #buy .card{max-width:720px} h1{font-size:34px} .card{padding:16px 20px} .sub{margin-bottom:8px;font-size:14px} button.go{font-size:17px;padding:10px 26px} .item{padding:6px 10px;margin:4px 0} }
 </style>
 </head>
 <body>
@@ -116,6 +142,22 @@
   </div>
 </div>
 
+<div id="touch">
+  <div id="joyBase"><div id="joyKnob"></div></div>
+  <div class="tb" id="tFire">ОГОНЬ</div>
+  <div class="tb" id="tJump">ПРЫЖОК</div>
+  <div class="tb" id="tCrouch">ПРИСЕСТЬ</div>
+  <div class="tb" id="tReload">ПЕРЕ-<br>ЗАРЯД</div>
+  <div class="tb" id="tSwap">ОРУЖИЕ</div>
+  <div class="tb" id="tDash">РЫВОК</div>
+  <div class="tb" id="tNade">ГРАНАТА</div>
+  <div class="tb" id="tScope">ПРИЦЕЛ</div>
+  <div class="tb tsm" id="tPause">❚❚</div>
+  <div class="tb tsm" id="tBoard">☰</div>
+  <div class="tb" id="tBuy">МАГАЗИН</div>
+</div>
+<div id="rotate">Поверните телефон горизонтально 📱↻</div>
+
 <div id="menu" class="overlay">
   <div class="card">
     <h1>ПЕРЕХВАТ</h1>
@@ -124,7 +166,7 @@
     <div class="row" id="diff">
       <button data-d="0">Новобранцы</button><button data-d="1" class="sel">Бойцы</button><button data-d="2">Ветераны</button>
     </div>
-    <div class="row"><label>Чувствительность мыши&nbsp;<input type="range" id="sens" min="0.3" max="3" step="0.05" value="1"> <span id="sensv">1.00</span></label></div>
+    <div class="row"><label>Чувствительность обзора&nbsp;<input type="range" id="sens" min="0.3" max="3" step="0.05" value="1"> <span id="sensv">1.00</span></label></div>
     <div class="row"><button class="go" id="play">В БОЙ</button></div>
     <div class="keys">
       <b>WASD</b><span>движение, <b>Shift</b> — тихий шаг, <b>C</b> — присесть, <b>Пробел</b> — прыжок</span>
@@ -137,6 +179,7 @@
       <b>Tab</b><span>таблица счёта</span>
       <b>Esc</b><span>пауза</span>
     </div>
+    <p class="sub touchhelp" style="margin-top:10px">Управление: левая половина экрана — джойстик, правая — поворот камеры (можно вести пальцем прямо по кнопке ОГОНЬ). Слабое автонаведение помогает целиться.</p>
     <p class="sub" style="margin-top:14px">Узел связи в центре открывается через 20 секунд после начала раунда. Стойте в зоне без врагов — шкала растёт. Первая команда с 8 победами выигрывает матч.</p>
   </div>
 </div>
@@ -155,7 +198,8 @@
     <h2 style="margin:0 0 4px">Магазин</h2>
     <p class="sub" id="buymoney" style="margin:0 0 8px"></p>
     <div id="buylist"></div>
-    <p class="sub" style="margin:8px 0 0;font-size:13px">Клавиши 1–8 — купить, B — закрыть</p>
+    <p class="sub" style="margin:8px 0 0;font-size:13px">Клавиши 1–8 или нажатие — купить, B — закрыть</p>
+    <div class="row" style="margin-bottom:0"><button id="buyclose">Закрыть</button></div>
   </div>
 </div>
 
@@ -176,6 +220,9 @@
 import * as THREE from 'three';
 
 /* ================= helpers ================= */
+const IS_APP = /[?&]app=android/.test(location.search);
+const TOUCH = IS_APP || matchMedia('(pointer: coarse)').matches;
+if (TOUCH) document.body.classList.add('touch');
 const $ = id => document.getElementById(id);
 const rand = (a, b) => a + Math.random() * (b - a);
 const randi = (a, b) => Math.floor(rand(a, b + 1));
@@ -345,8 +392,8 @@ function tone(freq, dur, type = 'sine', vol = 0.2, delay = 0) {
 }
 
 /* ================= renderer & scene ================= */
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const renderer = new THREE.WebGLRenderer({ antialias: !TOUCH, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, TOUCH ? 1.5 : 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1;
@@ -368,7 +415,7 @@ scene.add(new THREE.HemisphereLight(0xb8c6ff, 0x4a3a2a, 1.5), new THREE.AmbientL
 const sun = new THREE.DirectionalLight(0xffd9b0, 2.1);
 sun.position.set(MW * CELL / 2 + 30, 60, MH * CELL / 2 - 25);
 sun.target.position.set(MW * CELL / 2, 0, MH * CELL / 2);
-sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+sun.castShadow = true; sun.shadow.mapSize.set(TOUCH ? 1024 : 2048, TOUCH ? 1024 : 2048);
 Object.assign(sun.shadow.camera, { left: -55, right: 55, top: 55, bottom: -55, near: 1, far: 160 });
 sun.shadow.bias = -0.0005;
 scene.add(sun, sun.target);
@@ -1025,12 +1072,13 @@ function updatePlayer(dt) {
   if (reScopeT > 0) { reScopeT -= dt; if (reScopeT <= 0 && rmbHeldScope && P.alive && P.w().scope) P.scoped = true; }
   if (!P.alive) return;
   const W = P.w();
-  P.crouch = !!(keys.KeyC || keys.ControlLeft);
+  P.crouch = !!(keys.KeyC || keys.ControlLeft || touchCrouch);
   const walking = !!keys.ShiftLeft;
   let fx = 0, fz = 0;
   if (keys.KeyW) fz -= 1; if (keys.KeyS) fz += 1; if (keys.KeyA) fx -= 1; if (keys.KeyD) fx += 1;
+  if (TOUCH) { fx += joy.x; fz += joy.y; }
   if (G.state === 'freeze') fx = fz = 0;
-  const len = Math.hypot(fx, fz) || 1; fx /= len; fz /= len;
+  const len = Math.hypot(fx, fz); if (len > 1) { fx /= len; fz /= len; }
   const s = Math.sin(P.yaw), c = Math.cos(P.yaw);
   const wx = fx * c + fz * s, wz = -fx * s + fz * c;
   let speed = (P.crouch ? 2.4 : walking ? 2.9 : 6.2) * W.move * (P.scoped ? 0.55 : 1);
@@ -1048,8 +1096,23 @@ function updatePlayer(dt) {
   }
   // стрельба
   if (mouseDown && G.state !== 'freeze' && !G.buyOpen) {
-    if (fire(P) && !W.auto && !W.melee) mouseDown = false;
+    if (fire(P) && !W.auto && !W.melee && !TOUCH) mouseDown = false;
   }
+  if (TOUCH && mouseDown && !W.melee) aimAssist(dt);
+}
+function aimAssist(dt) {
+  P.forward(_d, P.yaw, P.pitch); P.eyePos(_e);
+  let best = null, ba = 0.12;
+  for (const e of agents) {
+    if (!e.alive || e.team === P.team) continue;
+    _a.set(e.pos.x - _e.x, e.pos.y + e.height() * 0.7 - _e.y, e.pos.z - _e.z);
+    const d = _a.length(), ang = Math.acos(clamp(_a.dot(_d) / d, -1, 1));
+    if (ang < ba && d < 60 && canSee(P, e)) { ba = ang; best = e; }
+  }
+  if (!best) return;
+  const dx = best.pos.x - _e.x, dz = best.pos.z - _e.z, dy = best.pos.y + best.height() * 0.7 - _e.y;
+  const k = (diff === DIFF[0] ? 0.9 : 0.6) * dt;
+  P.yaw = turnTo(P.yaw, Math.atan2(-dx, -dz), k); P.pitch = turnTo(P.pitch, Math.atan2(dy, Math.hypot(dx, dz)), k);
 }
 function dash() {
   if (!P.alive || P.dashCd > 0 || G.state === 'freeze') return;
@@ -1063,7 +1126,7 @@ function dash() {
 }
 let rmbHeldScope = false;
 document.addEventListener('mousedown', e => {
-  if (!G.started || G.over) return;
+  if (TOUCH || !G.started || G.over) return;
   if (!locked) { if (!G.buyOpen) lock(); return; }
   initAudio();
   if (e.button === 0) mouseDown = true;
@@ -1100,7 +1163,14 @@ document.addEventListener('keydown', e => {
   }
 });
 document.addEventListener('keyup', e => { keys[e.code] = false; if (e.code === 'Tab') { G.board = false; $('board').classList.add('hidden'); } });
-function lock() { const r = renderer.domElement.requestPointerLock(); if (r && r.catch) r.catch(() => {}); }
+function lock() {
+  if (TOUCH) {
+    G.paused = false; $('pause').classList.add('hidden'); $('touch').classList.add('on');
+    if (!IS_APP && !document.fullscreenElement && document.documentElement.requestFullscreen)
+      document.documentElement.requestFullscreen().then(() => screen.orientation?.lock?.('landscape')).catch(() => {});
+    return;
+  }
+  const r = renderer.domElement.requestPointerLock(); if (r && r.catch) r.catch(() => {}); }
 document.addEventListener('pointerlockchange', () => {
   locked = document.pointerLockElement === renderer.domElement;
   if (!G.started) return;
@@ -1109,7 +1179,7 @@ document.addEventListener('pointerlockchange', () => {
   if (!locked) { mouseDown = false; for (const k in keys) keys[k] = false; if (G.buyOpen) toggleBuy(false); G.paused = true; $('pause').classList.toggle('hidden', G.over); }
 });
 $('resume').onclick = () => lock();
-$('tomenu').onclick = () => { G.started = false; $('pause').classList.add('hidden'); $('hud').classList.add('hidden'); $('menu').classList.remove('hidden'); };
+$('tomenu').onclick = () => { $('touch').classList.remove('on'); G.started = false; $('pause').classList.add('hidden'); $('hud').classList.add('hidden'); $('menu').classList.remove('hidden'); };
 function nextSpec() {
   const allies = agents.filter(a => a.team === 0 && a.alive && !a.isPlayer);
   const pool = allies.length ? allies : agents.filter(a => a.alive);
@@ -1201,8 +1271,8 @@ function updateHUD(dt) {
   $('scope').classList.toggle('hidden', !P.scoped);
   if (centerT > 0) { centerT -= dt; if (centerT <= 0) $('center').style.opacity = 0; }
   if (hintT > 0) { hintT -= dt; if (hintT <= 0) $('hint').textContent = ''; }
-  else if (!P.alive && G.state === 'live') $('hint').textContent = `Вы погибли. Наблюдение: ${specTarget?.name ?? '—'} (ЛКМ / пробел — следующий)`;
-  else if (G.state === 'freeze' && !G.buyOpen) $('hint').textContent = 'B — магазин';
+  else if (!P.alive && G.state === 'live') $('hint').textContent = `Вы погибли. Наблюдение: ${specTarget?.name ?? '—'} (${TOUCH ? 'коснитесь экрана' : 'ЛКМ / пробел'} — следующий)`;
+  else if (G.state === 'freeze' && !G.buyOpen) $('hint').textContent = TOUCH ? 'Закупка — кнопка МАГАЗИН' : 'B — магазин';
   else if (!hintT) $('hint').textContent = '';
   if (hitT > 0) { hitT -= dt; if (hitT <= 0) $('hit').style.opacity = 0; }
   if (dmgT > 0) { dmgT -= dt; if (dmgT <= 0) { $('dmg').style.opacity = 0; $('dmgi').style.opacity = 0; } }
@@ -1210,6 +1280,14 @@ function updateHUD(dt) {
   if (G.buyOpen) $('buymoney').textContent = `Деньги: $${P.money}`;
   if (G.board) renderBoard();
   drawRadar();
+  if (TOUCH) {
+    $('tDash').textContent = P.dashCd > 0 ? Math.ceil(P.dashCd) + ' с' : 'РЫВОК';
+    $('tDash').classList.toggle('off', P.dashCd > 0);
+    $('tNade').textContent = 'ГРАНАТА ' + P.nades; $('tNade').classList.toggle('off', !P.nades);
+    $('tScope').style.display = P.alive && P.w().scope ? '' : 'none'; $('tScope').classList.toggle('on', !!P.scoped);
+    $('tCrouch').classList.toggle('on', touchCrouch);
+    $('tBuy').style.display = canBuy() ? '' : 'none';
+  }
 }
 function renderBoard() {
   $('board').classList.remove('hidden');
@@ -1321,6 +1399,7 @@ function frame(t) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.05, (t - last) / 1000); last = t;
   if (G.started && !G.paused && G.state !== 'over') { now += dt; updateGame(dt); }
+  if (joy.id === null) joy.x = joy.y = 0;
   if (G.started) { updateCamera(dt); updateHUD(dt); }
   else { now += dt; camera.position.set(zone.cx + Math.sin(now * 0.08) * 34, 16, zone.cz + Math.cos(now * 0.08) * 22); camera.lookAt(zone.cx, 0, zone.cz); ring.rotation.z += dt; }
   renderer.clear(); renderer.render(scene, camera);
@@ -1338,6 +1417,82 @@ $('play').onclick = () => {
   $('menu').classList.add('hidden'); $('hud').classList.remove('hidden');
   G.started = true; G.paused = false; startMatch(); lock();
 };
+$('buyclose').onclick = () => toggleBuy(false);
+$('board').onclick = () => { G.board = false; $('board').classList.add('hidden'); };
+
+/* ================= touch controls ================= */
+const joy = { id: null, ox: 0, oy: 0, x: 0, y: 0 }, look = { id: null, lx: 0, ly: 0 };
+let touchCrouch = false;
+function touchTurn(dx, dy) {
+  if (!P.alive || G.paused) return;
+  const k = 0.0062 * sens * (P.scoped ? 0.3 : 1);
+  P.yaw -= dx * k; P.pitch = clamp(P.pitch - dy * k, -1.5, 1.5); lookDX += dx * 0.5; lookDY += dy * 0.5;
+}
+function pauseGame() {
+  if (!G.started || G.over || G.paused) return;
+  G.paused = true; mouseDown = false; keys.Space = false; joy.id = look.id = null; $('joyBase').style.display = 'none';
+  if (G.buyOpen) toggleBuy(false);
+  $('pause').classList.remove('hidden');
+}
+if (TOUCH) {
+  const tl = $('touch');
+  tl.addEventListener('touchstart', e => {
+    e.preventDefault(); initAudio();
+    for (const t of e.changedTouches) {
+      if (!P.alive) { nextSpec(); continue; }
+      if (t.clientX < innerWidth * 0.42 && joy.id === null) {
+        joy.id = t.identifier; joy.ox = t.clientX; joy.oy = t.clientY; joy.x = joy.y = 0;
+        const jb = $('joyBase'); jb.style.display = 'block'; jb.style.left = t.clientX + 'px'; jb.style.top = t.clientY + 'px'; $('joyKnob').style.transform = '';
+      } else if (look.id === null) { look.id = t.identifier; look.lx = t.clientX; look.ly = t.clientY; }
+    }
+  }, { passive: false });
+  document.addEventListener('touchmove', e => {
+    if (!G.started) return;
+    for (const t of e.changedTouches) {
+      if (t.identifier === joy.id) {
+        let dx = t.clientX - joy.ox, dy = t.clientY - joy.oy; const d = Math.hypot(dx, dy), R = 55;
+        if (d > R) { dx *= R / d; dy *= R / d; }
+        joy.x = dx / R; joy.y = dy / R; $('joyKnob').style.transform = `translate(${dx}px,${dy}px)`;
+      } else if (t.identifier === look.id) { touchTurn(t.clientX - look.lx, t.clientY - look.ly); look.lx = t.clientX; look.ly = t.clientY; }
+    }
+    if (e.cancelable && $('touch').classList.contains('on') && !G.paused && !G.buyOpen) e.preventDefault();
+  }, { passive: false });
+  const endT = e => {
+    for (const t of e.changedTouches) {
+      if (t.identifier === joy.id) { joy.id = null; joy.x = joy.y = 0; $('joyBase').style.display = 'none'; }
+      if (t.identifier === look.id) look.id = null;
+    }
+  };
+  document.addEventListener('touchend', endT); document.addEventListener('touchcancel', endT);
+  const tbtn = (id, down, up) => {
+    const el = $(id);
+    el.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); initAudio(); el.classList.add('pr'); down(e.changedTouches[0]); }, { passive: false });
+    const u = e => { el.classList.remove('pr'); if (up) up(e.changedTouches[0]); };
+    el.addEventListener('touchend', u); el.addEventListener('touchcancel', u);
+  };
+  tbtn('tFire', t => { if (!P.alive) { nextSpec(); return; } mouseDown = true; if (look.id === null) { look.id = t.identifier; look.lx = t.clientX; look.ly = t.clientY; } }, () => { mouseDown = false; });
+  tbtn('tJump', () => { keys.Space = true; }, () => { keys.Space = false; });
+  tbtn('tCrouch', () => { touchCrouch = !touchCrouch; });
+  tbtn('tReload', () => { if (P.alive) startReload(P); });
+  tbtn('tSwap', () => { if (!P.alive) return; const order = [1, 2, 3]; let i = order.indexOf(P.slot); for (let k = 1; k <= 3; k++) { const s = order[(i + k) % 3]; if (P.inv[s]) { switchSlot(P, s); break; } } });
+  tbtn('tDash', () => dash());
+  tbtn('tNade', () => { if (P.alive) throwNade(P); });
+  tbtn('tScope', () => { if (P.alive && P.w().scope) { P.scoped = !P.scoped; rmbHeldScope = P.scoped; tone(900, 0.03, 'square', 0.04); } });
+  tbtn('tBuy', () => toggleBuy());
+  tbtn('tBoard', () => { G.board = !G.board; if (G.board) renderBoard(); else $('board').classList.add('hidden'); });
+  tbtn('tPause', () => pauseGame());
+  document.addEventListener('visibilitychange', () => { if (document.hidden) pauseGame(); });
+}
+// для Android-приложения: системная кнопка «Назад» и сворачивание
+window.__onAppPause = () => pauseGame();
+window.__onBack = () => {
+  if (G.buyOpen) { toggleBuy(false); return true; }
+  if (G.board) { G.board = false; $('board').classList.add('hidden'); return true; }
+  if (G.started && !G.over && !G.paused) { pauseGame(); return true; }
+  if (G.started) { $('tomenu').click(); return true; }
+  return false;
+};
+
 $('again').onclick = () => { $('over').classList.add('hidden'); G.paused = false; startMatch(); lock(); };
 window.__game = { G, agents, P, get now() { return now; }, findPath, spawnCells, zoneCells, walk, step: (n, dt = 1 / 60) => { for (let i = 0; i < n && G.state !== "over"; i++) { now += dt; updateGame(dt); } } };
 </script>

@@ -1,0 +1,32 @@
+name: Android APK
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Установить инструменты Android
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq android-sdk android-sdk-platform-23 dalvik-exchange apksigner zipalign
+      - name: Собрать APK
+        run: ./android/build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Perehvat-android
+          path: android/build/Perehvat.apk
+      - name: Выложить APK в Releases
+        run: |
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest android/build/Perehvat.apk --target "$GITHUB_SHA" \
+            --title "Перехват — последняя сборка для Android" \
+            --notes "Скачайте Perehvat.apk на телефон и установите (разрешите установку из неизвестных источников)."
+        env:
+          GH_TOKEN: ${{ github.token }}
