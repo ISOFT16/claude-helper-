@@ -81,6 +81,9 @@
   #board tr.deadrow td{opacity:.45} #board tr.mine td{background:#1d2742}
   label{color:var(--dim);font-size:14px}
   input[type=range]{width:220px;vertical-align:middle}
+  .mpbox{border-top:1px solid #26314a;margin-top:12px;padding-top:10px}
+  input[type=text],input:not([type]){font:inherit;background:#0d1320;color:var(--ink);border:1px solid #33405e;border-radius:10px;padding:9px 12px;width:180px}
+  #room{background:var(--panel);padding:3px 12px;border-radius:8px;font-size:13px;color:#ffd85a}
   /* сенсорное управление */
   #touch{position:fixed;inset:0;z-index:5;touch-action:none;display:none}
   body.touch #touch.on{display:block}
@@ -106,7 +109,7 @@
   .touchhelp{display:none} body.touch .touchhelp{display:block}
   #rotate{display:none;position:fixed;inset:0;z-index:50;background:#0b0f19;align-items:center;justify-content:center;text-align:center;font-size:20px;padding:30px}
   @media (orientation:portrait){ body.touch #rotate{display:flex} }
-  @media (max-height:500px){ #buylist{display:grid;grid-template-columns:1fr 1fr;gap:0 8px} #buylist .item span span{display:none} #buy .card{max-width:720px} h1{font-size:34px} .card{padding:16px 20px} .sub{margin-bottom:8px;font-size:14px} button.go{font-size:17px;padding:10px 26px} .item{padding:6px 10px;margin:4px 0} }
+  @media (max-height:500px){ #desc{display:none} #buylist{display:grid;grid-template-columns:1fr 1fr;gap:0 8px} #buylist .item span span{display:none} #buy .card{max-width:720px} h1{font-size:34px} .card{padding:16px 20px} .sub{margin-bottom:8px;font-size:14px} button.go{font-size:17px;padding:10px 26px} .item{padding:6px 10px;margin:4px 0} }
 </style>
 </head>
 <body>
@@ -120,6 +123,7 @@
       <div class="dots" id="dots1"></div>
       <span class="num t1" id="s1">0</span><span class="t1">РЖАВЧИНА</span>
     </div>
+    <div id="room" class="hidden"></div>
     <div id="zone"><span id="zonetxt">—</span><div id="zonebars"><div class="zb" id="zb0"><i></i></div><div class="zb" id="zb1"><i></i></div></div></div>
   </div>
   <div id="feed"></div>
@@ -161,13 +165,19 @@
 <div id="menu" class="overlay">
   <div class="card">
     <h1>ПЕРЕХВАТ</h1>
-    <p class="sub">Тактический 3D-шутер 5 на 5. Уничтожьте вражеский отряд или удержите узел связи в центре карты, пока шкала перехвата не заполнится.</p>
+    <p class="sub" id="desc">Тактический 3D-шутер 5 на 5. Уничтожьте вражеский отряд или удержите узел связи в центре карты, пока шкала перехвата не заполнится.</p>
     <div><label>Сложность ботов</label></div>
     <div class="row" id="diff">
       <button data-d="0">Новобранцы</button><button data-d="1" class="sel">Бойцы</button><button data-d="2">Ветераны</button>
     </div>
     <div class="row"><label>Чувствительность обзора&nbsp;<input type="range" id="sens" min="0.3" max="3" step="0.05" value="1"> <span id="sensv">1.00</span></label></div>
-    <div class="row"><button class="go" id="play">В БОЙ</button></div>
+    <div class="row" style="align-items:center"><button class="go" id="play">В БОЙ</button><span class="sub" style="margin:0">одиночная игра с ботами</span></div>
+    <div class="mpbox">
+      <div><label>Мультиплеер — играйте с друзьями (свободные места занимают боты)</label></div>
+      <div class="row"><input id="mpname" maxlength="14" placeholder="Ваш ник"><button id="mphost">Создать комнату</button></div>
+      <div class="row"><input id="mpcode" maxlength="5" placeholder="Код комнаты" autocapitalize="characters" style="text-transform:uppercase;width:150px"><button id="mpjoin">Войти по коду</button></div>
+      <p class="sub" id="mpstatus" style="margin:4px 0 0;color:#ffd85a"></p>
+    </div>
     <div class="keys">
       <b>WASD</b><span>движение, <b>Shift</b> — тихий шаг, <b>C</b> — присесть, <b>Пробел</b> — прыжок</span>
       <b>ЛКМ / ПКМ</b><span>огонь / прицел снайперской винтовки</span>
@@ -1246,18 +1256,18 @@ class Agent {
     Object.assign(this, { team, name, isPlayer, pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0, pitch: 0, hp: 100, armor: 0, alive: true, kills: 0, deaths: 0, money: 800, onGround: true, crouch: false, eye: 1.62 });
     this.inv = { 1: null, 2: newGun('osa'), 3: { id: 'knife' } }; this.slot = 2; this.lastSlot = 3; this.nades = 0;
     this.fireCd = 0; this.reloading = 0; this.spreadAcc = 0; this.punchP = 0; this.punchY = 0; this.switchT = 0;
-    this.spotted = 0; this.lastHitBy = null;
-    if (!isPlayer) { this.rig = makeSoldier(team); this.model = this.rig.root; this.ai = {}; }
+    this.spot = [0, 0]; this.lastHitBy = null; this.tp = 0; this.net = isPlayer ? 'local' : 'bot';
+    this.rig = makeSoldier(team); this.model = this.rig.root; this.ai = {};
   }
   height() { return this.crouch ? 1.2 : 1.8; }
   gun() { return this.inv[this.slot]; }
   w() { return WEAPONS[this.gun().id]; }
-  eyePos(out = new THREE.Vector3()) { return out.set(this.pos.x, this.pos.y + (this.isPlayer ? this.eye : 1.62), this.pos.z); }
+  eyePos(out = new THREE.Vector3()) { return out.set(this.pos.x, this.pos.y + (this.isPlayer ? this.eye : this.crouch ? 1.05 : 1.62), this.pos.z); }
   forward(out = new THREE.Vector3(), yaw = this.yaw, pitch = this.pitch) { const cp = Math.cos(pitch); return out.set(-Math.sin(yaw) * cp, Math.sin(pitch), -Math.cos(yaw) * cp); }
 }
 const agents = [];
 for (let t = 0; t < 2; t++) for (let i = 0; i < 5; i++) agents.push(new Agent(t, NAMES[t][i], t === 0 && i === 0));
-const P = agents[0];
+let P = agents[0];
 
 /* ================= physics ================= */
 function resolveAxis(a, axis, d) {
@@ -1294,7 +1304,7 @@ function freeAt(a, x, z) {
 }
 function separate() {
   for (let i = 0; i < agents.length; i++) for (let j = i + 1; j < agents.length; j++) {
-    const a = agents[i], b = agents[j]; if (!a.alive || !b.alive) continue;
+    const a = agents[i], b = agents[j]; if (!a.alive || !b.alive || a.net === 'remote' || b.net === 'remote' || a.net === 'proxy' || b.net === 'proxy') continue;
     const dx = b.pos.x - a.pos.x, dz = b.pos.z - a.pos.z, d = Math.hypot(dx, dz);
     if (d > 0.01 && d < 0.65 && Math.abs(a.pos.y - b.pos.y) < 1.5) {
       const push = (0.65 - d) / 2, nx = dx / d * push, nz = dz / d * push;
@@ -1356,14 +1366,35 @@ function startRound() {
       const [cx, cz] = cells[i]; a.pos.set(cx * CELL + CELL / 2 + rand(-0.3, 0.3), 0, cz * CELL + CELL / 2 + rand(-0.3, 0.3));
       a.vel.set(0, 0, 0); a.hp = 100; a.alive = true; a.crouch = false; a.reloading = 0; a.fireCd = 0;
       a.yaw = t === 0 ? -Math.PI / 2 : Math.PI / 2; a.pitch = 0; a.punchP = a.punchY = 0; a.spreadAcc = 0;
-      a.slot = a.inv[1] ? 1 : 2; a.lastSlot = 3; a.spotted = 0; a.dashCd = 0;
-      if (a.model) { a.model.visible = true; a.ai = newAI(a); botBuy(a); resetRig(a); }
+      a.slot = a.inv[1] ? 1 : 2; a.lastSlot = 3; a.spot = [0, 0]; a.dashCd = 0; a.tp++;
+      if (a.net === 'bot') { a.ai = newAI(a); botBuy(a); }
+      a.model.visible = true; resetRig(a);
     });
   }
+  roundStartFx();
+}
+function roundStartFx() {
   P.eye = 1.62; P.scoped = false; specTarget = null;
   for (const d of decals) d.visible = false;
-  showCenter(`Раунд ${G.round}`, 'Закупка — клавиша B', 2.5);
+  showCenter(`Раунд ${G.round}`, TOUCH ? 'Закупка — кнопка МАГАЗИН' : 'Закупка — клавиша B', 2.5);
   tone(520, 0.12, 'square', 0.12); tone(780, 0.18, 'square', 0.12, 0.13);
+}
+function roundEndFx(winner, reason) {
+  const txt = winner < 0 ? 'НИЧЬЯ' : winner === 0 ? 'ВЕКТОР ПОБЕЖДАЕТ' : 'РЖАВЧИНА ПОБЕЖДАЕТ';
+  showCenter(`<span class="${winner < 0 ? '' : 'c' + winner}">${txt}</span>`, reason, 4.5);
+  if (winner === P.team) { tone(660, 0.15, 'triangle', 0.2); tone(880, 0.3, 'triangle', 0.2, 0.15); }
+  else { tone(330, 0.2, 'triangle', 0.2); tone(247, 0.4, 'triangle', 0.2, 0.2); }
+}
+function goFx() { showCenter('В БОЙ!', '', 1.2); tone(990, 0.2, 'square', 0.12); }
+function zoneOpenFx() { showHint('Узел связи открыт! Удерживайте центр', 2.5); tone(600, 0.1, 'sine', 0.15); tone(900, 0.2, 'sine', 0.15, 0.1); }
+function showOver() {
+  document.exitPointerLock?.();
+  const win = G.score[P.team] > G.score[1 - P.team];
+  $('overt').textContent = win ? 'ПОБЕДА' : 'ПОРАЖЕНИЕ';
+  $('overs').textContent = `Счёт ${G.score[0]} : ${G.score[1]} · Ваши убийства: ${P.kills}, смерти: ${P.deaths}`;
+  $('again').style.display = NET.mode === 'client' ? 'none' : '';
+  if (NET.mode === 'client') $('overs').textContent += ' · Новый матч запустит хост';
+  $('over').classList.remove('hidden'); $('pause').classList.add('hidden');
 }
 function newAI(a) {
   const enemyTeam = 1 - a.team, mid = MW / 2;
@@ -1397,18 +1428,15 @@ function endRound(winner, reason) {
   G.state = 'end'; G.timer = 5;
   if (winner >= 0) G.score[winner]++;
   for (const a of agents) a.money = Math.min(16000, a.money + (a.team === winner ? 3000 : 1800));
-  const txt = winner < 0 ? 'НИЧЬЯ' : winner === 0 ? 'ВЕКТОР ПОБЕЖДАЕТ' : 'РЖАВЧИНА ПОБЕЖДАЕТ';
-  showCenter(`<span class="${winner < 0 ? '' : 'c' + winner}">${txt}</span>`, reason, 4.5);
-  if (winner === 0) { tone(660, 0.15, 'triangle', 0.2); tone(880, 0.3, 'triangle', 0.2, 0.15); }
-  else { tone(330, 0.2, 'triangle', 0.2); tone(247, 0.4, 'triangle', 0.2, 0.2); }
+  roundEndFx(winner, reason); netEvent({ k: 're', w: winner, r: reason });
   if (G.score[0] >= WIN_ROUNDS || G.score[1] >= WIN_ROUNDS) G.over = true;
 }
 function checkElimination() {
   if (G.state !== 'live') return;
   const alive = [0, 1].map(t => agents.some(a => a.team === t && a.alive));
   if (!alive[0] && !alive[1]) endRound(-1, 'Отряды уничтожили друг друга');
-  else if (!alive[1]) endRound(0, 'Вражеский отряд уничтожен');
-  else if (!alive[0]) endRound(1, 'Наш отряд уничтожен');
+  else if (!alive[1]) endRound(0, 'Отряд «Ржавчина» уничтожен');
+  else if (!alive[0]) endRound(1, 'Отряд «Вектор» уничтожен');
 }
 
 /* ================= combat ================= */
@@ -1418,24 +1446,28 @@ function damage(victim, amount, attacker, head, weaponId, fromPos) {
   let d = amount;
   if (victim.armor > 0) { const abs = Math.min(victim.armor, d * 0.45); victim.armor = Math.max(0, victim.armor - abs * 0.9); d -= abs; }
   victim.hp -= d; victim.lastHitBy = attacker; if (victim.rig) victim.rig.flinch = 1;
-  if (victim.isPlayer) {
+  if (victim === P) {
     flashDamage(fromPos);
-  } else if (attacker && attacker.alive) {
+  } else if (victim.net === 'remote') {
+    netEvent({ k: 'hurt', i: idxOf(victim), f: fromPos ? [r2(fromPos.x), r2(fromPos.z)] : null });
+  } else if (victim.net === 'bot' && attacker && attacker.alive) {
     const ai = victim.ai; ai.invest = attacker.pos.clone(); ai.investUntil = now + 4;
     if (!ai.target) { ai.target = attacker; ai.seen = Math.max(ai.seen, ai.react * 0.5); }
   }
-  if (attacker && attacker.isPlayer) hitMarker(head, victim.hp <= 0);
+  if (attacker === P) hitMarker(head, victim.hp <= 0);
+  else if (attacker && attacker.net === 'remote') netEvent({ k: 'hm', i: idxOf(attacker), h: head ? 1 : 0, x: victim.hp <= 0 ? 1 : 0 });
   if (victim.hp <= 0) kill(victim, attacker, weaponId, head);
 }
 function kill(v, k, wid, head) {
   v.alive = false; v.hp = 0; v.deaths++; v.vel.set(0, 0, 0);
-  if (v.isPlayer) { $('scope').classList.add('hidden'); P.scoped = false; }
+  if (v === P) { $('scope').classList.add('hidden'); P.scoped = false; }
   if (k && k !== v) { k.kills++; k.money = Math.min(16000, k.money + (WEAPONS[wid]?.kill ?? 300)); }
   if (v.rig) {
     v.rig.deadT = 0; v.rig.fallDir = 1;
     if (k && k !== v) v.rig.fallDir = ((k.pos.x - v.pos.x) * -Math.sin(v.yaw) + (k.pos.z - v.pos.z) * -Math.cos(v.yaw)) > 0 ? 1 : -1;
   }
   addFeed(k, v, wid, head);
+  netEvent({ k: 'f', ki: k ? idxOf(k) : -1, vi: idxOf(v), w: wid, h: head ? 1 : 0 });
   checkElimination();
 }
 function addFeed(k, v, wid, head) {
@@ -1447,7 +1479,7 @@ function addFeed(k, v, wid, head) {
   setTimeout(() => el.remove(), 7000);
 }
 function muzzleWorld(a, out) {
-  if (a.isPlayer) { vmRoot.updateMatrixWorld(true); return vmGuns[a.gun().id].p.muzzle.getWorldPosition(out).applyMatrix4(camera.matrixWorld); }
+  if (a === P && a.isPlayer) { vmRoot.updateMatrixWorld(true); return vmGuns[a.gun().id].p.muzzle.getWorldPosition(out).applyMatrix4(camera.matrixWorld); }
   if (a.rig.parts) return a.rig.parts.muzzle.getWorldPosition(out);
   return out.set(a.pos.x, a.pos.y + 1.3, a.pos.z);
 }
@@ -1467,7 +1499,8 @@ function fire(a) {
   _r.set(Math.cos(yaw), 0, -Math.sin(yaw)); _u.crossVectors(_r, _d);
   if (!a.isPlayer) { const err = a.ai.err; _d.addScaledVector(_r, gauss() * err).addScaledVector(_u, gauss() * err).normalize(); }
   const muz = muzzleWorld(a, _m);
-  const n = W.pellets || 1;
+  const n = W.pellets || 1, ends = [], hits = [];
+  const netClient = NET.mode === 'client' && a === P;
   for (let i = 0; i < n; i++) {
     const dir = _o.copy(_d).addScaledVector(_r, gauss() * spread * 0.6).addScaledVector(_u, gauss() * spread * 0.6).normalize();
     const w = rayWorld(eye.x, eye.y, eye.z, dir.x, dir.y, dir.z, 200);
@@ -1477,8 +1510,13 @@ function fire(a) {
       if (rayAgent(eye.x, eye.y, eye.z, dir.x, dir.y, dir.z, b) && RA.t < tw) { tw = RA.t; victim = b; vh = RA.head; }
     }
     const hit = new THREE.Vector3().copy(eye).addScaledVector(dir, Math.min(tw, 200));
-    if (victim) { damage(victim, W.dmg * (vh ? W.head : 1), a, vh, g.id, eye.clone()); sparks(hit, vh ? 8 : 5, true); }
+    if (victim) {
+      if (netClient) { hits.push([idxOf(victim), W.dmg * (vh ? W.head : 1), vh ? 1 : 0]); hitMarker(vh, false); }
+      else damage(victim, W.dmg * (vh ? W.head : 1), a, vh, g.id, eye.clone());
+      sparks(hit, vh ? 8 : 5, true);
+    }
     else if (w.hit) { sparks(hit, 3); addDecal(hit, wn[0], wn[1], wn[2]); }
+    ends.push([r2(hit.x), r2(hit.y), r2(hit.z), victim ? 1 : w.hit ? 0 : 2, wn[0], wn[1], wn[2]]);
     if (i < 3) addTracer(muz, hit, a.isPlayer ? 0 : a.team + 1);
   }
   // отдача
@@ -1495,10 +1533,14 @@ function fire(a) {
   }
   sfx(W.snd, a.isPlayer ? null : a.pos);
   if (a.isPlayer) { vmFlashLight.position.copy(muz); vmFlashLight.intensity = 8; }
-  // слух ботов
-  for (const b of agents) if (!b.isPlayer && b.alive && b.team !== a.team && !b.ai.target && b.pos.distanceTo(a.pos) < 32) { b.ai.invest = a.pos.clone(); b.ai.investUntil = now + 5; }
+  if (netClient) netSend({ t: 'shot', w: g.id, e: ends, h: hits });
+  else netEvent({ k: 'sh', i: idxOf(a), w: g.id, e: ends });
+  hearShot(a);
   if (g.mag === 0 && !a.isPlayer) startReload(a);
   return true;
+}
+function hearShot(a) {
+  for (const b of agents) if (b.net === 'bot' && b.alive && b.team !== a.team && !b.ai.target && b.pos.distanceTo(a.pos) < 32) { b.ai.invest = a.pos.clone(); b.ai.investUntil = now + 5; }
 }
 function melee(a, W) {
   a.fireCd = W.rate; sfx('knife', a.isPlayer ? null : a.pos);
@@ -1509,7 +1551,12 @@ function melee(a, W) {
     if (rayAgent(eye.x, eye.y, eye.z, _d.x, _d.y, _d.z, b) && RA.t < bt) { bt = RA.t; best = b; bh = RA.head; }
   }
   if (a.isPlayer) vmOnMelee(); else a.rig.kick = 1.5;
-  if (best) { damage(best, W.dmg * (bh ? W.head : 1), a, bh, 'knife', eye.clone()); sparks(new THREE.Vector3().copy(eye).addScaledVector(_d, bt), 6, true); }
+  if (best) {
+    if (NET.mode === 'client' && a === P) { hitMarker(bh, false); netSend({ t: 'shot', w: 'knife', e: [], h: [[idxOf(best), W.dmg * (bh ? W.head : 1), bh ? 1 : 0]] }); }
+    else damage(best, W.dmg * (bh ? W.head : 1), a, bh, 'knife', eye.clone());
+    sparks(new THREE.Vector3().copy(eye).addScaledVector(_d, bt), 6, true);
+  } else if (NET.mode === 'client' && a === P) netSend({ t: 'shot', w: 'knife', e: [], h: [] });
+  if (NET.mode !== 'client') netEvent({ k: 'ml', i: idxOf(a) });
   return true;
 }
 function startReload(a) {
@@ -1530,6 +1577,7 @@ const grenades = [];
 const nadeGeo = new THREE.SphereGeometry(0.09, 10, 8), nadeMat = new THREE.MeshStandardMaterial({ color: 0x334, emissive: 0x3fc9ff, emissiveIntensity: 1.2 });
 function throwNade(a) {
   if (a.nades <= 0 || G.state === 'freeze') return;
+  if (NET.mode === 'client' && a === P) { netSend({ t: 'nade' }); tone(400, 0.08, 'triangle', 0.1); return; }
   a.nades--;
   const m = new THREE.Mesh(nadeGeo, nadeMat); scene.add(m);
   const eye = a.eyePos(), f = a.forward(new THREE.Vector3(), a.yaw, a.pitch + 0.12);
@@ -1548,14 +1596,14 @@ function updateNades(dt) {
     if (n.t <= 0) {
       scene.remove(n.m); grenades.splice(i, 1);
       const c = n.pos.clone(); c.y = Math.max(c.y, 0.3);
-      explosionFx(c); sfx('boom', c);
+      explosionFx(c); sfx('boom', c); netEvent({ k: 'x', p: [r2(c.x), r2(c.y), r2(c.z)] });
       for (const b of agents) {
         if (!b.alive) continue;
         const chest = new THREE.Vector3(b.pos.x, b.pos.y + 1, b.pos.z), d = chest.distanceTo(c);
         if (d < 7 && losClear(c, chest)) {
           const dmg = 110 * (1 - d / 7) * (b.team === n.owner.team && b !== n.owner ? 0 : b === n.owner ? 0.5 : 1);
           if (dmg > 0) damage(b, dmg, n.owner, false, 'grenade', c);
-          if (b.isPlayer) shake = 0.5;
+          if (b === P) shake = 0.5;
         }
       }
     }
@@ -1583,7 +1631,7 @@ function botSense(b) {
   if (best) {
     if (ai.target !== best) { ai.seen = Math.min(ai.seen, 0); ai.react = rand(...diff.react); }
     ai.target = best; ai.visible = true; ai.invest = best.pos.clone(); ai.investUntil = now + 4;
-    if (b.team === 0) best.spotted = 1.2;
+    best.spot[b.team] = 1.2;
   } else { ai.visible = false; if (ai.target) { ai.target = null; } }
 }
 function botGoal(b) {
@@ -1755,6 +1803,7 @@ document.addEventListener('mousemove', e => {
   lookDX += e.movementX; lookDY += e.movementY;
 });
 document.addEventListener('keydown', e => {
+  if (e.target && e.target.tagName === 'INPUT') { if (e.code === 'Enter' && e.target.id === 'mpcode') joinGame(); return; }
   if (e.code === 'Tab') { e.preventDefault(); if (G.started) { G.board = true; renderBoard(); } return; }
   if (['Space', 'KeyC'].includes(e.code)) e.preventDefault();
   keys[e.code] = true;
@@ -1793,9 +1842,9 @@ document.addEventListener('pointerlockchange', () => {
   if (!locked) { mouseDown = false; for (const k in keys) keys[k] = false; if (G.buyOpen) toggleBuy(false); G.paused = true; $('pause').classList.toggle('hidden', G.over); }
 });
 $('resume').onclick = () => lock();
-$('tomenu').onclick = () => { $('touch').classList.remove('on'); G.started = false; $('pause').classList.add('hidden'); $('hud').classList.add('hidden'); $('menu').classList.remove('hidden'); };
+$('tomenu').onclick = () => { netShutdown(); $('touch').classList.remove('on'); G.started = false; $('pause').classList.add('hidden'); $('hud').classList.add('hidden'); $('menu').classList.remove('hidden'); };
 function nextSpec() {
-  const allies = agents.filter(a => a.team === 0 && a.alive && !a.isPlayer);
+  const allies = agents.filter(a => a.team === P.team && a.alive && a !== P);
   const pool = allies.length ? allies : agents.filter(a => a.alive);
   if (!pool.length) return;
   const i = pool.indexOf(specTarget); specTarget = pool[(i + 1) % pool.length];
@@ -1818,15 +1867,21 @@ function renderBuy() {
   }).join('');
   for (const el of $('buylist').children) el.onclick = () => buyItem(+el.dataset.i);
 }
+const canBuyA = a => a.alive && (G.state === 'freeze' || (G.state === 'live' && G.liveT < BUY_WINDOW));
+function doBuy(a, i) {
+  const b = BUY[i]; if (!b) return false;
+  const W = WEAPONS[b.id], price = W ? W.price : b.price;
+  if (a.money < price) return false;
+  if (W) { if (a.inv[W.slot]?.id === b.id) return false; a.inv[W.slot] = newGun(b.id); a.slot = W.slot; a.reloading = 0; a.switchT = 0.3; }
+  else if (b.id === 'armor') { if (a.armor >= 100) return false; a.armor = 100; }
+  else { if (a.nades >= 2) return false; a.nades++; }
+  a.money -= price; return true;
+}
 function buyItem(i) {
   if (!canBuy()) { toggleBuy(false); return; }
   const b = BUY[i]; if (!b) return;
-  const W = WEAPONS[b.id], price = W ? W.price : b.price;
-  if (P.money < price) { tone(180, 0.15, 'square', 0.1); return; }
-  if (W) { if (P.inv[W.slot]?.id === b.id) return; P.inv[W.slot] = newGun(b.id); P.slot = W.slot; P.reloading = 0; P.switchT = 0.3; }
-  else if (b.id === 'armor') { if (P.armor >= 100) return; P.armor = 100; }
-  else { if (P.nades >= 2) return; P.nades++; }
-  P.money -= price; tone(880, 0.06, 'sine', 0.12); tone(1320, 0.08, 'sine', 0.1, 0.06);
+  if (NET.mode === 'client') { netSend({ t: 'buy', i }); tone(880, 0.06, 'sine', 0.12); return; }
+  if (doBuy(P, i)) { tone(880, 0.06, 'sine', 0.12); tone(1320, 0.08, 'sine', 0.1, 0.06); } else tone(180, 0.15, 'square', 0.1);
   renderBuy();
 }
 
@@ -1906,7 +1961,7 @@ function updateHUD(dt) {
 function renderBoard() {
   $('board').classList.remove('hidden');
   const rows = t => agents.filter(a => a.team === t).sort((a, b) => b.kills - a.kills).map(a =>
-    `<tr class="${a.alive ? '' : 'deadrow'} ${a.isPlayer ? 'mine' : ''}"><td class="c${t}">${a.name}</td><td>${a.kills}</td><td>${a.deaths}</td><td>${t === 0 ? '$' + a.money : '—'}</td><td>${a.alive ? '' : '✖'}</td></tr>`).join('');
+    `<tr class="${a.alive ? '' : 'deadrow'} ${a.isPlayer ? 'mine' : ''}"><td class="c${t}">${a.name}</td><td>${a.kills}</td><td>${a.deaths}</td><td>${a === P ? '$' + a.money : a.net !== 'bot' && a.net !== 'proxy' || a.human ? 'игрок' : 'бот'}</td><td>${a.alive ? '' : '✖'}</td></tr>`).join('');
   $('boardc').innerHTML = `<h2 style="margin-top:0">Раунд ${G.round} · ${G.score[0]} : ${G.score[1]}</h2>
     <table><tr><th class="c0">Вектор</th><th>Убийства</th><th>Смерти</th><th>Деньги</th><th></th></tr>${rows(0)}
     <tr><th class="c1">Ржавчина</th><th>Убийства</th><th>Смерти</th><th></th><th></th></tr>${rows(1)}</table>`;
@@ -1927,20 +1982,20 @@ function drawRadar() {
   const sx = radar.width / (MW * CELL), sz = radar.height / (MH * CELL);
   for (const a of agents) {
     if (!a.alive) continue;
-    if (a.team === 1 && a.spotted <= 0) continue;
-    rctx.fillStyle = a.isPlayer ? '#fff' : a.team ? '#ff8a3d' : '#4fb3ff';
-    rctx.beginPath(); rctx.arc(a.pos.x * sx, a.pos.z * sz, a.isPlayer ? 3.5 : 3, 0, 7); rctx.fill();
-    if (a.isPlayer) { rctx.strokeStyle = '#fff'; rctx.beginPath(); rctx.moveTo(a.pos.x * sx, a.pos.z * sz); rctx.lineTo(a.pos.x * sx - Math.sin(a.yaw) * 9, a.pos.z * sz - Math.cos(a.yaw) * 9); rctx.stroke(); }
+    if (a.team !== P.team && a.spot[P.team] <= 0) continue;
+    rctx.fillStyle = a === P ? '#fff' : a.team ? '#ff8a3d' : '#4fb3ff';
+    rctx.beginPath(); rctx.arc(a.pos.x * sx, a.pos.z * sz, a === P ? 3.5 : 3, 0, 7); rctx.fill();
+    if (a === P) { rctx.strokeStyle = '#fff'; rctx.beginPath(); rctx.moveTo(a.pos.x * sx, a.pos.z * sz); rctx.lineTo(a.pos.x * sx - Math.sin(a.yaw) * 9, a.pos.z * sz - Math.cos(a.yaw) * 9); rctx.stroke(); }
   }
 }
 
 /* ================= main loop ================= */
 let zoneStatus = '';
 function updateGame(dt) {
-  if (G.state === 'freeze') { G.timer -= dt; if (G.timer <= 0) { G.state = 'live'; G.timer = ROUND_TIME; showCenter('В БОЙ!', '', 1.2); tone(990, 0.2, 'square', 0.12); } }
+  if (G.state === 'freeze') { G.timer -= dt; if (G.timer <= 0) { G.state = 'live'; G.timer = ROUND_TIME; goFx(); netEvent({ k: 'go' }); } }
   else if (G.state === 'live') {
     G.timer -= dt; G.liveT += dt;
-    if (G.liveT >= ZONE_OPEN && G.liveT - dt < ZONE_OPEN) { showHint('Узел связи открыт! Удерживайте центр', 2.5); tone(600, 0.1, 'sine', 0.15); tone(900, 0.2, 'sine', 0.15, 0.1); }
+    if (G.liveT >= ZONE_OPEN && G.liveT - dt < ZONE_OPEN) { zoneOpenFx(); netEvent({ k: 'zo' }); }
     if (G.liveT >= ZONE_OPEN) {
       const n = [0, 0]; for (const a of agents) if (a.alive && inZone(a.pos)) n[a.team]++;
       if (n[0] && n[1]) zoneStatus = 'Узел оспаривается!';
@@ -1950,10 +2005,7 @@ function updateGame(dt) {
         if (Math.floor(now * 2) !== Math.floor((now - dt) * 2)) tone(t ? 420 : 640, 0.05, 'sine', 0.06);
         if (G.prog[t] >= 1) endRound(t, 'Узел связи перехвачен');
       } else zoneStatus = 'Узел свободен — займите его';
-      const col = n[0] && n[1] ? 0xffffff : n[0] ? 0x4fb3ff : n[1] ? 0xff8a3d : 0xc7a6ff;
-      zoneMat.color.setHex(col); beamMat.color.setHex(col); ring.material.color.setHex(col); zoneEdge.material.color.setHex(col); zoneLight.color.setHex(col);
-      beamMat.opacity = 0.25 + Math.sin(now * 4) * 0.08;
-    } else { beamMat.opacity = 0.06; for (const m of [zoneMat, beamMat, ring.material, zoneEdge.material]) m.color.setHex(0x6a5a90); zoneLight.color.setHex(0x6a5a90); }
+    }
     if (G.timer <= 0 && G.state === 'live') {
       const al = [0, 1].map(t => agents.filter(a => a.team === t && a.alive).length);
       const w = G.prog[0] !== G.prog[1] ? (G.prog[0] > G.prog[1] ? 0 : 1) : al[0] !== al[1] ? (al[0] > al[1] ? 0 : 1) : -1;
@@ -1963,31 +2015,46 @@ function updateGame(dt) {
     G.timer -= dt;
     if (G.timer <= 0) {
       if (G.over) {
-        G.state = 'over'; document.exitPointerLock();
-        const win = G.score[0] > G.score[1];
-        $('overt').textContent = win ? 'ПОБЕДА' : 'ПОРАЖЕНИЕ';
-        $('overs').textContent = `Счёт ${G.score[0]} : ${G.score[1]} · Ваши убийства: ${P.kills}, смерти: ${P.deaths}`;
-        $('over').classList.remove('hidden'); $('pause').classList.add('hidden');
+        G.state = 'over'; showOver();
       } else startRound();
     }
   }
-  ring.rotation.z += dt * 0.8; ring.position.y = 1.5 + Math.sin(now * 2) * 0.2;
+  zoneVisual(dt);
   updatePlayer(dt);
-  for (const a of agents) { if (!a.isPlayer) updateBot(a, dt); a.spotted -= dt; }
+  for (const a of agents) {
+    if (a.net === 'bot') updateBot(a, dt); else if (a.net === 'remote') followNet(a, dt);
+    a.spot[0] -= dt; a.spot[1] -= dt;
+  }
+  if (!P.alive && P.rig.deadT < 3) animateSoldier(P, dt);
+  localSpot(dt);
   separate();
   updateNades(dt);
   updateFx(dt);
+}
+function zoneVisual(dt) {
+  ring.rotation.z += dt * 0.8; ring.position.y = 1.5 + Math.sin(now * 2) * 0.2;
+  if ((G.state === 'live' || G.state === 'end') && G.liveT >= ZONE_OPEN) {
+    const n = [0, 0]; for (const a of agents) if (a.alive && inZone(a.pos)) n[a.team]++;
+    const col = n[0] && n[1] ? 0xffffff : n[0] ? 0x4fb3ff : n[1] ? 0xff8a3d : 0xc7a6ff;
+    zoneMat.color.setHex(col); beamMat.color.setHex(col); ring.material.color.setHex(col); zoneEdge.material.color.setHex(col); zoneLight.color.setHex(col);
+    beamMat.opacity = 0.25 + Math.sin(now * 4) * 0.08;
+  } else { beamMat.opacity = 0.06; for (const m of [zoneMat, beamMat, ring.material, zoneEdge.material]) m.color.setHex(0x6a5a90); zoneLight.color.setHex(0x6a5a90); }
+}
+let spotT = 0;
+function localSpot(dt) {
+  spotT -= dt; if (spotT > 0 || !P.alive) return; spotT = 0.2;
+  for (const e of agents) if (e.alive && e.team !== P.team && e.pos.distanceTo(P.pos) < 75 && canSee(P, e)) e.spot[P.team] = 1.2;
 }
 function updateCamera(dt) {
   if (window.__camOverride) { window.__camOverride(camera, dt); return; }
   if (P.alive) {
     camera.position.set(P.pos.x, P.pos.y + P.eye, P.pos.z);
     camera.rotation.set(P.pitch + P.punchP, P.yaw + P.punchY, 0);
-    for (const a of agents) if (a.model && a.alive) a.model.visible = true;
+    for (const a of agents) a.model.visible = !a.alive || a !== P;
   } else {
     if (!specTarget || !specTarget.alive) nextSpec();
     const t = specTarget;
-    for (const a of agents) if (a.model) a.model.visible = a !== t || !a.alive;
+    for (const a of agents) a.model.visible = a !== t || !a.alive;
     if (t) { camera.position.set(t.pos.x, t.pos.y + 1.62, t.pos.z); camera.rotation.set(t.pitch, t.yaw, 0); }
   }
   if (shake > 0) { shake -= dt; camera.rotation.x += rand(-1, 1) * shake * 0.05; camera.rotation.y += rand(-1, 1) * shake * 0.05; }
@@ -1999,7 +2066,11 @@ let last = performance.now();
 function frame(t) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.05, (t - last) / 1000); last = t;
-  if (G.started && !G.paused && G.state !== 'over') { now += dt; updateGame(dt); }
+  if (G.started && (!G.paused || NET.mode !== 'off')) {
+    if (NET.mode === 'client') { now += dt; clientUpdate(dt); }
+    else if (G.state !== 'over') { now += dt; updateGame(dt); }
+    if (NET.mode === 'host') hostTick(dt);
+  }
   if (joy.id === null) joy.x = joy.y = 0;
   if (G.started) { updateCamera(dt); updateHUD(dt); }
   else { now += dt; camera.position.set(zone.cx + Math.sin(now * 0.08) * 34, 16, zone.cz + Math.cos(now * 0.08) * 22); camera.lookAt(zone.cx, 0, zone.cz); ring.rotation.z += dt; }
@@ -2008,12 +2079,313 @@ function frame(t) {
 }
 requestAnimationFrame(frame);
 
+/* ================= network (multiplayer) ================= */
+// Хост ведёт всю симуляцию (раунды, боты, урон, зона) и рассылает снимки состояния 20 раз в секунду.
+// Игроки сами двигают своего бойца и считают попадания, а хост применяет урон.
+const NET = { mode: 'off', peer: null, conns: [], host: null, events: [], sendT: 0, myIdx: 0, code: '', nades: [] };
+const PEERJS_URL = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
+const PEER_PREFIX = 'perehvat-v1-';
+const WIDS = Object.keys(WEAPONS);
+const idxOf = a => agents.indexOf(a);
+const r2 = v => Math.round(v * 100) / 100, r3 = v => Math.round(v * 1000) / 1000;
+function netEvent(e) { if (NET.mode === 'host') NET.events.push(e); }
+function netSend(m) { if (NET.mode === 'client' && NET.host && NET.host.open) NET.host.send(m); }
+function setStatus(t) { $('mpstatus').textContent = t; }
+function loadPeer() {
+  if (window.Peer) return Promise.resolve();
+  return new Promise((res, rej) => {
+    const sc = document.createElement('script'); sc.src = PEERJS_URL; sc.onload = res;
+    sc.onerror = () => rej(new Error('Нет связи с интернетом: мультиплеер недоступен'));
+    document.head.appendChild(sc);
+  });
+}
+function peerOpts() {
+  const q = new URLSearchParams(location.search), o = { debug: 0 };
+  if (q.get('peerhost')) { o.host = q.get('peerhost'); o.port = +(q.get('peerport') || 9000); o.path = q.get('peerpath') || '/'; o.secure = q.get('peersecure') === '1'; }
+  return o;
+}
+function genCode() { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let c = ''; for (let i = 0; i < 5; i++) c += A[Math.floor(Math.random() * A.length)]; return c; }
+function myName() { const n = ($('mpname').value || '').trim().slice(0, 14) || 'Игрок'; try { localStorage.setItem('perehvat-name', n); } catch (e) {} return n; }
+try { $('mpname').value = localStorage.getItem('perehvat-name') || ''; } catch (e) {}
+function applyNames(n) { n.forEach((x, i) => { if (agents[i]) agents[i].name = x; }); }
+function humansCount() { return agents.filter(a => a.net === 'local' || a.net === 'remote' || a.human).length; }
+function updateRoomBadge() {
+  const el = $('room');
+  if (NET.mode === 'off') { el.classList.add('hidden'); return; }
+  el.classList.remove('hidden');
+  el.textContent = NET.mode === 'host' ? `Комната ${NET.code} · игроков: ${humansCount()} · пригласите друзей по коду` : `Комната ${NET.code} · игроков: ${humansCount()}`;
+}
+function startGameUI() {
+  initAudio();
+  $('menu').classList.add('hidden'); $('hud').classList.remove('hidden'); $('over').classList.add('hidden');
+  G.started = true; G.paused = false; lock();
+}
+function netReset() {
+  if (NET.peer) { try { NET.peer.destroy(); } catch (e) {} }
+  NET.mode = 'off'; NET.peer = null; NET.host = null; NET.conns = []; NET.events = []; NET.nades = [];
+  P.isPlayer = false; P = agents[0]; P.isPlayer = true;
+  agents.forEach((a, i) => { a.net = a === P ? 'local' : 'bot'; a.human = false; a.conn = null; a.name = NAMES[a.team][i % 5]; a.ai = {}; a.netState = null; });
+  vmSleeveMat.map = teamMats[0].fabric.map; vmSleeveMat.needsUpdate = true;
+  updateRoomBadge();
+}
+function netShutdown() { if (NET.mode !== 'off') netReset(); }
+
+/* --- хост --- */
+async function hostGame() {
+  netReset(); setStatus('Создаю комнату…');
+  try { await loadPeer(); } catch (e) { setStatus(e.message); return; }
+  const tryOpen = attempt => {
+    const code = genCode(), peer = new Peer(PEER_PREFIX + code, peerOpts());
+    NET.peer = peer;
+    peer.on('open', () => {
+      NET.mode = 'host'; NET.code = code; P.name = myName();
+      setStatus(''); startGameUI(); startMatch(); updateRoomBadge();
+      showHint(`Комната создана. Код: ${code}`, 6);
+    });
+    peer.on('connection', conn => hostAccept(conn));
+    peer.on('disconnected', () => { try { peer.reconnect(); } catch (e) {} });
+    peer.on('error', err => {
+      if (err.type === 'unavailable-id' && attempt < 4) { peer.destroy(); tryOpen(attempt + 1); return; }
+      if (NET.mode !== 'host') setStatus('Ошибка сети: ' + (err.type || err.message));
+    });
+  };
+  tryOpen(0);
+}
+function hostAccept(conn) {
+  conn.on('open', () => {
+    const humans = t => agents.filter(a => a.team === t && a.net !== 'bot').length;
+    const t = humans(0) <= humans(1) ? 0 : 1;
+    const slot = agents.find(a => a.team === t && a.net === 'bot') || agents.find(a => a.net === 'bot');
+    if (!slot) { conn.send({ t: 'full' }); setTimeout(() => conn.close(), 500); return; }
+    slot.net = 'remote'; slot.conn = conn; slot.botName = slot.botName || slot.name;
+    slot.name = String((conn.metadata && conn.metadata.name) || 'Игрок').slice(0, 14);
+    slot.tp++; slot.netState = null; if (slot.ai) slot.ai.target = null;
+    conn.agent = slot; conn.lastSeen = performance.now(); NET.conns.push(conn);
+    conn.send({ t: 'welcome', i: idxOf(slot), code: NET.code, names: agents.map(a => a.name) });
+    netEvent({ k: 'nm', n: agents.map(a => a.name) });
+    showHint(`${slot.name} присоединился к команде «${slot.team ? 'Ржавчина' : 'Вектор'}»`, 3); updateRoomBadge();
+  });
+  conn.on('data', m => hostMsg(conn, m));
+  const drop = () => {
+    const a = conn.agent; if (!a) return;
+    conn.agent = null; NET.conns = NET.conns.filter(c => c !== conn);
+    showHint(`${a.name} отключился — его место занял бот`, 3);
+    a.net = 'bot'; a.conn = null; a.name = a.botName || a.name; a.ai = newAI(a); a.netState = null;
+    netEvent({ k: 'nm', n: agents.map(x => x.name) }); updateRoomBadge();
+  };
+  conn.drop = drop;
+  conn.on('close', drop); conn.on('error', drop);
+}
+const NET_TIMEOUT = 15000;
+function hostMsg(conn, m) {
+  const a = conn.agent; if (!a || !m || typeof m !== 'object') return;
+  conn.lastSeen = performance.now();
+  if (m.t === 'st') { if (m.tp === a.tp) a.netState = m; }
+  else if (m.t === 'shot') { if (a.alive && WEAPONS[m.w]) netRemoteShot(a, m); }
+  else if (m.t === 'nade') { if (a.alive) throwNade(a); }
+  else if (m.t === 'buy') { if (canBuyA(a)) doBuy(a, m.i | 0); }
+}
+function netRemoteShot(a, m) {
+  const W = WEAPONS[m.w], ends = Array.isArray(m.e) ? m.e.slice(0, 12) : [];
+  shotFx(a, m.w, ends);
+  netEvent(W.melee ? { k: 'ml', i: idxOf(a) } : { k: 'sh', i: idxOf(a), w: m.w, e: ends });
+  const maxD = W.dmg * (W.head || 1) + 1;
+  for (const h of (Array.isArray(m.h) ? m.h.slice(0, 12) : [])) {
+    const v = agents[h[0]]; if (!v || !v.alive || v.team === a.team) continue;
+    damage(v, Math.min(+h[1] || 0, maxD), a, !!h[2], m.w, a.eyePos());
+  }
+  hearShot(a);
+}
+function hostTick(dt) {
+  NET.sendT -= dt; if (NET.sendT > 0) return; NET.sendT = 0.05;
+  const g = [G.state, r2(G.timer), r2(G.liveT), G.round, G.score[0], G.score[1], r3(G.prog[0]), r3(G.prog[1]), G.over ? 1 : 0, zoneStatus];
+  const A = agents.map(a => [r2(a.pos.x), r2(a.pos.y), r2(a.pos.z), r3(a.yaw), r3(a.pitch), r2(a.vel.x), r2(a.vel.z),
+    (a.alive ? 1 : 0) | (a.crouch ? 2 : 0) | (a.reloading > 0 ? 4 : 0) | (a.net !== 'bot' ? 8 : 0), Math.ceil(Math.max(0, a.hp)), Math.ceil(a.armor), WIDS.indexOf(a.gun().id), a.tp, a.kills, a.deaths]);
+  const N = grenades.map(n => [r2(n.pos.x), r2(n.pos.y), r2(n.pos.z)]);
+  const ev = NET.events; NET.events = [];
+  for (const c of [...NET.conns]) if (performance.now() - c.lastSeen > NET_TIMEOUT) { try { c.close(); } catch (e) {} c.drop(); }
+  for (const c of NET.conns) {
+    if (!c.open || !c.agent) continue; const a = c.agent;
+    try { c.send({ t: 's', g, a: A, n: N, e: ev, me: [a.money, a.inv[1] ? a.inv[1].id : '', a.inv[2] ? a.inv[2].id : '', a.nades] }); } catch (e) {}
+  }
+}
+
+/* --- эффекты чужих выстрелов --- */
+function shotFx(a, w, ends) {
+  const W = WEAPONS[w], R = a.rig; if (!W) return;
+  if (W.melee) { sfx('knife', a.pos); if (R) R.kick = 1.5; return; }
+  if (R) { R.kick = 1; R.flashT = 0.05; if (R.parts && R.gunId === w) R.parts.flash.visible = true; }
+  const muz = muzzleWorld(a, new THREE.Vector3());
+  ends.forEach((e, i) => {
+    const p = new THREE.Vector3(e[0], e[1], e[2]);
+    if (i < 3) addTracer(muz, p, a.team + 1);
+    if (e[3] === 1) sparks(p, 5, true); else if (e[3] === 0) { sparks(p, 3); addDecal(p, e[4], e[5], e[6]); }
+  });
+  sfx(W.snd, a.pos);
+  if (R && R.parts && w !== 'gadyuka' && a.pos.distanceTo(camera.position) < 25)
+    ejectCasing(R.parts.eject.getWorldPosition(new THREE.Vector3()), new THREE.Vector3(Math.cos(a.yaw), 0.2, -Math.sin(a.yaw)), new THREE.Vector3(a.vel.x, 0, a.vel.z), w === 'molot');
+}
+// плавное следование сетевого бойца за полученным состоянием + анимация
+function followNet(a, dt) {
+  const s = a.netState;
+  if (s && a.alive) {
+    const k = Math.min(1, dt * 16);
+    a.pos.x += (s.p[0] - a.pos.x) * k; a.pos.y += (s.p[1] - a.pos.y) * k; a.pos.z += (s.p[2] - a.pos.z) * k;
+    a.yaw += angDiff(a.yaw, s.y) * k; a.pitch += (s.pt - a.pitch) * k;
+    a.vel.set(s.v[0], 0, s.v[1]); a.crouch = !!s.c;
+    if (a.net === 'remote') {
+      const sl = s.w === 'knife' ? 3 : a.inv[1] && a.inv[1].id === s.w ? 1 : a.inv[2] && a.inv[2].id === s.w ? 2 : a.slot;
+      a.slot = a.inv[sl] ? sl : 2;
+    }
+    const W = WEAPONS[a.gun().id];
+    a.reloading = s.r && W.reload ? (a.reloading > 0 ? Math.max(0.01, a.reloading - dt) : W.reload) : 0;
+  }
+  if (a.alive || a.rig.deadT < 3) animateSoldier(a, dt);
+}
+
+/* --- клиент --- */
+async function joinGame() {
+  const code = ($('mpcode').value || '').trim().toUpperCase();
+  if (code.length < 5) { setStatus('Введите код комнаты из 5 символов'); return; }
+  netReset(); setStatus('Подключаюсь…');
+  try { await loadPeer(); } catch (e) { setStatus(e.message); return; }
+  const peer = new Peer(peerOpts()); NET.peer = peer;
+  const timeout = setTimeout(() => { if (NET.mode !== 'client') setStatus('Не удалось подключиться. Проверьте код и интернет'); }, 15000);
+  peer.on('error', err => { setStatus(err.type === 'peer-unavailable' ? 'Комната не найдена — проверьте код' : 'Ошибка сети: ' + (err.type || err.message)); });
+  peer.on('open', () => {
+    const conn = peer.connect(PEER_PREFIX + code, { metadata: { name: myName() }, serialization: 'json', reliable: true });
+    NET.host = conn;
+    conn.on('data', m => { if (m && m.t === 'welcome') clearTimeout(timeout); clientMsg(m); });
+    conn.on('close', () => netLost()); conn.on('error', () => netLost());
+  });
+}
+function netLost() {
+  if (NET.mode !== 'client') return;
+  netReset(); G.started = false; document.exitPointerLock?.();
+  for (const id of ['hud', 'pause', 'over', 'buy', 'board']) $(id).classList.add('hidden');
+  $('touch').classList.remove('on'); $('menu').classList.remove('hidden');
+  setStatus('Связь с хостом потеряна');
+}
+function clientMsg(m) {
+  if (!m || typeof m !== 'object') return;
+  if (m.t === 'full') { setStatus('Комната заполнена (максимум 10 игроков)'); return; }
+  if (m.t === 'welcome') {
+    NET.mode = 'client'; NET.myIdx = m.i; NET.code = m.code; NET.lastSnap = performance.now();
+    P.isPlayer = false; P = agents[m.i]; P.isPlayer = true; P.eye = 1.62;
+    agents.forEach(a => { a.net = a === P ? 'local' : 'proxy'; a.netState = null; });
+    applyNames(m.names);
+    vmSleeveMat.map = teamMats[P.team].fabric.map; vmSleeveMat.needsUpdate = true;
+    $('feed').innerHTML = ''; setStatus('');
+    G.over = false; startGameUI(); updateRoomBadge();
+    showHint(`Вы в команде «${P.team ? 'Ржавчина' : 'Вектор'}»`, 4);
+    return;
+  }
+  if (m.t === 's' && NET.mode === 'client') clientSnap(m);
+}
+function syncInv(slot, id) {
+  const cur = P.inv[slot] ? P.inv[slot].id : '';
+  if (cur === id) return;
+  P.inv[slot] = id ? newGun(id) : null;
+  if (id) { P.lastSlot = P.slot; P.slot = slot; P.reloading = 0; P.switchT = 0.3; }
+  else if (P.slot === slot) P.slot = P.inv[2] ? 2 : 3;
+}
+function clientSnap(m) {
+  NET.lastSnap = performance.now();
+  const [st, timer, liveT, round, s0, s1, p0, p1, over, zs] = m.g;
+  const prevState = G.state, newRound = round !== G.round;
+  G.state = st; G.timer = timer; G.liveT = liveT; G.round = round; G.score = [s0, s1]; G.prog = [p0, p1]; G.over = !!over; zoneStatus = zs;
+  for (let i = 0; i < agents.length; i++) {
+    const a = agents[i], s = m.a[i]; if (!s) continue;
+    const alive = !!(s[7] & 1), tpChanged = s[11] !== a.tp;
+    a.hp = s[8]; a.armor = s[9]; a.kills = s[12]; a.deaths = s[13]; a.human = !!(s[7] & 8);
+    if (a === P) {
+      if (tpChanged) { a.tp = s[11]; a.pos.set(s[0], s[1], s[2]); a.vel.set(0, 0, 0); a.yaw = s[3]; a.pitch = s[4]; }
+      if (a.alive && !alive) { a.alive = false; a.vel.set(0, 0, 0); $('scope').classList.add('hidden'); P.scoped = false; a.rig.deadT = 0; mouseDown = false; }
+      else if (!a.alive && alive) { a.alive = true; a.reloading = 0; a.fireCd = 0; a.punchP = a.punchY = 0; }
+      continue;
+    }
+    a.netState = { p: [s[0], s[1], s[2]], y: s[3], pt: s[4], v: [s[5], s[6]], c: s[7] & 2, r: s[7] & 4 };
+    const wid = WIDS[s[10]] || 'osa', W = WEAPONS[wid];
+    if (!a.inv[W.slot] || a.inv[W.slot].id !== wid) a.inv[W.slot] = W.slot === 3 ? { id: 'knife' } : newGun(wid);
+    a.slot = W.slot;
+    if (tpChanged || (!a.alive && alive)) { a.tp = s[11]; a.pos.set(s[0], s[1], s[2]); a.yaw = s[3]; a.alive = alive; resetRig(a); }
+    if (a.alive && !alive) a.rig.deadT = 0;
+    a.alive = alive;
+  }
+  if (newRound) {
+    for (const sl of [1, 2]) if (P.inv[sl] && WEAPONS[P.inv[sl].id].res) P.inv[sl].res = WEAPONS[P.inv[sl].id].res;
+    roundStartFx(); resetRig(P); P.crouch = false;
+  }
+  const [money, i1, i2, nades] = m.me;
+  P.money = money; P.nades = nades; syncInv(1, i1); syncInv(2, i2);
+  if (!P.inv[P.slot]) P.slot = P.inv[1] ? 1 : 2;
+  if (G.buyOpen) renderBuy();
+  NET.nades = m.n || [];
+  for (const e of m.e || []) clientEvent(e);
+  if (st === 'over' && prevState !== 'over') showOver();
+  if (st !== 'over') $('over').classList.add('hidden');
+}
+function clientEvent(e) {
+  switch (e.k) {
+    case 'sh': if (e.i !== NET.myIdx && agents[e.i]) shotFx(agents[e.i], e.w, e.e || []); break;
+    case 'ml': if (e.i !== NET.myIdx && agents[e.i]) shotFx(agents[e.i], 'knife', []); break;
+    case 'f': {
+      const k = agents[e.ki], v = agents[e.vi]; if (!v) break;
+      addFeed(k, v, e.w, e.h);
+      if (k && k !== v && v.rig) v.rig.fallDir = ((k.pos.x - v.pos.x) * -Math.sin(v.yaw) + (k.pos.z - v.pos.z) * -Math.cos(v.yaw)) > 0 ? 1 : -1;
+      break;
+    }
+    case 'hurt': if (e.i === NET.myIdx) flashDamage(e.f ? new THREE.Vector3(e.f[0], 0, e.f[1]) : null); break;
+    case 'hm': if (e.i === NET.myIdx && e.x) hitMarker(!!e.h, true); break;
+    case 'x': { const p = new THREE.Vector3(e.p[0], e.p[1], e.p[2]); explosionFx(p); sfx('boom', p); if (P.alive && p.distanceTo(P.pos) < 7) shake = 0.5; break; }
+    case 're': roundEndFx(e.w, e.r); break;
+    case 'go': goFx(); break;
+    case 'zo': zoneOpenFx(); break;
+    case 'nm': applyNames(e.n); updateRoomBadge(); break;
+  }
+}
+const netNadeMeshes = [];
+function clientUpdate(dt) {
+  if (NET.lastSnap && performance.now() - NET.lastSnap > NET_TIMEOUT) { netLost(); return; }
+  zoneVisual(dt);
+  if (!G.paused) updatePlayer(dt); else { P.vel.x *= 0.8; P.vel.z *= 0.8; moveBody(P, dt); }
+  for (const a of agents) { if (a !== P) followNet(a, dt); a.spot[0] -= dt; a.spot[1] -= dt; }
+  if (!P.alive && P.rig.deadT < 3) animateSoldier(P, dt);
+  localSpot(dt);
+  NET.nades.forEach((n, i) => {
+    if (!netNadeMeshes[i]) { netNadeMeshes[i] = new THREE.Mesh(nadeGeo, nadeMat); scene.add(netNadeMeshes[i]); }
+    netNadeMeshes[i].visible = true; netNadeMeshes[i].position.set(n[0], n[1], n[2]);
+  });
+  for (let i = NET.nades.length; i < netNadeMeshes.length; i++) netNadeMeshes[i].visible = false;
+  updateFx(dt);
+  NET.sendT -= dt;
+  if (NET.sendT <= 0) {
+    NET.sendT = 1 / 30;
+    netSend({ t: 'st', tp: P.tp, p: [r2(P.pos.x), r2(P.pos.y), r2(P.pos.z)], y: r3(P.yaw), pt: r3(P.pitch), v: [r2(P.vel.x), r2(P.vel.z)], c: P.crouch ? 1 : 0, w: P.gun().id, r: P.reloading > 0 ? 1 : 0 });
+  }
+}
+// если вкладка хоста свёрнута, браузер почти останавливает requestAnimationFrame —
+// тогда игру для всех продолжает двигать таймер из фонового воркера
+{
+  let lastBg = performance.now();
+  try {
+    const w = new Worker(URL.createObjectURL(new Blob(['setInterval(() => postMessage(0), 40)'], { type: 'text/javascript' })));
+    w.onmessage = () => {
+      const t = performance.now(), dt = Math.min(0.1, (t - lastBg) / 1000); lastBg = t;
+      if (NET.mode === 'host' && document.hidden && G.started) { now += dt; if (G.state !== 'over') updateGame(dt); hostTick(dt); }
+    };
+  } catch (e) {}
+}
+$('mphost').onclick = () => hostGame();
+$('mpjoin').onclick = () => joinGame();
+
 /* ================= menu ================= */
 for (const b of $('diff').children) b.onclick = () => { for (const x of $('diff').children) x.classList.remove('sel'); b.classList.add('sel'); diff = DIFF[+b.dataset.d]; };
 $('sens').oninput = e => { sens = +e.target.value; $('sensv').textContent = sens.toFixed(2); };
 try { const s = localStorage.getItem('perehvat-sens'); if (s) { sens = +s; $('sens').value = s; $('sensv').textContent = sens.toFixed(2); } } catch (e) {}
 $('sens').onchange = () => { try { localStorage.setItem('perehvat-sens', sens); } catch (e) {} };
 $('play').onclick = () => {
+  netReset(); setStatus('');
   initAudio();
   $('menu').classList.add('hidden'); $('hud').classList.remove('hidden');
   G.started = true; G.paused = false; startMatch(); lock();
@@ -2095,7 +2467,7 @@ window.__onBack = () => {
 };
 
 $('again').onclick = () => { $('over').classList.add('hidden'); G.paused = false; startMatch(); lock(); };
-window.__game = { G, agents, P, renderer, animateSoldier, vm, vmGuns, get now() { return now; }, findPath, spawnCells, zoneCells, walk, step: (n, dt = 1 / 60) => { for (let i = 0; i < n && G.state !== "over"; i++) { now += dt; updateGame(dt); } } };
+window.__game = { G, agents, get P() { return P; }, NET, renderer, fire, damage, buy: buyItem, animateSoldier, vm, vmGuns, get now() { return now; }, findPath, spawnCells, zoneCells, walk, step: (n, dt = 1 / 60) => { for (let i = 0; i < n && G.state !== "over"; i++) { now += dt; updateGame(dt); } } };
 </script>
 </body>
 </html>

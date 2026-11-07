@@ -15,10 +15,17 @@ if [ ! -d "cache/three-$THREE_VER" ]; then
   mkdir -p "cache/three-$THREE_VER"
   curl -fsSL "https://registry.npmjs.org/three/-/three-$THREE_VER.tgz" | tar -xz -C "cache/three-$THREE_VER" package/build/three.module.js $(for a in $ADDONS; do echo "package/examples/jsm/$a"; done)
 fi
+PEER_VER=1.5.4
+if [ ! -f "cache/peerjs-$PEER_VER.min.js" ]; then
+  curl -fsSL "https://registry.npmjs.org/peerjs/-/peerjs-$PEER_VER.tgz" | tar -xzO package/dist/peerjs.min.js > "cache/peerjs-$PEER_VER.min.js"
+fi
+cp "cache/peerjs-$PEER_VER.min.js" "$OUT/assets/www/peerjs.min.js"
 cp "cache/three-$THREE_VER/package/build/three.module.js" "$OUT/assets/www/three.module.js"
 for a in $ADDONS; do mkdir -p "$OUT/assets/www/addons/$(dirname "$a")"; cp "cache/three-$THREE_VER/package/examples/jsm/$a" "$OUT/assets/www/addons/$a"; done
 sed -e "s|https://unpkg.com/three@$THREE_VER/build/three.module.js|./three.module.js|" \
-    -e "s|https://unpkg.com/three@$THREE_VER/examples/jsm/|./addons/|" ../index.html > "$OUT/assets/www/index.html"
+    -e "s|https://unpkg.com/three@$THREE_VER/examples/jsm/|./addons/|" \
+    -e "s|https://unpkg.com/peerjs@$PEER_VER/dist/peerjs.min.js|./peerjs.min.js|" ../index.html > "$OUT/assets/www/index.html"
+grep -q "'./peerjs.min.js'" "$OUT/assets/www/index.html" || { echo "адрес PeerJS не заменён" >&2; exit 1; }
 grep -q '"./three.module.js"' "$OUT/assets/www/index.html" && grep -q '"./addons/"' "$OUT/assets/www/index.html" || { echo "importmap не заменён" >&2; exit 1; }
 # дополнения не должны тянуть файлы, которых нет в APK
 if grep -ho "from '[^']*'" $(for a in $ADDONS; do echo "$OUT/assets/www/addons/$a"; done) | grep -v "from 'three'" ; then echo "лишние зависимости дополнений" >&2; exit 1; fi
