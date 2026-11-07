@@ -72,7 +72,14 @@ function showPause() {
   $('pausemp').classList.toggle('hidden', NET.mode === 'off');
   $('pstart').classList.toggle('hidden', !(NET.mode === 'host' && G.state === 'lobby'));
   $('pteam').classList.toggle('hidden', !(G.mode === 'mp' && G.state === 'lobby'));
+  $('pcodebox').classList.toggle('hidden', NET.mode === 'off'); $('pcode').textContent = NET.code;
 }
+$('pcopy').onclick = () => {
+  const txt = NET.code;
+  const ok = () => showHint(t('copied'), 2);
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok).catch(() => {});
+  else { const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); ok(); } catch (e) {} ta.remove(); }
+};
 function goToMenu() {
   netShutdown(); $('touch').classList.remove('on'); G.started = false; G.paused = true; document.exitPointerLock?.();
   for (const id of ['pause', 'hud', 'over', 'buy', 'board']) $(id).classList.add('hidden');

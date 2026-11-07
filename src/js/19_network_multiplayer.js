@@ -5,7 +5,14 @@
 const NET = { mode: 'off', peer: null, conns: [], host: null, events: [], sendT: 0, myIdx: 0, code: '', nades: [], lastSnap: 0 };
 const NET_TIMEOUT = 15000;
 const PEERJS_URL = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
-const PEER_PREFIX = 'perehvat-v1-';
+// префикс с версией протокола: разные версии игры не смогут случайно подключиться друг к другу
+const PEER_PREFIX = 'perehvat-v3-';
+// сервера для пробивания NAT: STUN Google и Cloudflare, TURN PeerJS и OpenRelay (на случай мобильных сетей)
+const ICE = { iceServers: [
+  { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] },
+  { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' },
+  { urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443', 'turn:openrelay.metered.ca:443?transport=tcp'], username: 'openrelayproject', credential: 'openrelayproject' },
+], sdpSemantics: 'unified-plan' };
 const idxOf = a => agents.indexOf(a);
 const r2 = v => Math.round(v * 100) / 100, r3 = v => Math.round(v * 1000) / 1000;
 function netEvent(e) { if (NET.mode === 'host') NET.events.push(e); }
@@ -20,11 +27,16 @@ function loadPeer() {
   });
 }
 function peerOpts() {
-  const q = new URLSearchParams(location.search), o = { debug: 0 };
+  const q = new URLSearchParams(location.search), o = { debug: 0, config: ICE };
   if (q.get('peerhost')) { o.host = q.get('peerhost'); o.port = +(q.get('peerport') || 9000); o.path = q.get('peerpath') || '/'; o.secure = q.get('peersecure') === '1'; }
   return o;
 }
-function genCode() { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let c = ''; for (let i = 0; i < 5; i++) c += A[Math.floor(Math.random() * A.length)]; return c; }
+// код комнаты — только цифры: одинаково вводится на любой раскладке и цифровой клавиатуре телефона
+function genCode() { let c = String(1 + Math.floor(Math.random() * 9)); for (let i = 0; i < 5; i++) c += Math.floor(Math.random() * 10); return c; }
+// на всякий случай чистим ввод: пробелы, дефисы, похожие кириллические буквы
+const CYR_LAT = { 'А': 'A', 'В': 'B', 'Е': 'E', 'К': 'K', 'М': 'M', 'Н': 'H', 'О': '0', 'Р': 'P', 'С': 'C', 'Т': 'T', 'Х': 'X', 'У': 'Y', 'З': '3', 'Ч': '4', 'б': '6' };
+function normCode(s) { return String(s || '').replace(/./g, ch => CYR_LAT[ch] || CYR_LAT[ch.toUpperCase()] || ch).toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+const randId = () => PEER_PREFIX + 'c-' + Math.random().toString(36).slice(2, 12);
 function myName() { const n = ($('mpname').value || '').trim().slice(0, 14) || t('playerDef'); SET.name = n; saveSettings(); return n; }
 function applyNames(n) { n.forEach((x, i) => { if (agents[i]) agents[i].name = String(x || '').slice(0, 14); }); }
 function humansCount() { return agents.filter(a => a.net === 'local' || a.net === 'remote' || a.human).length; }
@@ -91,10 +103,18 @@ async function hostGame() {
       showHint(t('roomCreated', code), 6);
     });
     peer.on('connection', conn => hostAccept(conn));
-    peer.on('disconnected', () => { try { peer.reconnect(); } catch (e) {} });
+    // связь с сервером комнат пропала (сеть, сворачивание приложения) — переподключаемся, иначе код перестанет работать
+    const reconnect = () => {
+      if (NET.peer !== peer || peer.destroyed || !peer.disconnected) return;
+      if (NET.mode === 'host') showHint(t('roomReconnect'), 3);
+      try { peer.reconnect(); } catch (e) {}
+      setTimeout(reconnect, 4000);
+    };
+    peer.on('disconnected', () => setTimeout(reconnect, 500));
     peer.on('error', err => {
       if (err.type === 'unavailable-id' && attempt < 4) { peer.destroy(); tryOpen(attempt + 1); return; }
       if (NET.mode !== 'host') setStatus(t('st_neterr', err.type || err.message));
+      else if (['network', 'server-error', 'socket-error', 'socket-closed'].includes(err.type)) setTimeout(reconnect, 1000);
     });
   };
   tryOpen(0);
@@ -213,19 +233,29 @@ function followNet(a, dt) {
 
 /* --- клиент --- */
 async function joinGame() {
-  const code = ($('mpcode').value || '').trim().toUpperCase();
+  const code = normCode($('mpcode').value);
+  $('mpcode').value = code;
   if (code.length < 5) { setStatus(t('st_code')); return; }
   netReset(); setStatus(t('st_connecting'));
   try { await loadPeer(); } catch (e) { setStatus(e.message); return; }
-  const peer = new Peer(peerOpts()); NET.peer = peer;
-  const timeout = setTimeout(() => { if (NET.mode !== 'client') setStatus(t('st_timeout')); }, 15000);
-  peer.on('error', err => { setStatus(err.type === 'peer-unavailable' ? t('st_notfound') : t('st_neterr', err.type || err.message)); });
-  peer.on('open', () => {
+  // свой id задаём сами — не нужен отдельный HTTP-запрос к серверу за id
+  const peer = new Peer(randId(), peerOpts()); NET.peer = peer;
+  let tries = 0, done = false;
+  const timeout = setTimeout(() => { if (NET.mode !== 'client' && NET.peer === peer) setStatus(t('st_timeout')); }, 25000);
+  const connect = () => {
+    if (NET.peer !== peer || done) return;
     const conn = peer.connect(PEER_PREFIX + code, { metadata: { name: myName() }, serialization: 'json', reliable: true });
     NET.host = conn;
-    conn.on('data', m => { if (m && m.t === 'welcome') clearTimeout(timeout); clientMsg(m); });
+    conn.on('data', m => { if (m && m.t === 'welcome') { done = true; clearTimeout(timeout); } clientMsg(m); });
     conn.on('close', () => netLost()); conn.on('error', () => netLost());
+  };
+  peer.on('error', err => {
+    if (NET.peer !== peer) return;
+    // хост мог на секунду потерять связь с сервером — пробуем ещё пару раз
+    if (err.type === 'peer-unavailable' && tries < 1 && !done) { tries++; setStatus(t('st_retry')); setTimeout(connect, 2500); return; }
+    setStatus(err.type === 'peer-unavailable' ? t('st_notfound') : t('st_neterr', err.type || err.message));
   });
+  peer.on('open', connect);
 }
 function netLost() {
   if (NET.mode !== 'client') return;
@@ -355,12 +385,17 @@ function clientUpdate(dt) {
 // если вкладка хоста свёрнута, браузер почти останавливает requestAnimationFrame —
 // тогда игру для всех продолжает двигать таймер из фонового воркера
 {
-  let lastBg = performance.now();
+  let lastBg = performance.now(), lastBeat = 0;
   try {
     const w = new Worker(URL.createObjectURL(new Blob(['setInterval(() => postMessage(0), 40)'], { type: 'text/javascript' })));
     w.onmessage = () => {
       const tt = performance.now(), dt = Math.min(0.1, (tt - lastBg) / 1000); lastBg = tt;
       if (NET.mode === 'host' && document.hidden && G.started) { now += dt; if (G.state !== 'over') updateGame(dt); hostTick(dt); }
+      // в фоне браузер замедляет таймеры PeerJS — сами шлём серверу «я жив», чтобы комната не пропала
+      if (NET.peer && document.hidden && tt - lastBeat > 5000) {
+        lastBeat = tt;
+        try { if (NET.peer.socket && !NET.peer.disconnected) NET.peer.socket.send({ type: 'HEARTBEAT' }); else if (NET.mode === 'host' && NET.peer.disconnected) NET.peer.reconnect(); } catch (e) {}
+      }
     };
   } catch (e) {}
 }

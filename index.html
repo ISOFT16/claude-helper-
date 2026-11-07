@@ -275,7 +275,7 @@
         </div>
         <div class="mpcol">
           <h3 data-i18n="joinTitle"></h3>
-          <div class="field"><input id="mpcode" maxlength="5" data-i18n-ph="codePh" autocapitalize="characters" style="text-transform:uppercase;width:160px;font-size:20px;letter-spacing:3px"></div>
+          <div class="field"><input id="mpcode" maxlength="10" inputmode="numeric" autocomplete="off" autocorrect="off" spellcheck="false" data-i18n-ph="codePh" style="width:180px;font-size:22px;letter-spacing:4px"></div>
           <button class="go" id="mpjoin" data-i18n="join"></button>
         </div>
       </div>
@@ -304,6 +304,7 @@
   <div class="card" style="max-width:440px;text-align:center">
     <h2 style="margin-top:0" data-i18n="pause"></h2>
     <p class="sub" id="pausemp" data-i18n="pauseMP"></p>
+    <div id="pcodebox" class="hidden" style="margin:0 0 12px"><span id="pcode" style="font-size:26px;font-weight:800;letter-spacing:4px;margin-right:10px"></span><button id="pcopy" data-i18n="copy"></button></div>
     <div class="pbtns">
       <button class="go" id="resume" data-i18n="resume"></button>
       <button class="go hidden" id="pstart" data-i18n="startGame"></button>
@@ -371,7 +372,7 @@ STR.ru = {
   autostart: 'Автостарт матча', manual: 'Только вручную', playersN: 'при {0} игроках',
   st_creating: 'Создаю комнату…', st_connecting: 'Подключаюсь…', st_notfound: 'Комната не найдена — проверьте код', st_neterr: 'Ошибка сети: {0}',
   st_full: 'Комната заполнена (максимум 10 игроков)', st_lost: 'Связь с хостом потеряна', st_nointernet: 'Нет связи с интернетом: мультиплеер недоступен',
-  st_code: 'Введите код комнаты из 5 символов', st_timeout: 'Не удалось подключиться. Проверьте код и интернет',
+  st_code: 'Введите код комнаты (6 цифр)', st_retry: 'Комната не отвечает, пробую ещё раз…', roomReconnect: 'Связь с сервером комнат потеряна — переподключаюсь', copy: 'Копировать', copied: 'Код скопирован', st_timeout: 'Не удалось подключиться. Проверьте код и интернет',
   setTitle: 'Настройки', tGfx: 'Графика', tSnd: 'Звук', tCtl: 'Управление', tCross: 'Прицел', tUi: 'Интерфейс', tLang: 'Язык',
   preset: 'Качество графики', pLow: 'Низкое', pMed: 'Среднее', pHigh: 'Высокое', pUltra: 'Ультра', pCustom: 'Своё',
   renderScale: 'Разрешение рендера', shadows: 'Тени', off: 'Выкл', low: 'Низкие', med: 'Средние', high: 'Высокие', ultra: 'Ультра',
@@ -426,7 +427,7 @@ STR.en = {
   autostart: 'Auto-start match', manual: 'Manual only', playersN: 'at {0} players',
   st_creating: 'Creating room…', st_connecting: 'Connecting…', st_notfound: 'Room not found — check the code', st_neterr: 'Network error: {0}',
   st_full: 'Room is full (10 players max)', st_lost: 'Lost connection to the host', st_nointernet: 'No internet connection: multiplayer unavailable',
-  st_code: 'Enter the 5-character room code', st_timeout: 'Could not connect. Check the code and your internet',
+  st_code: 'Enter the 6-digit room code', st_retry: 'Room not responding, retrying…', roomReconnect: 'Lost connection to the room server — reconnecting', copy: 'Copy', copied: 'Code copied', st_timeout: 'Could not connect. Check the code and your internet',
   setTitle: 'Settings', tGfx: 'Graphics', tSnd: 'Sound', tCtl: 'Controls', tCross: 'Crosshair', tUi: 'Interface', tLang: 'Language',
   preset: 'Graphics quality', pLow: 'Low', pMed: 'Medium', pHigh: 'High', pUltra: 'Ultra', pCustom: 'Custom',
   renderScale: 'Render resolution', shadows: 'Shadows', off: 'Off', low: 'Low', med: 'Medium', high: 'High', ultra: 'Ultra',
@@ -481,7 +482,7 @@ STR.uk = {
   autostart: 'Автостарт матчу', manual: 'Лише вручну', playersN: 'при {0} гравцях',
   st_creating: 'Створюю кімнату…', st_connecting: 'Підключаюсь…', st_notfound: 'Кімнату не знайдено — перевірте код', st_neterr: 'Помилка мережі: {0}',
   st_full: 'Кімната заповнена (максимум 10 гравців)', st_lost: 'Зв’язок з хостом втрачено', st_nointernet: 'Немає інтернету: мультиплеєр недоступний',
-  st_code: 'Введіть код кімнати з 5 символів', st_timeout: 'Не вдалося підключитися. Перевірте код та інтернет',
+  st_code: 'Введіть код кімнати (6 цифр)', st_retry: 'Кімната не відповідає, пробую ще раз…', roomReconnect: 'Зв’язок із сервером кімнат втрачено — перепідключаюсь', copy: 'Копіювати', copied: 'Код скопійовано', st_timeout: 'Не вдалося підключитися. Перевірте код та інтернет',
   setTitle: 'Налаштування', tGfx: 'Графіка', tSnd: 'Звук', tCtl: 'Керування', tCross: 'Приціл', tUi: 'Інтерфейс', tLang: 'Мова',
   preset: 'Якість графіки', pLow: 'Низька', pMed: 'Середня', pHigh: 'Висока', pUltra: 'Ультра', pCustom: 'Своя',
   renderScale: 'Роздільність рендеру', shadows: 'Тіні', off: 'Вимк', low: 'Низькі', med: 'Середні', high: 'Високі', ultra: 'Ультра',
@@ -535,7 +536,7 @@ STR.de = {
   autostart: 'Automatischer Start', manual: 'Nur manuell', playersN: 'bei {0} Spielern',
   st_creating: 'Raum wird erstellt…', st_connecting: 'Verbinde…', st_notfound: 'Raum nicht gefunden — Code prüfen', st_neterr: 'Netzwerkfehler: {0}',
   st_full: 'Raum ist voll (max. 10 Spieler)', st_lost: 'Verbindung zum Host verloren', st_nointernet: 'Keine Internetverbindung: Mehrspieler nicht verfügbar',
-  st_code: 'Gib den 5-stelligen Raumcode ein', st_timeout: 'Verbindung fehlgeschlagen. Code und Internet prüfen',
+  st_code: 'Gib den 6-stelligen Raumcode ein', st_retry: 'Raum antwortet nicht, neuer Versuch…', roomReconnect: 'Verbindung zum Raumserver verloren — verbinde neu', copy: 'Kopieren', copied: 'Code kopiert', st_timeout: 'Verbindung fehlgeschlagen. Code und Internet prüfen',
   setTitle: 'Einstellungen', tGfx: 'Grafik', tSnd: 'Ton', tCtl: 'Steuerung', tCross: 'Fadenkreuz', tUi: 'Oberfläche', tLang: 'Sprache',
   preset: 'Grafikqualität', pLow: 'Niedrig', pMed: 'Mittel', pHigh: 'Hoch', pUltra: 'Ultra', pCustom: 'Eigene',
   renderScale: 'Renderauflösung', shadows: 'Schatten', off: 'Aus', low: 'Niedrig', med: 'Mittel', high: 'Hoch', ultra: 'Ultra',
@@ -589,7 +590,7 @@ STR.fr = {
   autostart: 'Démarrage auto', manual: 'Manuel uniquement', playersN: 'à {0} joueurs',
   st_creating: 'Création du salon…', st_connecting: 'Connexion…', st_notfound: 'Salon introuvable — vérifiez le code', st_neterr: 'Erreur réseau : {0}',
   st_full: 'Salon complet (10 joueurs max)', st_lost: 'Connexion à l’hôte perdue', st_nointernet: 'Pas d’internet : multijoueur indisponible',
-  st_code: 'Entrez le code de salon à 5 caractères', st_timeout: 'Connexion impossible. Vérifiez le code et internet',
+  st_code: 'Entrez le code à 6 chiffres', st_retry: 'Le salon ne répond pas, nouvel essai…', roomReconnect: 'Connexion au serveur perdue — reconnexion', copy: 'Copier', copied: 'Code copié', st_timeout: 'Connexion impossible. Vérifiez le code et internet',
   setTitle: 'Paramètres', tGfx: 'Graphismes', tSnd: 'Son', tCtl: 'Commandes', tCross: 'Viseur', tUi: 'Interface', tLang: 'Langue',
   preset: 'Qualité graphique', pLow: 'Basse', pMed: 'Moyenne', pHigh: 'Haute', pUltra: 'Ultra', pCustom: 'Perso',
   renderScale: 'Résolution du rendu', shadows: 'Ombres', off: 'Non', low: 'Basses', med: 'Moyennes', high: 'Hautes', ultra: 'Ultra',
@@ -643,7 +644,7 @@ STR.es = {
   autostart: 'Inicio automático', manual: 'Solo manual', playersN: 'con {0} jugadores',
   st_creating: 'Creando sala…', st_connecting: 'Conectando…', st_notfound: 'Sala no encontrada — revisa el código', st_neterr: 'Error de red: {0}',
   st_full: 'Sala llena (máx. 10 jugadores)', st_lost: 'Se perdió la conexión con el anfitrión', st_nointernet: 'Sin internet: multijugador no disponible',
-  st_code: 'Introduce el código de 5 caracteres', st_timeout: 'No se pudo conectar. Revisa el código e internet',
+  st_code: 'Introduce el código de 6 dígitos', st_retry: 'La sala no responde, reintentando…', roomReconnect: 'Conexión con el servidor perdida — reconectando', copy: 'Copiar', copied: 'Código copiado', st_timeout: 'No se pudo conectar. Revisa el código e internet',
   setTitle: 'Ajustes', tGfx: 'Gráficos', tSnd: 'Sonido', tCtl: 'Controles', tCross: 'Mira', tUi: 'Interfaz', tLang: 'Idioma',
   preset: 'Calidad gráfica', pLow: 'Baja', pMed: 'Media', pHigh: 'Alta', pUltra: 'Ultra', pCustom: 'Personal',
   renderScale: 'Resolución de render', shadows: 'Sombras', off: 'No', low: 'Bajas', med: 'Medias', high: 'Altas', ultra: 'Ultra',
@@ -697,7 +698,7 @@ STR.pt = {
   autostart: 'Início automático', manual: 'Somente manual', playersN: 'com {0} jogadores',
   st_creating: 'Criando sala…', st_connecting: 'Conectando…', st_notfound: 'Sala não encontrada — confira o código', st_neterr: 'Erro de rede: {0}',
   st_full: 'Sala cheia (máx. 10 jogadores)', st_lost: 'Conexão com o anfitrião perdida', st_nointernet: 'Sem internet: multijogador indisponível',
-  st_code: 'Digite o código de 5 caracteres', st_timeout: 'Não foi possível conectar. Confira o código e a internet',
+  st_code: 'Digite o código de 6 dígitos', st_retry: 'A sala não responde, tentando de novo…', roomReconnect: 'Conexão com o servidor perdida — reconectando', copy: 'Copiar', copied: 'Código copiado', st_timeout: 'Não foi possível conectar. Confira o código e a internet',
   setTitle: 'Configurações', tGfx: 'Gráficos', tSnd: 'Som', tCtl: 'Controles', tCross: 'Mira', tUi: 'Interface', tLang: 'Idioma',
   preset: 'Qualidade gráfica', pLow: 'Baixa', pMed: 'Média', pHigh: 'Alta', pUltra: 'Ultra', pCustom: 'Personalizada',
   renderScale: 'Resolução de renderização', shadows: 'Sombras', off: 'Desl.', low: 'Baixas', med: 'Médias', high: 'Altas', ultra: 'Ultra',
@@ -751,7 +752,7 @@ STR.pl = {
   autostart: 'Automatyczny start', manual: 'Tylko ręcznie', playersN: 'przy {0} graczach',
   st_creating: 'Tworzę pokój…', st_connecting: 'Łączę…', st_notfound: 'Nie znaleziono pokoju — sprawdź kod', st_neterr: 'Błąd sieci: {0}',
   st_full: 'Pokój pełny (maks. 10 graczy)', st_lost: 'Utracono połączenie z hostem', st_nointernet: 'Brak internetu: gra wieloosobowa niedostępna',
-  st_code: 'Wpisz 5-znakowy kod pokoju', st_timeout: 'Nie udało się połączyć. Sprawdź kod i internet',
+  st_code: 'Wpisz 6-cyfrowy kod pokoju', st_retry: 'Pokój nie odpowiada, ponawiam…', roomReconnect: 'Utracono połączenie z serwerem — łączę ponownie', copy: 'Kopiuj', copied: 'Kod skopiowany', st_timeout: 'Nie udało się połączyć. Sprawdź kod i internet',
   setTitle: 'Ustawienia', tGfx: 'Grafika', tSnd: 'Dźwięk', tCtl: 'Sterowanie', tCross: 'Celownik', tUi: 'Interfejs', tLang: 'Język',
   preset: 'Jakość grafiki', pLow: 'Niska', pMed: 'Średnia', pHigh: 'Wysoka', pUltra: 'Ultra', pCustom: 'Własna',
   renderScale: 'Rozdzielczość renderowania', shadows: 'Cienie', off: 'Wył.', low: 'Niskie', med: 'Średnie', high: 'Wysokie', ultra: 'Ultra',
@@ -805,7 +806,7 @@ STR.tr = {
   autostart: 'Otomatik başlatma', manual: 'Sadece elle', playersN: '{0} oyuncuda',
   st_creating: 'Oda oluşturuluyor…', st_connecting: 'Bağlanılıyor…', st_notfound: 'Oda bulunamadı — kodu kontrol et', st_neterr: 'Ağ hatası: {0}',
   st_full: 'Oda dolu (en fazla 10 oyuncu)', st_lost: 'Kurucuyla bağlantı koptu', st_nointernet: 'İnternet yok: çok oyunculu kullanılamaz',
-  st_code: '5 karakterlik oda kodunu gir', st_timeout: 'Bağlanılamadı. Kodu ve interneti kontrol et',
+  st_code: '6 haneli oda kodunu gir', st_retry: 'Oda yanıt vermiyor, tekrar deneniyor…', roomReconnect: 'Oda sunucusuyla bağlantı koptu — yeniden bağlanılıyor', copy: 'Kopyala', copied: 'Kod kopyalandı', st_timeout: 'Bağlanılamadı. Kodu ve interneti kontrol et',
   setTitle: 'Ayarlar', tGfx: 'Grafik', tSnd: 'Ses', tCtl: 'Kontroller', tCross: 'Nişangâh', tUi: 'Arayüz', tLang: 'Dil',
   preset: 'Grafik kalitesi', pLow: 'Düşük', pMed: 'Orta', pHigh: 'Yüksek', pUltra: 'Ultra', pCustom: 'Özel',
   renderScale: 'Görüntü çözünürlüğü', shadows: 'Gölgeler', off: 'Kapalı', low: 'Düşük', med: 'Orta', high: 'Yüksek', ultra: 'Ultra',
@@ -859,7 +860,7 @@ STR.zh = {
   autostart: '自动开始', manual: '仅手动', playersN: '{0} 名玩家时',
   st_creating: '正在创建房间…', st_connecting: '正在连接…', st_notfound: '找不到房间 — 请检查代码', st_neterr: '网络错误：{0}',
   st_full: '房间已满（最多 10 人）', st_lost: '与房主的连接已断开', st_nointernet: '没有网络：多人游戏不可用',
-  st_code: '请输入 5 位房间代码', st_timeout: '无法连接。请检查代码和网络',
+  st_code: '请输入 6 位房间代码', st_retry: '房间无响应，正在重试…', roomReconnect: '与房间服务器断开 — 正在重连', copy: '复制', copied: '代码已复制', st_timeout: '无法连接。请检查代码和网络',
   setTitle: '设置', tGfx: '画面', tSnd: '声音', tCtl: '操作', tCross: '准星', tUi: '界面', tLang: '语言',
   preset: '画质', pLow: '低', pMed: '中', pHigh: '高', pUltra: '极高', pCustom: '自定义',
   renderScale: '渲染分辨率', shadows: '阴影', off: '关', low: '低', med: '中', high: '高', ultra: '极高',
@@ -3475,7 +3476,14 @@ requestAnimationFrame(frame);
 const NET = { mode: 'off', peer: null, conns: [], host: null, events: [], sendT: 0, myIdx: 0, code: '', nades: [], lastSnap: 0 };
 const NET_TIMEOUT = 15000;
 const PEERJS_URL = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
-const PEER_PREFIX = 'perehvat-v1-';
+// префикс с версией протокола: разные версии игры не смогут случайно подключиться друг к другу
+const PEER_PREFIX = 'perehvat-v3-';
+// сервера для пробивания NAT: STUN Google и Cloudflare, TURN PeerJS и OpenRelay (на случай мобильных сетей)
+const ICE = { iceServers: [
+  { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] },
+  { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' },
+  { urls: ['turn:openrelay.metered.ca:80', 'turn:openrelay.metered.ca:443', 'turn:openrelay.metered.ca:443?transport=tcp'], username: 'openrelayproject', credential: 'openrelayproject' },
+], sdpSemantics: 'unified-plan' };
 const idxOf = a => agents.indexOf(a);
 const r2 = v => Math.round(v * 100) / 100, r3 = v => Math.round(v * 1000) / 1000;
 function netEvent(e) { if (NET.mode === 'host') NET.events.push(e); }
@@ -3490,11 +3498,16 @@ function loadPeer() {
   });
 }
 function peerOpts() {
-  const q = new URLSearchParams(location.search), o = { debug: 0 };
+  const q = new URLSearchParams(location.search), o = { debug: 0, config: ICE };
   if (q.get('peerhost')) { o.host = q.get('peerhost'); o.port = +(q.get('peerport') || 9000); o.path = q.get('peerpath') || '/'; o.secure = q.get('peersecure') === '1'; }
   return o;
 }
-function genCode() { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let c = ''; for (let i = 0; i < 5; i++) c += A[Math.floor(Math.random() * A.length)]; return c; }
+// код комнаты — только цифры: одинаково вводится на любой раскладке и цифровой клавиатуре телефона
+function genCode() { let c = String(1 + Math.floor(Math.random() * 9)); for (let i = 0; i < 5; i++) c += Math.floor(Math.random() * 10); return c; }
+// на всякий случай чистим ввод: пробелы, дефисы, похожие кириллические буквы
+const CYR_LAT = { 'А': 'A', 'В': 'B', 'Е': 'E', 'К': 'K', 'М': 'M', 'Н': 'H', 'О': '0', 'Р': 'P', 'С': 'C', 'Т': 'T', 'Х': 'X', 'У': 'Y', 'З': '3', 'Ч': '4', 'б': '6' };
+function normCode(s) { return String(s || '').replace(/./g, ch => CYR_LAT[ch] || CYR_LAT[ch.toUpperCase()] || ch).toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+const randId = () => PEER_PREFIX + 'c-' + Math.random().toString(36).slice(2, 12);
 function myName() { const n = ($('mpname').value || '').trim().slice(0, 14) || t('playerDef'); SET.name = n; saveSettings(); return n; }
 function applyNames(n) { n.forEach((x, i) => { if (agents[i]) agents[i].name = String(x || '').slice(0, 14); }); }
 function humansCount() { return agents.filter(a => a.net === 'local' || a.net === 'remote' || a.human).length; }
@@ -3561,10 +3574,18 @@ async function hostGame() {
       showHint(t('roomCreated', code), 6);
     });
     peer.on('connection', conn => hostAccept(conn));
-    peer.on('disconnected', () => { try { peer.reconnect(); } catch (e) {} });
+    // связь с сервером комнат пропала (сеть, сворачивание приложения) — переподключаемся, иначе код перестанет работать
+    const reconnect = () => {
+      if (NET.peer !== peer || peer.destroyed || !peer.disconnected) return;
+      if (NET.mode === 'host') showHint(t('roomReconnect'), 3);
+      try { peer.reconnect(); } catch (e) {}
+      setTimeout(reconnect, 4000);
+    };
+    peer.on('disconnected', () => setTimeout(reconnect, 500));
     peer.on('error', err => {
       if (err.type === 'unavailable-id' && attempt < 4) { peer.destroy(); tryOpen(attempt + 1); return; }
       if (NET.mode !== 'host') setStatus(t('st_neterr', err.type || err.message));
+      else if (['network', 'server-error', 'socket-error', 'socket-closed'].includes(err.type)) setTimeout(reconnect, 1000);
     });
   };
   tryOpen(0);
@@ -3683,19 +3704,29 @@ function followNet(a, dt) {
 
 /* --- клиент --- */
 async function joinGame() {
-  const code = ($('mpcode').value || '').trim().toUpperCase();
+  const code = normCode($('mpcode').value);
+  $('mpcode').value = code;
   if (code.length < 5) { setStatus(t('st_code')); return; }
   netReset(); setStatus(t('st_connecting'));
   try { await loadPeer(); } catch (e) { setStatus(e.message); return; }
-  const peer = new Peer(peerOpts()); NET.peer = peer;
-  const timeout = setTimeout(() => { if (NET.mode !== 'client') setStatus(t('st_timeout')); }, 15000);
-  peer.on('error', err => { setStatus(err.type === 'peer-unavailable' ? t('st_notfound') : t('st_neterr', err.type || err.message)); });
-  peer.on('open', () => {
+  // свой id задаём сами — не нужен отдельный HTTP-запрос к серверу за id
+  const peer = new Peer(randId(), peerOpts()); NET.peer = peer;
+  let tries = 0, done = false;
+  const timeout = setTimeout(() => { if (NET.mode !== 'client' && NET.peer === peer) setStatus(t('st_timeout')); }, 25000);
+  const connect = () => {
+    if (NET.peer !== peer || done) return;
     const conn = peer.connect(PEER_PREFIX + code, { metadata: { name: myName() }, serialization: 'json', reliable: true });
     NET.host = conn;
-    conn.on('data', m => { if (m && m.t === 'welcome') clearTimeout(timeout); clientMsg(m); });
+    conn.on('data', m => { if (m && m.t === 'welcome') { done = true; clearTimeout(timeout); } clientMsg(m); });
     conn.on('close', () => netLost()); conn.on('error', () => netLost());
+  };
+  peer.on('error', err => {
+    if (NET.peer !== peer) return;
+    // хост мог на секунду потерять связь с сервером — пробуем ещё пару раз
+    if (err.type === 'peer-unavailable' && tries < 1 && !done) { tries++; setStatus(t('st_retry')); setTimeout(connect, 2500); return; }
+    setStatus(err.type === 'peer-unavailable' ? t('st_notfound') : t('st_neterr', err.type || err.message));
   });
+  peer.on('open', connect);
 }
 function netLost() {
   if (NET.mode !== 'client') return;
@@ -3825,12 +3856,17 @@ function clientUpdate(dt) {
 // если вкладка хоста свёрнута, браузер почти останавливает requestAnimationFrame —
 // тогда игру для всех продолжает двигать таймер из фонового воркера
 {
-  let lastBg = performance.now();
+  let lastBg = performance.now(), lastBeat = 0;
   try {
     const w = new Worker(URL.createObjectURL(new Blob(['setInterval(() => postMessage(0), 40)'], { type: 'text/javascript' })));
     w.onmessage = () => {
       const tt = performance.now(), dt = Math.min(0.1, (tt - lastBg) / 1000); lastBg = tt;
       if (NET.mode === 'host' && document.hidden && G.started) { now += dt; if (G.state !== 'over') updateGame(dt); hostTick(dt); }
+      // в фоне браузер замедляет таймеры PeerJS — сами шлём серверу «я жив», чтобы комната не пропала
+      if (NET.peer && document.hidden && tt - lastBeat > 5000) {
+        lastBeat = tt;
+        try { if (NET.peer.socket && !NET.peer.disconnected) NET.peer.socket.send({ type: 'HEARTBEAT' }); else if (NET.mode === 'host' && NET.peer.disconnected) NET.peer.reconnect(); } catch (e) {}
+      }
     };
   } catch (e) {}
 }
@@ -3908,7 +3944,14 @@ function showPause() {
   $('pausemp').classList.toggle('hidden', NET.mode === 'off');
   $('pstart').classList.toggle('hidden', !(NET.mode === 'host' && G.state === 'lobby'));
   $('pteam').classList.toggle('hidden', !(G.mode === 'mp' && G.state === 'lobby'));
+  $('pcodebox').classList.toggle('hidden', NET.mode === 'off'); $('pcode').textContent = NET.code;
 }
+$('pcopy').onclick = () => {
+  const txt = NET.code;
+  const ok = () => showHint(t('copied'), 2);
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok).catch(() => {});
+  else { const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); ok(); } catch (e) {} ta.remove(); }
+};
 function goToMenu() {
   netShutdown(); $('touch').classList.remove('on'); G.started = false; G.paused = true; document.exitPointerLock?.();
   for (const id of ['pause', 'hud', 'over', 'buy', 'board']) $(id).classList.add('hidden');

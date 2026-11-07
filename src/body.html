@@ -91,7 +91,7 @@
         </div>
         <div class="mpcol">
           <h3 data-i18n="joinTitle"></h3>
-          <div class="field"><input id="mpcode" maxlength="5" data-i18n-ph="codePh" autocapitalize="characters" style="text-transform:uppercase;width:160px;font-size:20px;letter-spacing:3px"></div>
+          <div class="field"><input id="mpcode" maxlength="10" inputmode="numeric" autocomplete="off" autocorrect="off" spellcheck="false" data-i18n-ph="codePh" style="width:180px;font-size:22px;letter-spacing:4px"></div>
           <button class="go" id="mpjoin" data-i18n="join"></button>
         </div>
       </div>
@@ -120,6 +120,7 @@
   <div class="card" style="max-width:440px;text-align:center">
     <h2 style="margin-top:0" data-i18n="pause"></h2>
     <p class="sub" id="pausemp" data-i18n="pauseMP"></p>
+    <div id="pcodebox" class="hidden" style="margin:0 0 12px"><span id="pcode" style="font-size:26px;font-weight:800;letter-spacing:4px;margin-right:10px"></span><button id="pcopy" data-i18n="copy"></button></div>
     <div class="pbtns">
       <button class="go" id="resume" data-i18n="resume"></button>
       <button class="go hidden" id="pstart" data-i18n="startGame"></button>
