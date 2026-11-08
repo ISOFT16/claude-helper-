@@ -12,7 +12,7 @@ const humans = (tm) => agents.filter(a => (a.net === 'local' || a.net === 'remot
 function spawnAgent(a, sp) {
   const [sx, sz, sy] = sp || pick(WORLD.spawns[a.team]);
   a.pos.set(sx + rand(-0.3, 0.3), sy || 0, sz + rand(-0.3, 0.3)); a.pos.y = floorAt(a.pos.x, a.pos.z, (sy || 0) + 0.5, 0.2); a.onGround = true;
-  a.vel.set(0, 0, 0); a.hp = G.maxHp; a.alive = true; a.posture = 0; a.mstate = 'ground'; a.mT = 0; a.proneK = 0; a.ledge = null; a.dodgeT = 0; a.dodgeCd = 0; a.eyeOff.set(0, 0, 0); if (a === P) { wantProne = false; crouchToggled = false; } a.reloading = 0; a.fireCd = 0; a.burstLeft = 0;
+  a.vel.set(0, 0, 0); a.hp = G.maxHp; a.alive = true; a.posture = 0; a.mstate = 'ground'; a.mT = 0; a.proneK = 0; a.ledge = null; a.dodgeT = 0; a.dodgeCd = 0; a.stam = 100; a.stamT = 0; a.sprinting = false; a.eyeOff.set(0, 0, 0); if (a === P) { wantProne = false; crouchToggled = false; } a.reloading = 0; a.fireCd = 0; a.burstLeft = 0;
   a.yaw = Math.atan2(-(zone.cx - a.pos.x), -(zone.cz - a.pos.z)); a.pitch = 0; a.punchP = a.punchY = 0; a.spreadAcc = 0;
   a.slot = a.inv[1] ? 1 : 2; a.lastSlot = 3; a.spot = [0, 0]; a.tp++; a.blindT = 0;
   a.model.visible = true; resetRig(a);
@@ -26,6 +26,7 @@ function startMatch() {
   startRound();
 }
 function startRound() {
+  PENDING_HITS.length = 0;
   G.round++; G.state = 'freeze'; G.timer = FREEZE; G.liveT = 0; G.prog = [0, 0];
   for (const tm of [0, 1]) {
     const cells = [...WORLD.spawns[tm]].sort(() => Math.random() - 0.5);

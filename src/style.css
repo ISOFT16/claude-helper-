@@ -168,7 +168,8 @@
   .item .nm{display:flex;align-items:center;gap:2px} .item .nm kbd{flex:none}
   .notouch{} body.touch .notouch{display:none}
   #tNadeSel{right:160px;bottom:226px} #tChat{top:8px;right:112px} #tStart{left:12px;top:156px;width:auto;padding:0 18px;height:44px;border-radius:10px;background:rgba(200,80,60,.6);font-size:14px}
-  body.touch .tb{transform:scale(var(--ts,1))}
+  body.touch .tb{transform:scale(calc(var(--ts,1) * var(--bs,1)))}
+  .tb{transform:scale(var(--bs,1))}
   body.touch #chat{bottom:auto;top:110px;left:160px;font-size:12px}
   body.touch #chatin{bottom:auto;top:60px;left:50%;transform:translateX(-50%);width:60%}
   body.touch #lobby{font-size:11px}
@@ -231,3 +232,11 @@
   .maps button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:8px 10px;border-radius:10px;border:2px solid #2b3550;background:rgba(27,36,56,.75);color:#fff;cursor:pointer}
   .maps button b{font-size:13px} .maps button small{font-size:11px;color:var(--dim);line-height:1.25}
   .maps button.sel{border-color:#7dffb0;background:rgba(40,90,70,.45)}
+  #stambar{width:180px;height:5px;border-radius:3px;background:rgba(20,26,40,.7);overflow:hidden} #stambar i{display:block;height:100%;background:linear-gradient(90deg,#ffd85a,#7dffb0);width:100%}
+
+  /* v10: редактор раскладки кнопок */
+  #tClimb{right:20px;bottom:215px;background:rgba(60,140,90,.55);border-color:#7dffb0}
+  #touch.edit{display:block!important;background:rgba(5,8,14,.55)} #touch.edit .tb{cursor:move;outline:1px dashed rgba(255,255,255,.35)} #touch.edit .tb.tlsel{outline:2px solid #ffd85a}
+  #tledit{position:fixed;left:50%;top:10px;transform:translateX(-50%);z-index:40;display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:#121826;border:1px solid #2b3550;border-radius:12px;padding:10px 14px;max-width:calc(100vw - 24px)}
+  #tledit label{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--dim)} #tledit button{padding:8px 14px;border-radius:9px;border:1px solid #33405e;background:#1d2538;color:#fff;font-weight:700}
+  #tlsel{color:#ffd85a;font-size:13px;min-width:80px}

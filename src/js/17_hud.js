@@ -9,7 +9,7 @@ function hitMarker(head, killed) {
   if (killed) tone(600, 0.12, 'triangle', 0.12, 0.05);
 }
 let dmgT = 0;
-let hudGearT = 0, whizT = 0;
+let hudGearT = 0, whizT = 0, climbChkT = 0;
 // пули рядом: стрелка направления обстрела (жёлтая), даже если не попали
 function flashWhiz(from) {
   const dx = from.x - P.pos.x, dz = from.z - P.pos.z;
@@ -86,6 +86,7 @@ function updateHUD(dt) {
   $('money').textContent = '$' + P.money;
   $('hp').textContent = Math.max(0, Math.ceil(P.hp)); $('hp').style.color = P.hp < G.maxHp * 0.3 ? '#ff6b6b' : '';
   $('ar').textContent = Math.ceil(P.armor);
+  $('stambar').firstChild.style.width = Math.round(P.stam ?? 100) + '%'; $('stambar').style.opacity = (P.stam ?? 100) > 99 ? 0.35 : 1;
   $('dashv').textContent = P.dodgeCd > 0 ? P.dodgeCd.toFixed(1) + ' ' + t('sec') : t('ready');
   const dcd = MOVE_CFG.dodge.cd * (1 + gearMobility(P) * 2);
   $('dashbar').firstChild.style.width = (100 * (1 - clamp(P.dodgeCd / dcd, 0, 1))) + '%';
@@ -129,6 +130,8 @@ function updateHUD(dt) {
     $('tDash').innerHTML = (P.dodgeCd > 0 ? Math.ceil(P.dodgeCd) + ' ' + t('sec') : t('tDash')) + `<span class="cd" style="background:conic-gradient(rgba(125,200,255,.55) ${dk * 360}deg, transparent 0);-webkit-mask:radial-gradient(circle,transparent 60%,#000 62%);mask:radial-gradient(circle,transparent 60%,#000 62%)"></span>`;
     $('tDash').classList.toggle('off', P.dodgeCd > 0);
     $('tProne').classList.toggle('on', P.posture === 2);
+    // контекстная кнопка «Взобраться»: только если перед бойцом есть край, за который можно ухватиться
+    climbChkT -= dt; if (climbChkT <= 0) { climbChkT = 0.2; const can = P.alive && P.mstate === 'ground' && P.posture === 0 && !!findLedge(P, -Math.sin(P.yaw), -Math.cos(P.yaw)); $('tClimb').classList.toggle('hidden', !can && !document.body.classList.contains('tl-editing')); }
     const nt = nadeTotal(P); $('tNade').textContent = (sel ? t(sel) : t('tNade')) + (nt ? ' ' + nt : ''); $('tNade').classList.toggle('off', !nt);
     $('tScope').style.display = P.alive && P.w().scope ? '' : 'none'; $('tScope').classList.toggle('on', !!P.scoped);
     $('tCrouch').classList.toggle('on', touchCrouch);

@@ -2,12 +2,12 @@
 // Все настройки хранятся в localStorage и применяются на лету (кроме сглаживания).
 const DEF_BINDS = {
   fwd: ['KeyW', 'ArrowUp'], back: ['KeyS', 'ArrowDown'], left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'],
-  jump: ['Space', ''], crouch: ['ControlLeft', 'KeyC'], walk: ['ShiftLeft', ''], reload: ['KeyR', ''],
+  jump: ['Space', ''], crouch: ['ControlLeft', 'KeyC'], walk: ['KeyX', ''], sprint: ['ShiftLeft', ''], reload: ['KeyR', ''],
   prim: ['Digit1', ''], sec: ['Digit2', ''], knife: ['Digit3', ''], nade: ['Digit4', ''], last: ['KeyQ', ''],
   dash: ['KeyE', ''], throw: ['KeyG', ''], inspect: ['KeyF', ''], buy: ['KeyB', ''], scores: ['Tab', ''],
   chat: ['KeyY', 'KeyT'], start: ['Enter', ''], team: ['KeyM', ''], prone: ['KeyZ', ''], map: ['KeyN', ''],
 };
-const BIND_ORDER = ['fwd', 'back', 'left', 'right', 'jump', 'crouch', 'walk', 'reload', 'prim', 'sec', 'knife', 'nade', 'throw', 'last', 'dash', 'prone', 'map', 'inspect', 'buy', 'scores', 'chat', 'start', 'team'];
+const BIND_ORDER = ['fwd', 'back', 'left', 'right', 'jump', 'crouch', 'sprint', 'walk', 'reload', 'prim', 'sec', 'knife', 'nade', 'throw', 'last', 'dash', 'prone', 'map', 'inspect', 'buy', 'scores', 'chat', 'start', 'team'];
 const PRESETS = {
   low: { renderScale: 0.75, shadows: 0, charShadows: false, reflections: false, drawDist: 0, effects: 0, grading: false, bloom: false, ao: false },
   medium: { renderScale: 1, shadows: 1, charShadows: false, reflections: true, drawDist: 1, effects: 1, grading: true, bloom: false, ao: false },
@@ -19,7 +19,7 @@ const START_MONEY = 100000, MAX_MONEY = 100000;
 const DEF_SET = {
   lang: LANG, preset: TOUCH ? 'medium' : 'high', ...PRESETS[TOUCH ? 'medium' : 'high'], antialias: !TOUCH, fpsLimit: 0, showFps: false, brightness: 1.1, fov: 80,
   vmSide: 'right', bob: true, master: 0.8, sfxVol: 1, announcer: true,
-  sens: 1, scopeSens: 0.45, invertY: false, toggleCrouch: false, keyLayout: 'en', touchSize: 1, touchSens: 1, aimAssist: true, autoFire: false, autoQuality: true, strongShake: true,
+  sens: 1, scopeSens: 0.45, invertY: false, toggleCrouch: false, keyLayout: 'en', touchSize: 1, touchSens: 1, aimAssist: true, autoFire: false, autoQuality: true, strongShake: true, touchOpacity: 1, touchLayout: {},
   xStyle: 'cross', xColor: '#7dffb0', xSize: 8, xThick: 2, xGap: 4, xCenter: false, xDynamic: true, xOutline: true,
   radar: true, radarAll: true, killfeed: true, hitmarkers: true, dmgNumbers: true, hudScale: 1,
   diff: 1, hp: 210, rounds: 8, mpHp: 210, mpRounds: 8, mpAuto: 4, name: '', srvName: '', mpPublic: true,
@@ -31,6 +31,8 @@ const SET = (() => {
   try { const old = localStorage.getItem('perehvat-sens'); if (old && s.sens == null) s.sens = +old; } catch (e) {}
   const out = { ...DEF_SET, ...s };
   out.binds = { ...DEF_BINDS, ...(s.binds || {}) };
+  // v10: Shift — спринт, тихий шаг переехал на X (старые настройки переносятся)
+  if (s.binds && !s.binds.sprint && s.binds.walk && s.binds.walk[0] === 'ShiftLeft') { out.binds.walk = ['KeyX', s.binds.walk[1] || '']; out.binds.sprint = ['ShiftLeft', '']; }
   if (!STR[out.lang]) out.lang = LANG;
   return out;
 })();

@@ -27,6 +27,8 @@ function updateGame(dt) {
     }
   }
   zoneVisual(dt);
+  // отложенные попадания (время полёта пули)
+  for (let i = PENDING_HITS.length - 1; i >= 0; i--) if (PENDING_HITS[i].at <= now) { const h = PENDING_HITS[i]; PENDING_HITS.splice(i, 1); h.f(); }
   updatePlayer(dt);
   for (const a of agents) {
     if (a.net === 'bot') updateBot(a, dt); else if (a.net === 'remote') followNet(a, dt);
@@ -55,13 +57,13 @@ function localSpot(dt) {
   for (const e of agents) if (e.alive && e.team !== P.team && e.pos.distanceTo(P.pos) < 75 && canSee(P, e)) e.spot[P.team] = 1.2;
 }
 function updateCamera(dt) {
-  if (window.__camOverride) { window.__camOverride(camera, dt); return; }
+  if (window.__camOverride) { window.__camOverride(camera, dt); updateLOD(); return; }
   if (P.alive) {
     P.eyePos(camera.position);
     // приземление: короткое проседание камеры; уклонение: наклон и пригибание
     landKick *= Math.exp(-7 * dt); camera.position.y -= Math.sin(Math.min(1, landKick) * Math.PI * 0.5) * 0.09;
     let roll = 0;
-    if (P.mstate === 'dodge') { const k = Math.sin(clamp(P.mT / MOVE_CFG.dodge.time, 0, 1) * Math.PI); roll = -(P.dodgeLx || 0) * 0.11 * k; camera.position.y -= 0.16 * k; }
+    if (P.mstate === 'dodge') { const k = Math.sin(clamp(P.mT / (P.dodgeTime || MOVE_CFG.dodge.time), 0, 1) * Math.PI); roll = -(P.dodgeLx || 0) * (P.roll ? 0.3 : 0.11) * k; camera.position.y -= (P.roll ? 0.55 : 0.16) * k; }
     else if (P.mstate === 'climbing') roll = Math.sin(P.mT * 9) * 0.02;
     camRoll += (roll - camRoll) * Math.min(1, 14 * dt);
     camera.rotation.set(P.pitch + P.punchP, P.yaw + P.punchY, camRoll);
@@ -73,10 +75,11 @@ function updateCamera(dt) {
     if (st) { camera.position.set(st.pos.x, st.pos.y + 1.62, st.pos.z); camera.rotation.set(st.pitch, st.yaw, 0); }
   }
   if (shake > 0) { shake -= dt; camera.rotation.x += rand(-1, 1) * shake * 0.05 * shakeK; camera.rotation.y += rand(-1, 1) * shake * 0.05 * shakeK; }
-  const targetFov = P.scoped && P.alive ? (P.w().zoom || 20) : SET.fov;
-  if (camera.fov !== targetFov) { camera.fov = targetFov; camera.updateProjectionMatrix(); }
+  const targetFov = P.scoped && P.alive ? (P.w().zoom || 20) : SET.fov + (P.sprinting ? 6 : 0);
+  if (Math.abs(camera.fov - targetFov) > 0.05) { camera.fov = P.scoped ? targetFov : camera.fov + (targetFov - camera.fov) * Math.min(1, dt * 8); camera.updateProjectionMatrix(); }
   if (P.alive) updateViewmodel(dt);
   updateLOD();
+  updateWeather(dt);
 }
 let last = performance.now(), fpsFrames = 0, fpsT = 0, camRoll = 0, shakeK = 1;
 function frame(ts) {

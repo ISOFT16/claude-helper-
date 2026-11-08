@@ -8,10 +8,11 @@ for (let i = 0; i < 32; i++) {
   const l = new THREE.Line(geo, tracerMats[0]); l.visible = false; l.frustumCulled = false; scene.add(l); tracerPool.push({ l, life: 0 });
 }
 let tracerI = 0;
-function addTracer(a, b, mi = 0) {
-  const t = tracerPool[tracerI++ % tracerPool.length], arr = t.l.geometry.attributes.position;
-  arr.setXYZ(0, a.x, a.y, a.z); arr.setXYZ(1, b.x, b.y, b.z); arr.needsUpdate = true;
-  t.l.material = tracerMats[mi]; t.l.visible = true; t.life = 0.06;
+// трассер летит со скоростью пули: отрезок ~4 м движется от ствола к точке попадания
+function addTracer(a, b, mi = 0, v = 600) {
+  const t = tracerPool[tracerI++ % tracerPool.length];
+  t.a = (t.a || new THREE.Vector3()).copy(a); t.b = (t.b || new THREE.Vector3()).copy(b); t.len = a.distanceTo(b); t.v = v; t.s = 0;
+  t.l.material = tracerMats[mi]; t.l.visible = true; t.life = Math.max(0.05, t.len / v + 0.02);
 }
 
 // --- частицы: два пула (обычное и аддитивное смешивание), каждый рисуется одним вызовом ---
@@ -147,7 +148,13 @@ function explosionFx(pos) {
 }
 function updateFx(dt) {
   updateCasings(dt);
-  for (const t of tracerPool) if (t.life > 0) { t.life -= dt; if (t.life <= 0) t.l.visible = false; }
+  for (const t of tracerPool) if (t.life > 0) {
+    t.life -= dt; t.s += t.v * dt; if (t.life <= 0) { t.l.visible = false; continue; }
+    const h = Math.min(t.s, t.len), tl = Math.max(0, h - 4), arr = t.l.geometry.attributes.position;
+    const k0 = tl / (t.len || 1), k1 = h / (t.len || 1);
+    arr.setXYZ(0, t.a.x + (t.b.x - t.a.x) * k0, t.a.y + (t.b.y - t.a.y) * k0, t.a.z + (t.b.z - t.a.z) * k0);
+    arr.setXYZ(1, t.a.x + (t.b.x - t.a.x) * k1, t.a.y + (t.b.y - t.a.y) * k1, t.a.z + (t.b.z - t.a.z) * k1); arr.needsUpdate = true;
+  }
   for (let i = fx.length - 1; i >= 0; i--) {
     const e = fx[i]; e.life -= dt;
     if (e.tick) e.tick(Math.max(0, e.life / e.max));

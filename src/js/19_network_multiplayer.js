@@ -164,7 +164,7 @@ function hostMsg(conn, m) {
   conn.lastSeen = performance.now();
   switch (m.t) {
     case 'st': if (m.tp === a.tp) a.netState = m; break;
-    case 'shot': if (a.alive && WEAPONS[m.w]) netRemoteShot(a, m); break;
+    case 'shot': if (a.alive && WEAPONS[m.w]) { netRemoteShot(a, m); if (Array.isArray(m.gl)) for (const gi of m.gl.slice(0, 8)) { const bx = WORLD.boxes[gi | 0]; if (bx && bx.glass) breakGlass(bx); } } break;
     case 'nade': if (a.alive && NADES.includes(m.k)) throwNade(a, m.k); break;
     case 'buy': if (canBuyA(a) && (WEAPONS[m.id] || GEAR[m.id])) doBuy(a, m.id); break;
     case 'team': {

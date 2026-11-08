@@ -1,7 +1,7 @@
 /* ================= audio ================= */
 // Все звуки синтезируются Web Audio API: слоистые выстрелы (щелчок + тело + удар + хвост)
 // с ревербом помещения, механика перезарядки, шаги, звон шлема, радио и голос диктора.
-let AC = null, master = null, sfxBus = null, revIn = null, noiseBuf = null;
+let AC = null, master = null, sfxBus = null, revIn = null, revOut = null, noiseBuf = null;
 function initAudio() {
   if (AC) { if (AC.state !== 'running') AC.resume(); return; }
   AC = new (window.AudioContext || window.webkitAudioContext)();
@@ -10,7 +10,7 @@ function initAudio() {
   sfxBus = AC.createGain(); sfxBus.connect(master);
   const conv = AC.createConvolver(); conv.buffer = makeIR(1.6, 3.2);
   revIn = AC.createGain(); revIn.gain.value = 1; revIn.connect(conv);
-  const revOut = AC.createGain(); revOut.gain.value = 0.42; conv.connect(revOut).connect(sfxBus);
+  revOut = AC.createGain(); revOut.gain.value = 0.42; conv.connect(revOut).connect(sfxBus);
   noiseBuf = AC.createBuffer(1, AC.sampleRate * 2, AC.sampleRate);
   const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   applyVolume();
@@ -153,12 +153,24 @@ function sfxAct(kind, pos = null) {
   else if (kind === 'deploy') { slideNoise(pos, 0.25, 0.1); clickAt(pos, 1600, 0.35, 0.06); }
   else if (kind === 'empty') clickAt(pos, 2600, 0.45);
 }
+// шаги зависят от поверхности: бетон/камень, металл (гулкий звон), дерево (глухой стук), грунт/песок (шорох)
 function stepSound(pos, vol = 1) {
   if (!AC) return; const sp = spatial(pos), v = 0.22 * vol * sp.vol; if (v < 0.004) return;
   const o = outChain(sp, 0.08), t = AC.currentTime;
-  noiseHit(o, t, { type: 'bandpass', f: rand(380, 620), q: 1.1, dur: 0.06, vol: v * 1.4 });
-  noiseHit(o, t + 0.012, { type: 'highpass', f: 3500, dur: 0.02, vol: v * 0.4 });
-  oscHit(o, t, 'sine', 90, 50, 0.05, v * 0.8);
+  const p = pos || (typeof P !== 'undefined' ? P.pos : null);
+  const kind = p ? (MAT_INFO[materialAt(p.x, p.y - 0.05, p.z)] || {}).step || 'hard' : 'hard';
+  if (kind === 'metal') {
+    noiseHit(o, t, { type: 'bandpass', f: rand(900, 1300), q: 3, dur: 0.09, vol: v * 1.2 });
+    oscHit(o, t, 'triangle', rand(420, 520), 300, 0.12, v * 0.35); oscHit(o, t, 'sine', 120, 60, 0.06, v * 0.6);
+  } else if (kind === 'wood') {
+    noiseHit(o, t, { type: 'lowpass', f: rand(500, 700), dur: 0.07, vol: v * 1.5 }); oscHit(o, t, 'sine', 160, 90, 0.07, v * 0.9);
+  } else if (kind === 'soft') {
+    noiseHit(o, t, { type: 'bandpass', f: rand(1500, 2500), q: 0.6, dur: 0.11, vol: v * 1.1 }); noiseHit(o, t + 0.03, { type: 'highpass', f: 4000, dur: 0.05, vol: v * 0.5 });
+  } else {
+    noiseHit(o, t, { type: 'bandpass', f: rand(380, 620), q: 1.1, dur: 0.06, vol: v * 1.4 });
+    noiseHit(o, t + 0.012, { type: 'highpass', f: 3500, dur: 0.02, vol: v * 0.4 });
+    oscHit(o, t, 'sine', 90, 50, 0.05, v * 0.8);
+  }
 }
 function landSound() { if (!AC) return; const o = outChain({ vol: 1, pan: 0, d: 0 }, 0.1), t = AC.currentTime; noiseHit(o, t, { type: 'lowpass', f: 500, dur: 0.12, vol: 0.35 }); oscHit(o, t, 'sine', 80, 40, 0.1, 0.3); }
 function knifeSound(pos) {
@@ -213,8 +225,12 @@ function announce(key) {
   } catch (e) {}
 }
 // совместимость со старым API
+// ограничение числа одновременно запускаемых звуков: в перестрелке далёкие звуки пропускаются
+let sndWin = 0, sndCount = 0;
 function sfx(kind, pos, mul = 1) {
   if (!AC) return;
+  if (AC.currentTime - sndWin > 0.1) { sndWin = AC.currentTime; sndCount = 0; }
+  if (++sndCount > 16 && pos && pos.distanceTo(camera.position) > 12) return;
   if (GUN[kind]) shotSound(kind, pos);
   else if (kind === 'knife') knifeSound(pos);
   else if (kind === 'boom') boomSound(pos);

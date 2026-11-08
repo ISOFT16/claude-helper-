@@ -6,13 +6,15 @@ let wantProne = false, postureHintT = 0;
 function updatePlayer(dt) {
   P.fireCd -= dt; P.switchT -= dt; P.dodgeCd = Math.max(0, P.dodgeCd - dt); P.ledgeCd = Math.max(0, (P.ledgeCd || 0) - dt);
   if (P.reloading > 0) { P.reloading -= dt; if (P.reloading <= 0) finishReload(P); }
-  P.punchP *= Math.exp(-(mouseDown ? 3 : 7) * dt); P.punchY *= Math.exp(-6 * dt);
+  // плавный возврат после отдачи: тяжёлое оружие возвращается медленнее; при стрельбе — медленнее
+  const rk = P.recoverK || 7; P.punchP *= Math.exp(-(mouseDown ? rk * 0.42 : rk) * dt); P.punchY *= Math.exp(-rk * 0.85 * dt);
   P.spreadAcc *= Math.exp(-(mouseDown ? 2 : 6) * dt);
   if (reScopeT > 0) { reScopeT -= dt; if (reScopeT <= 0 && rmbHeldScope && P.alive && P.w().scope) P.scoped = true; }
   postureHintT -= dt;
   if (!P.alive) return;
   const W = P.w(), typing = chatOpen;
   const walking = !typing && bindDown('walk');
+  updateStamina(P, dt);
   let fx = 0, fz = 0;
   if (!typing) { if (bindDown('fwd')) fz -= 1; if (bindDown('back')) fz += 1; if (bindDown('left')) fx -= 1; if (bindDown('right')) fx += 1; }
   if (TOUCH) { fx += joy.x; fz += joy.y; }
@@ -47,7 +49,11 @@ function updatePlayer(dt) {
   const s = Math.sin(P.yaw), c = Math.cos(P.yaw);
   const wx = fx * c + fz * s, wz = -fx * s + fz * c;
   const S = MOVE_CFG.speed, trans = P.proneK > 0.02 && P.proneK < 0.98;
-  const base = P.posture === 2 ? S.prone : P.posture === 1 ? S.crouch : walking ? S.walk : S.stand;
+  // спринт: вперёд, стоя, не целясь; на телефоне — джойстик до упора
+  const wantSprint = !typing && (bindDown('sprint') || (TOUCH && Math.hypot(joy.x, joy.y) > 0.96)) && fz < -0.5 && P.posture === 0 && !P.scoped && P.onGround && G.state !== 'freeze';
+  P.sprinting = wantSprint && (P.stam > 1) && P.reloading <= 0;
+  if (P.sprinting) { P.stam -= MOVE_CFG.stamina.sprint * dt; P.stamT = MOVE_CFG.stamina.delay * 0.5; mouseDown = mouseDown && !P.sprinting ? mouseDown : mouseDown; }
+  const base = P.sprinting ? S.sprint : P.posture === 2 ? S.prone : P.posture === 1 ? S.crouch : walking ? S.walk : S.stand;
   const speed = base * W.move * (P.scoped ? 0.55 : 1) * (1 - gearMobility(P)) * (trans ? 0.25 : 1);
   if (P.mstate === 'dodge') updateDodge(P, dt);
   else {
@@ -70,6 +76,7 @@ function updatePlayer(dt) {
   if (P.onGround && !wasGround) { landKick = clamp(-vy / 9, 0, 1); if (vy < -6) { landSound(); dustFx(P.pos, 8, 0.6); } }
   wasGround = P.onGround;
   // захват края: в воздухе, если жмём вперёд или держим прыжок
+  P.autoClimbT = Math.max(0, (P.autoClimbT || 0) - dt); if (P.autoClimbT > 0) fz = Math.min(fz, -1);
   if (P.mstate === 'air' && P.ledgeCd <= 0 && (fz < -0.3 || jumpHeld)) {
     const hx = Math.hypot(P.vel.x, P.vel.z) > 1.5 && fz >= -0.3 ? P.vel.x / Math.hypot(P.vel.x, P.vel.z) : -s, hz = Math.hypot(P.vel.x, P.vel.z) > 1.5 && fz >= -0.3 ? P.vel.z / Math.hypot(P.vel.x, P.vel.z) : -c;
     const L = findLedge(P, hx, hz); if (L) { L.auto = fz < -0.3; startLedge(P, L); return; }
@@ -85,7 +92,9 @@ function updatePlayer(dt) {
     if (P.posture === 2 && bobT - lastStep > Math.PI) { lastStep = bobT; slideNoise(null, 0.12, 0.25); }
   }
   // стрельба (у оружия с отсечкой очередь дострeливается сама)
-  const armed = canUseWeapon(P);
+  // на бегу оружие опущено: выстрел прерывает спринт
+  if (P.sprinting && (mouseDown || P.burstLeft > 0)) P.sprinting = false;
+  const armed = canUseWeapon(P) && !P.sprinting;
   const autoShot = armed && SET.autoFire && !mouseDown && autoFireTarget(W);
   if (armed && (mouseDown || autoShot || P.burstLeft > 0) && G.state !== 'freeze' && !G.buyOpen) {
     if (fire(P) && !W.auto && !W.melee && !TOUCH && !(P.burstLeft > 0)) mouseDown = false;

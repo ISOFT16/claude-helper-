@@ -6,7 +6,10 @@ const POSTURE_EYE = [1.62, 1.05, 0.36, 1.62]; // высота глаз
 const POSTURE_SPREAD = [1, 0.7, 0.45, 1.6];   // множитель разброса
 const POSTURE_RECOIL = [1, 0.75, 0.5, 1];     // множитель отдачи
 const MOVE_CFG = {
-  speed: { stand: 6.2, walk: 2.9, crouch: 2.4, prone: 1.05 },
+  speed: { stand: 6.2, walk: 2.9, crouch: 2.4, prone: 1.05, sprint: 8.4 },
+  // выносливость: тратится на спринт, уклонение, перекат и подтягивание, восстанавливается после паузы
+  stamina: { max: 100, sprint: 16, dodge: 22, roll: 28, climb: 14, regen: 24, delay: 0.9 },
+  roll: { dist: 4.2, time: 0.55 },
   proneTime: 0.5,          // время перехода в положение лёжа и обратно, с
   proneLen: 0.8,           // на сколько тело лёжа выступает вперёд и назад от центра, м
   proneTurn: 2.6,          // скорость поворота тела лёжа, рад/с

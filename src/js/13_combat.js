@@ -56,6 +56,49 @@ function muzzleWorld(a, out) {
   if (a.rig.parts) return a.rig.parts.muzzle.getWorldPosition(out);
   return out.set(a.pos.x, a.pos.y + 1.3, a.pos.z);
 }
+// Баллистика (игровая модель): скорость пули и эффективная гравитация по классу оружия.
+// Траектория считается отрезками; тонкие лёгкие материалы (стекло, дерево, штукатурка, листовой металл) пробиваются
+// с потерей урона, толстые (бетон, кирпич, камень) — нет. Стекло при попадании разбивается.
+const BALLISTICS = {
+  pistol: { v: 360, g: 26, pen: 1 }, smg: { v: 400, g: 22, pen: 1 }, shotgun: { v: 400, g: 22, pen: 0 },
+  rifle: { v: 880, g: 14, pen: 2 }, sniper: { v: 950, g: 12, pen: 3 }, mg: { v: 820, g: 14, pen: 2 },
+};
+const GLASS_LOCAL = [], PENDING_HITS = [], _v7 = new THREE.Vector3(), _bp = new THREE.Vector3(), _bd = new THREE.Vector3();
+function traceBullet(o, dir, BV, shooter, W) {
+  const p = _bp.copy(o), vel = _bd.copy(dir).multiplyScalar(BV.v), skip = new Set();
+  let k = 1, t = 0, pens = BV.pen, out = null;
+  for (let seg = 0; seg < 30 && t < 0.6; seg++) {
+    const dt = 6 / BV.v; // отрезки по ~6 м
+    const nx = vel.x * dt, ny = vel.y * dt - 0.5 * BV.g * dt * dt, nz = vel.z * dt, L = Math.hypot(nx, ny, nz), dx = nx / L, dy = ny / L, dz = nz / L;
+    const w = rayWorld(p.x, p.y, p.z, dx, dy, dz, L, skip);
+    let tw = w.hit ? w.t : L, victim = null, head = false;
+    for (const b of agents) { if (!b.alive || b === shooter || b.team === shooter.team) continue; if (rayAgent(p.x, p.y, p.z, dx, dy, dz, b) && RA.t < tw) { tw = RA.t; victim = b; head = RA.head; } }
+    if (victim) { out = { end: new THREE.Vector3(p.x + dx * tw, p.y + dy * tw, p.z + dz * tw), victim, head, n: [0, 0, 0], world: false, k, t: t + tw / BV.v }; break; }
+    if (w.hit) {
+      const hp = new THREE.Vector3(p.x + dx * tw, p.y + dy * tw, p.z + dz * tw), box = w.box, wn = [w.nx, w.ny, w.nz];
+      addDecal(hp, wn[0], wn[1], wn[2]);
+      const mi = box ? MAT_INFO[box.m] : null, thin = box && Math.min(box.x1 - box.x0, box.y1 - box.y0, box.z1 - box.z0) <= 0.35;
+      if (box && box.glass) { breakGlass(box, hp); skip.add(box); k *= 0.9; p.copy(hp).addScaledVector(_v7.set(dx, dy, dz), 0.01); t += tw / BV.v; vel.y -= BV.g * (tw / BV.v); continue; }
+      if (box && mi && thin && pens > 0 && mi.pen > 0.2) { pens--; k *= mi.pen; skip.add(box); p.copy(hp).addScaledVector(_v7.set(dx, dy, dz), 0.02); t += tw / BV.v; vel.y -= BV.g * (tw / BV.v); continue; }
+      out = { end: hp, victim: null, head: false, n: wn, world: true, k, t: t + tw / BV.v }; break;
+    }
+    p.set(p.x + nx, p.y + ny, p.z + nz); vel.y -= BV.g * dt; t += dt;
+  }
+  return out || { end: p.clone(), victim: null, head: false, n: [0, 0, 0], world: false, k, t };
+}
+// параметры отдачи из характеристик оружия: мощность выстрела против массы оружия
+const RECOIL_MASS = { pistol: 1.1, smg: 2.8, shotgun: 3.4, rifle: 3.6, sniper: 5.5, mg: 9, knife: 1 };
+const _recoilCache = {};
+function recoilOf(W) {
+  const id = W.n[1]; if (_recoilCache[id]) return _recoilCache[id];
+  const power = W.dmg * (W.pellets || 1), mass = RECOIL_MASS[W.cat] || 3, rateK = W.auto ? clamp(0.09 / W.rate, 0.7, 1.6) : 1;
+  const base = W.recoil, r = {
+    v: base, h: base * 0.32 * rateK, climb: W.auto ? 0.045 * rateK : 0.02,
+    drift: (W.cat === 'mg' || W.cat === 'rifle' ? 0.08 : 0.04) * base * (id.length % 2 ? 1 : -1), seed: id.length * 1.7,
+    recover: clamp(9 / Math.sqrt(mass), 3, 9), vis: clamp(0.35 + power / 40 - mass * 0.06, 0.5, 2.4),
+  };
+  return (_recoilCache[id] = r);
+}
 function fire(a) {
   const g = a.gun(), W = WEAPONS[g.id];
   if (a.fireCd > 0 || a.reloading > 0 || a.switchT > 0) return false;
@@ -76,33 +119,38 @@ function fire(a) {
   const muz = muzzleWorld(a, _m);
   const n = W.pellets || 1, ends = [], hits = []; let whizzed = false;
   const netClient = NET.mode === 'client' && a === P;
+  const BV = BALLISTICS[W.cat] || BALLISTICS.rifle;
   for (let i = 0; i < n; i++) {
     const dir = _o.copy(_d).addScaledVector(_r, gauss() * spread * 0.6).addScaledVector(_u, gauss() * spread * 0.6).normalize();
-    const w = rayWorld(eye.x, eye.y, eye.z, dir.x, dir.y, dir.z, 200);
-    let tw = w.t, wn = [w.nx, w.ny, w.nz], victim = null, vh = false;
-    for (const b of agents) {
-      if (!b.alive || b.team === a.team) continue;
-      if (rayAgent(eye.x, eye.y, eye.z, dir.x, dir.y, dir.z, b) && RA.t < tw) { tw = RA.t; victim = b; vh = RA.head; }
-    }
-    const hit = new THREE.Vector3().copy(eye).addScaledVector(dir, Math.min(tw, 200));
-    if (!whizzed && a !== P && victim !== P) whizzed = nearMiss(eye, dir, Math.min(tw, 200));
+    const tr = traceBullet(eye, dir, BV, a, W);
+    const hit = tr.end, victim = tr.victim, vh = tr.head, wn = tr.n;
+    if (!whizzed && a !== P && victim !== P) whizzed = nearMiss(eye, _v7.copy(hit).sub(eye).normalize(), eye.distanceTo(hit));
     if (victim) {
-      const zone = vh ? 'head' : hitZone(victim, _o2.copy(eye).addScaledVector(dir, tw));
-      const dmg = W.dmg * (vh ? W.head : ZONE_MULT[zone]);
+      const zone = vh ? 'head' : hitZone(victim, hit);
+      const dmg = W.dmg * (vh ? W.head : ZONE_MULT[zone]) * tr.k;
       if (netClient) {
         hits.push([idxOf(victim), dmg, vh ? 1 : 0, ZONES.indexOf(zone)]);
         if (G.state === 'lobby') hitMarker(vh, false); else { hitMarker(vh, false); hitSound(vh, victim.armor > 0, victim.pos); dmgNumber(victim, dmg * (victim.armor > 0 ? 0.55 : 1), vh); }
-      } else damage(victim, dmg, a, vh, g.id, eye.clone(), zone);
+      } else {
+        // пуля летит: урон — по времени подлёта (дальние попадания чуть запаздывают)
+        const v_ = victim, eyeC = eye.clone(), wid = g.id;
+        if (tr.t < 0.03) damage(v_, dmg, a, vh, wid, eyeC, zone); else PENDING_HITS.push({ at: now + tr.t, f: () => damage(v_, dmg, a, vh, wid, eyeC, zone) });
+      }
       sparks(hit, vh ? 8 : 5, true);
     }
-    else if (w.hit) { addDecal(hit, wn[0], wn[1], wn[2]); if (i === 0) impactSound(hit); }
-    ends.push([r2(hit.x), r2(hit.y), r2(hit.z), victim ? 1 : w.hit ? 0 : 2, wn[0], wn[1], wn[2]]);
-    if (i < 3 && !W.quiet) addTracer(muz, hit, a.isPlayer ? 0 : a.team + 1);
+    else if (tr.world) { if (i === 0) impactSound(hit); }
+    ends.push([r2(hit.x), r2(hit.y), r2(hit.z), victim ? 1 : tr.world ? 0 : 2, wn[0], wn[1], wn[2]]);
+    if (i < 3 && !W.quiet) addTracer(muz, hit, a.isPlayer ? 0 : a.team + 1, BV.v);
   }
   // отдача
   if (a.isPlayer) {
-    a.punchP += W.recoil * rand(0.8, 1.2) * POSTURE_RECOIL[a.posture || 0]; a.punchY += rand(-1, 1) * W.recoil * 0.35;
-    a.spreadAcc = Math.min(a.spreadAcc + W.inc, 0.06); vmOnFire(g.id, W);
+    // отдача: импульс от мощности и массы оружия, растёт в длинной очереди, узор отклонения у каждого ствола свой
+    const R_ = recoilOf(W), shot = a.burstN = (now - (a.lastShotT || 0) < W.rate * 2.2 ? (a.burstN || 0) + 1 : 0); a.lastShotT = now;
+    const climb = 1 + Math.min(shot, 14) * R_.climb, k = POSTURE_RECOIL[a.posture || 0] * (a.mstate === 'air' ? 1.5 : 1);
+    a.punchP += R_.v * climb * rand(0.9, 1.1) * k;
+    a.punchY += (Math.sin(shot * 0.85 + R_.seed) * R_.h + R_.drift * Math.min(shot, 8)) * k;
+    a.recoverK = R_.recover;
+    a.spreadAcc = Math.min(a.spreadAcc + W.inc, 0.06); vmOnFire(g.id, W, recoilOf(W).vis);
     if (W.act === 'bolt' && a.scoped) { a.scoped = false; reScopeT = W.rate * 0.9; }
   } else {
     const R = a.rig; R.kick = 1; R.flashT = 0.05; if (R.parts) R.parts.flash.visible = true;
@@ -115,7 +163,7 @@ function fire(a) {
   sfx(W.snd, a.isPlayer ? null : a.pos);
   if (a !== P || !a.isPlayer) muzzleSmoke(muz, W.cat === 'shotgun' || W.cat === 'sniper');
   if (a.isPlayer && !W.quiet) { vmFlashLight.position.copy(muz); vmFlashLight.intensity = 8; }
-  if (netClient) netSend({ t: 'shot', w: g.id, e: ends, h: hits });
+  if (netClient) netSend({ t: 'shot', w: g.id, e: ends, h: hits, gl: GLASS_LOCAL.splice(0, 8) });
   else netEvent({ k: 'sh', i: idxOf(a), w: g.id, e: ends });
   hearShot(a, W);
   if (g.mag === 0) { a.burstLeft = 0; if (!a.isPlayer) startReload(a); }

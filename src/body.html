@@ -30,6 +30,7 @@
     <div id="money">$100000</div>
     <div id="vitals"><span><small data-i18n="health"></small><span id="hp">100</span></span><span><small data-i18n="armor"></small><span id="ar">0</span></span></div>
     <div id="gearhud"></div>
+    <div id="stambar"><i></i></div>
     <div id="dash"><span data-i18n="dash"></span>: <b id="dashv"></b><i id="dashbar"><i></i></i></div>
   </div>
   <div id="br">
@@ -49,6 +50,7 @@
   <div class="tb" id="tDash" data-i18n-html="tDash"></div>
   <div class="tb" id="tProne" data-i18n-html="tProne"></div>
   <div class="tb tsm" id="tMap">🗺</div>
+  <div class="tb hidden" id="tClimb" data-i18n-html="tClimb"></div>
   <div class="tb" id="tNade" data-i18n-html="tNade"></div>
   <div class="tb tsm" id="tNadeSel">↻</div>
   <div class="tb" id="tScope" data-i18n-html="tScope"></div>
@@ -62,6 +64,12 @@
   <canvas id="wmapc"></canvas>
   <div class="wmbar"><b data-i18n="mapTitle"></b><small data-i18n="mapHint"></small>
     <span class="wmbtns"><button id="wmzout">−</button><button id="wmzin">+</button><button id="wmcenter" data-i18n="mapCenter"></button><button id="wmclose" data-i18n="mapClose"></button></span></div>
+</div>
+<div id="tledit" class="hidden">
+  <b data-i18n="tlTitle"></b><span id="tlsel"></span>
+  <label><span data-i18n="tlSize"></span><input type="range" id="tlsize" min="0.6" max="1.8" step="0.05"></label>
+  <label><span data-i18n="tlOpacity"></span><input type="range" id="tlop" min="0.15" max="1" step="0.05"></label>
+  <button id="tlreset" data-i18n="tlReset"></button><button id="tldone" class="go" data-i18n="tlDone"></button>
 </div>
 <div id="rotate" data-i18n="rotate"></div>
 <div id="coinpops"></div>
@@ -78,7 +86,7 @@
       <button class="nb" data-screen="daily"><span data-i18n="mDaily"></span><i class="badge hidden" id="dailybadge">!</i></button>
       <button class="nb" data-open="settings" data-i18n="mSettings"></button>
       <button class="nb" data-screen="help" data-i18n="mHelp"></button>
-      <div class="ver">v9</div>
+      <div class="ver">v10</div>
     </div>
     <div class="panel" id="scr-sp">
       <button class="backbtn" data-i18n="back"></button>

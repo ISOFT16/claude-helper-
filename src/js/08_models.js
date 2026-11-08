@@ -43,6 +43,7 @@ const MT = {
   gloveDark: std({ color: 0x17191c, roughness: 0.75 }),
   skin: std({ color: 0xc79a76, roughness: 0.65 }),
   hair: std({ color: 0x2a1f17, roughness: 0.9 }),
+  eyeWhite: std({ color: 0xe8e4dc, roughness: 0.25 }), iris: std({ color: 0x2a2018, roughness: 0.2 }), lip: std({ color: 0x9a6858, roughness: 0.6 }),
   boot: std({ color: 0x1e1b18, roughness: 0.7 }),
   sole: std({ color: 0x0b0b0b, roughness: 0.95 }),
 };
@@ -498,9 +499,23 @@ function placeSeg(m, a, b, L) {
   _sd.subVectors(b, a); const d = _sd.length() || 1e-4;
   m.position.addVectors(a, b).multiplyScalar(0.5);
   m.quaternion.setFromUnitVectors(UPV, _sd.divideScalar(d));
-  m.scale.set(1, d / L, 1);
+  const w = m.userData.w || 1; m.scale.set(w, d / L, w);
 }
 function seg(r, L, mat, parent) { const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, Math.max(0.001, L - 2 * r), 3, 10), mat); m.castShadow = true; parent.add(m); return m; }
+// конечность с анатомическим профилем: шире у сустава-основания, мышечный изгиб, сужение к дальнему суставу
+const _limbCache = {};
+function limbGeo(L, r0, r1, bulge = 1.12) {
+  const key = [L, r0, r1, bulge].join('|'); if (_limbCache[key]) return _limbCache[key];
+  const pts = [], n = 14;
+  pts.push(new THREE.Vector2(0.0001, -L / 2 - r0 * 0.55));
+  for (let i = 0; i <= n; i++) {
+    const t = i / n, base = r0 + (r1 - r0) * t, bump = Math.sin(Math.min(1, t / 0.75) * Math.PI) * (bulge - 1) * r0;
+    pts.push(new THREE.Vector2(base + bump, -L / 2 + L * t));
+  }
+  pts.push(new THREE.Vector2(r1 * 0.8, L / 2 + r1 * 0.35)); pts.push(new THREE.Vector2(0.0001, L / 2 + r1 * 0.6));
+  return (_limbCache[key] = new THREE.LatheGeometry(pts, 14));
+}
+function limb(L, r0, r1, mat, parent, bulge) { const m = new THREE.Mesh(limbGeo(L, r0, r1, bulge), mat); m.castShadow = true; parent.add(m); return m; }
 
 /* --- солдат (бот) --- */
 const LEG = { thigh: 0.44, shin: 0.43, upper: 0.31, fore: 0.29, hipY: 0.92 };
@@ -529,11 +544,22 @@ const SOLDIER_PARTS = [0, 1].map(team => {
   ch.add(vcyl(0.052, 0.12, MT.skin, 0, 0.53, 0));
   for (const s of [-1, 1]) { ch.add(sc(ball(0.078, T.vest2, s * 0.215, 0.43, 0), 1, 0.85, 1.05)); ch.add(rbox(0.05, 0.03, 0.012, 0.005, T.glow, s * 0.24, 0.43, -0.07, 0, -s * 0.5)); }
   ch.add(rbox(0.26, 0.014, 0.012, 0.004, T.glow, 0, 0.43, -0.162));
+  // голова: череп, челюсть, скулы, нос, надбровье, глаза, уши (вместо чёрной маски)
   const hd = new THREE.Group();
-  hd.add(sc(ball(0.105, MT.skin, 0, 0.02, 0), 0.95, 1.08, 1));
-  hd.add(mesh(new THREE.SphereGeometry(0.109, 18, 12, 0, Math.PI * 2, Math.PI * 0.52, Math.PI * 0.42), MT.black, 0, 0.02, 0));
-  hd.add(mesh(new THREE.TorusGeometry(0.104, 0.011, 6, 24), MT.black, 0, 0.045, 0, Math.PI / 2));
-  for (const s of [-1, 1]) hd.add(sc(ball(0.03, T.lens, s * 0.04, 0.045, -0.093), 1, 0.8, 0.5));
+  hd.add(sc(ball(0.1, MT.skin, 0, 0.035, 0.006), 0.93, 1.1, 1.05));            // черепная коробка
+  hd.add(sc(ball(0.078, MT.skin, 0, -0.035, -0.028), 0.95, 0.85, 0.95));       // челюсть
+  hd.add(sc(ball(0.03, MT.skin, 0, -0.072, -0.068), 1.25, 0.8, 0.9));          // подбородок
+  for (const s of [-1, 1]) hd.add(sc(ball(0.03, MT.skin, s * 0.052, 0.005, -0.07), 1, 0.8, 0.8)); // скулы
+  hd.add(sc(mesh(new THREE.ConeGeometry(0.017, 0.045, 8), MT.skin, 0, 0.012, -0.103, -1.35), 1, 1, 0.8)); // нос
+  hd.add(sc(ball(0.013, MT.skin, 0, -0.007, -0.106), 1.4, 0.8, 1));            // кончик носа и крылья
+  hd.add(sc(mesh(new THREE.CapsuleGeometry(0.012, 0.075, 3, 8), MT.skin, 0, 0.05, -0.09, 0, 0, Math.PI / 2), 1, 1, 0.9)); // надбровье
+  for (const s of [-1, 1]) {
+    hd.add(sc(ball(0.014, MT.eyeWhite, s * 0.033, 0.033, -0.088), 1.2, 0.75, 0.7)); // глаз
+    hd.add(ball(0.0065, MT.iris, s * 0.033, 0.033, -0.0975));                    // радужка
+    hd.add(sc(mesh(new THREE.CapsuleGeometry(0.004, 0.026, 2, 6), MT.hair, s * 0.034, 0.053, -0.097, 0, 0, Math.PI / 2 + s * 0.12), 1, 1, 0.8)); // бровь
+    hd.add(sc(ball(0.022, MT.skin, s * 0.097, 0.02, 0.008), 0.45, 1.1, 0.8));  // ухо
+  }
+  hd.add(sc(mesh(new THREE.CapsuleGeometry(0.0045, 0.03, 2, 6), MT.lip, 0, -0.04, -0.097, 0, 0, Math.PI / 2), 1, 1, 0.7)); // губы
   // волосы под головным убором (видны у кепки, банданы и т. п.)
   hd.add(sc(mesh(new THREE.SphereGeometry(0.108, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.45), MT.hair, 0, 0.03, 0.004), 1, 0.95, 1.04));
   // гарнитура (шлем и прочие головные уборы — отдельно, см. cosmetics)
@@ -558,15 +584,20 @@ function makeSoldier(team) {
   const gunHolder = new THREE.Group(); chest.add(gunHolder);
   const R = {
     root, body, pelvis, chest, head, shL, shR, hipL, hipR, gunHolder, guns: {}, gun: null, gunId: null, parts: null,
-    thigh: [seg(0.078, LEG.thigh, T.fabric, root), seg(0.078, LEG.thigh, T.fabric, root)],
-    shin: [seg(0.062, LEG.shin, T.fabric, root), seg(0.062, LEG.shin, T.fabric, root)],
-    upper: [seg(0.056, LEG.upper, T.fabric, root), seg(0.056, LEG.upper, T.fabric, root)],
-    fore: [seg(0.047, LEG.fore, T.fabric, root), seg(0.047, LEG.fore, T.fabric, root)],
+    thigh: [0, 1].map(() => limb(LEG.thigh, 0.088, 0.06, T.fabric, root, 1.1)),
+    shin: [0, 1].map(() => limb(LEG.shin, 0.064, 0.045, T.fabric, root, 1.16)),
+    upper: [0, 1].map(() => limb(LEG.upper, 0.058, 0.046, T.fabric, root, 1.14)),
+    fore: [0, 1].map(() => limb(LEG.fore, 0.05, 0.036, T.fabric, root, 1.12)),
     knee: [0, 1].map(() => { const m = sc(ball(0.058, T.vest2, 0, 0, 0), 1, 1, 1); m.castShadow = true; root.add(m); return m; }),
     elbow: [0, 1].map(() => { const m = ball(0.048, T.vest2, 0, 0, 0); m.castShadow = true; root.add(m); return m; }),
     boot: [SP.boot.clone(), SP.boot.clone()], hand: [handL.clone(), handR.clone()],
     phase: rand(0, 6), kick: 0, flinch: 0, flashT: 0, fallDir: 1, deadT: 0, reloadP: -1,
   };
+  // телосложение и черты лица у каждого бойца свои
+  const build = rand(0.92, 1.1), limbW = 0.94 + (build - 0.92) * 0.6;
+  chest.scale.set(build, 1, 0.96 + (build - 0.92) * 0.4); pelvis.children[0].scale.set(0.97 + (build - 0.92) * 0.5, 1, 1);
+  head.children[0].scale.set(rand(0.94, 1.05), rand(0.96, 1.05), rand(0.96, 1.04));
+  for (const k of ['thigh', 'shin', 'upper', 'fore']) for (const m of R[k]) m.userData.w = limbW;
   R.holster = rbox(0.06, 0.12, 0.05, 0.015, T.vest, 0, 0, 0); R.thigh[1].add(R.holster); R.holster.position.set(0.075, 0.02, 0.0);
   for (const m of [...R.boot, ...R.hand]) root.add(m);
   root.traverse(o => { if (o.isMesh) o.castShadow = SET.charShadows; });
@@ -595,13 +626,14 @@ const sm = (x, a, b) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t
 function animateSoldier(a, dt) {
   const R = a.rig;
   // LOD: поза не пересчитывается (боец за кадром или далеко), но фаза шагов и их звук идут всегда
-  if (R.lodSkip && a.alive) {
+  if (R.lodSkip && a.alive && R.posed) {
     const sp = Math.hypot(a.vel.x, a.vel.z), prev = R.phase;
     R.phase += dt * (1.6 + sp * 2.1) * (sp > 0.3 ? 1 : 0);
     if (!a.proneK) R.body.position.set(a.pos.x, a.pos.y, a.pos.z);
     if (sp > 3 && Math.floor(R.phase / Math.PI) !== Math.floor(prev / Math.PI)) sfx('step', a.pos, 0.8);
     return;
   }
+  R.posed = true;
   const B = R.body, id = a.gun().id, W = WEAPONS[id];
   setRigGun(R, id);
   const yaw = a.yaw;
@@ -632,7 +664,9 @@ function animateSoldier(a, dt) {
   R.lean = (R.lean || 0) + ((a.alive && speed > 6.5 ? clamp(lvx / 12, -1, 1) * 0.32 : 0) - (R.lean || 0)) * Math.min(1, dt * 12);
   const byaw = pw > 0 && a.bodyYaw !== undefined ? a.bodyYaw : yaw, lie = pw * (Math.PI / 2 - 0.22), dip = Math.abs(R.lean) * 0.6;
   B.position.set(a.pos.x + Math.sin(byaw) * 0.85 * pw, a.pos.y + fall * 0.12 + pw * 0.1, a.pos.z + Math.cos(byaw) * 0.85 * pw);
-  B.rotation.set(R.fallDir * fall * Math.PI * 0.47 - lie, byaw, fall * 0.15 * R.fallDir - R.lean, 'YXZ');
+  const tumble = a.alive && a.mstate === 'dodge' && a.roll ? -Math.PI * 2 * clamp(a.mT / (a.dodgeTime || 0.55), 0, 1) : 0;
+  B.rotation.set(R.fallDir * fall * Math.PI * 0.47 - lie + tumble, byaw, fall * 0.15 * R.fallDir - R.lean, 'YXZ');
+  if (tumble) B.position.y += 0.45 * Math.sin(-tumble / 2);
   // корпус
   const pitch = a.alive ? a.pitch : -0.15 * slump;
   R.pelvis.position.y = LEG.hipY - 0.025 * k + 0.03 * k * Math.cos(2 * R.phase) - slump * 0.06 + Math.sin(t * 2) * 0.004 * (1 - k) - 0.36 * R.cw - 0.2 * dip;
@@ -745,10 +779,10 @@ const vmArm = [0, 1].map(() => ({ up: seg(0.05, 0.34, vmSleeveMat, vmRoot), fo: 
 const VM_SH = [new THREE.Vector3(-0.24, -0.5, 0.0), new THREE.Vector3(0.24, -0.47, 0.12)];
 const vmFlashLight = new THREE.PointLight(0xffb84d, 0, 6); scene.add(vmFlashLight);
 const vm = { cur: null, t: 0, p: new THREE.Vector3(), v: new THREE.Vector3(), rp: new THREE.Vector3(), rv: new THREE.Vector3(), flashT: 0, knifeT: -1, knifeSide: 1, pumpT: -1, boltT: -1, slideT: -1, cylA: 0, cylT: 0, hamT: -1, inspectT: -1 };
-function vmOnFire(id, W) {
-  const heavy = W.recoil >= 0.045;
-  vm.v.z += (heavy ? 2.6 : 1.3) * rand(0.9, 1.1); vm.v.y += heavy ? 0.4 : 0.15;
-  vm.rv.x += (heavy ? 9 : 4) * rand(0.8, 1.2); vm.rv.z += rand(-1, 1) * (heavy ? 3 : 1.5); vm.rv.y += rand(-1, 1) * 1.2;
+function vmOnFire(id, W, vis = 1) {
+  // оружие уходит назад и подбрасывается: сила — по отношению мощности выстрела к массе оружия
+  vm.v.z += 1.3 * vis * rand(0.9, 1.1); vm.v.y += 0.18 * vis;
+  vm.rv.x += 4 * vis * rand(0.8, 1.2); vm.rv.z += rand(-1, 1) * 1.4 * vis; vm.rv.y += rand(-1, 1) * 1.2 * Math.min(1.5, vis);
   vm.flashT = 0.05; vm.inspectT = -1;
   if (W.act === 'pump') vm.pumpT = 0; if (W.act === 'bolt') vm.boltT = 0; if (W.act === 'slide') vm.slideT = 0;
   if (W.act === 'rev') { vm.cylT += Math.PI / 3; vm.hamT = 0; }
@@ -781,7 +815,7 @@ function updateViewmodel(dt) {
   if (P.crouch) { px -= 0.018; py += 0.008; rz += 0.07; }
   // лёжа оружие ниже и устойчивее; на краю, при подъёме и в переходе позы — опущено
   if (P.posture === 2) { py += 0.012 * P.proneK; rz -= 0.04 * P.proneK; }
-  const lowT = busyMove(P) ? 1 : (P.proneK > 0.02 && P.proneK < 0.98) ? 0.7 : P.mstate === 'dodge' ? 0.25 : 0;
+  const lowT = busyMove(P) ? 1 : (P.proneK > 0.02 && P.proneK < 0.98) ? 0.7 : P.mstate === 'dodge' ? (P.roll ? 0.9 : 0.25) : P.sprinting ? 0.45 : 0;
   vm.low = (vm.low || 0) + (lowT - (vm.low || 0)) * Math.min(1, 10 * dt);
   py -= vm.low * 0.32; rx -= vm.low * 0.9; rz += vm.low * 0.35;
   if (!P.onGround) { py -= clamp(P.vel.y, -7, 7) * 0.0025; rx += clamp(P.vel.y, -7, 7) * 0.008; }

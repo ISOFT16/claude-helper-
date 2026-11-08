@@ -68,20 +68,34 @@ function updateProneBody(a, dt) {
 
 /* --- уклонение --- */
 // lx — вправо (+1) / влево (−1), lz — назад (+1) / вперёд (−1) относительно взгляда
+// выносливость: тратим, если хватает (у ботов — без ограничений)
+function spendStamina(a, n) {
+  if (a.net === 'bot' || a.net === 'proxy') return true;
+  if ((a.stam ?? 100) < n) { if (a === P) showHint(t('noStamina'), 0.8); return false; }
+  a.stam = (a.stam ?? 100) - n; a.stamT = MOVE_CFG.stamina.delay; return true;
+}
+function updateStamina(a, dt) {
+  const S = MOVE_CFG.stamina; a.stam = a.stam ?? S.max;
+  if (a.stamT > 0) a.stamT -= dt; else a.stam = Math.min(S.max, a.stam + S.regen * dt);
+}
 function dodge(a, lx, lz) {
   const C = MOVE_CFG.dodge;
   if (!a.alive || a.dodgeCd > 0 || G.state === 'freeze' || G.state === 'over') return false;
   if (a.mstate !== 'ground' || a.posture === 2 || a.proneK > 0.05) return false;
+  // уклонение из приседа — перекат: дальше, дольше, тело кувыркается
+  const roll = a.posture === 1;
   if (!lx && !lz) lz = 1;
   const l = Math.hypot(lx, lz); lx /= l; lz /= l;
   const s = Math.sin(a.yaw), c = Math.cos(a.yaw), wx = lx * c + lz * s, wz = -lx * s + lz * c;
   const mob = gearMobility(a);
-  const dist = C.dist * (1 - mob * 1.6);
+  const dist = (roll ? MOVE_CFG.roll.dist : C.dist) * (1 - mob * 1.6);
   // проверка траектории: рывок обрывается перед препятствием
   let free = 0;
   for (let d = 0.2; d <= dist + 1e-6; d += 0.2) { if (!freeAt(a, a.pos.x + wx * d, a.pos.z + wz * d)) break; free = d; }
   if (free < C.minDist) { if (a === P) showHint(t('dodgeBlocked'), 0.8); return false; }
-  a.dodgeDir.set(wx, 0, wz); a.dodgeSpeed = free / C.time; a.dodgeT = C.time; a.dodgeLx = lx; a.dodgeLz = lz;
+  if (!spendStamina(a, roll ? MOVE_CFG.stamina.roll : MOVE_CFG.stamina.dodge)) return false;
+  const T = roll ? MOVE_CFG.roll.time : C.time;
+  a.dodgeDir.set(wx, 0, wz); a.dodgeSpeed = free / T; a.dodgeT = T; a.dodgeTime = T; a.roll = roll; a.dodgeLx = lx; a.dodgeLz = lz;
   a.dodgeCd = C.cd * (1 + mob * 2);
   setMove(a, 'dodge');
   slideNoise(a === P ? null : a.pos, 0.4, 0.2); if (a === P) landSound();
@@ -92,7 +106,7 @@ function updateDodge(a, dt) {
   if (a.mstate !== 'dodge') return;
   a.dodgeT -= dt; a.mT += dt;
   // скорость спадает к концу рывка; средняя скорость = dodgeSpeed
-  const p = clamp(a.mT / MOVE_CFG.dodge.time, 0, 1), v = a.dodgeSpeed * (1.25 - 0.5 * p);
+  const p = clamp(a.mT / (a.dodgeTime || MOVE_CFG.dodge.time), 0, 1), v = a.dodgeSpeed * (1.25 - 0.5 * p);
   a.vel.x = a.dodgeDir.x * v; a.vel.z = a.dodgeDir.z * v;
   if (a.dodgeT <= 0) { a.vel.x *= 0.3; a.vel.z *= 0.3; setMove(a, a.onGround ? 'ground' : 'air'); }
 }
@@ -124,7 +138,9 @@ function findLedge(a, fx, fz) {
   return { h, nx: alongX ? -dir : 0, nz: alongX ? 0 : -dir, top, hang, from: p.clone(), auto: false };
 }
 function startLedge(a, L) {
-  if (!L || !setMove(a, 'ledgeGrab')) return false;
+  if (!L || a.mstate !== 'air' || (a === P && (a.stam ?? 100) < MOVE_CFG.stamina.climb)) return false;
+  if (!setMove(a, 'ledgeGrab')) return false;
+  spendStamina(a, MOVE_CFG.stamina.climb);
   a.ledge = L; a.posture = 3; a.proneK = 0; a.vel.set(0, 0, 0); a.scoped = false;
   if (a === P) { clickAt(null, 900, 0.25); P.scoped = false; }
   return true;

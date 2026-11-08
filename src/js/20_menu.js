@@ -118,7 +118,7 @@ const SCHEMA = {
   tCtl: [
     ['sens', 'range', 0.2, 4, 0.05, fx2], ['strongShake', 'toggle'], ['scopeSens', 'range', 0.1, 1.5, 0.05, fx2], ['invertY', 'toggle'], ['toggleCrouch', 'toggle'],
     ['keyLayout', 'select', [['en', 'kAuto'], ['ru', 'kRu']]],
-    ['touchSize', 'range', 0.7, 1.4, 0.05, pct, 'touch'], ['touchSens', 'range', 0.3, 3, 0.05, fx2, 'touch'], ['aimAssist', 'toggle', 'touch'], ['autoFire', 'toggle'], 'BINDS',
+    ['touchSize', 'range', 0.7, 1.4, 0.05, pct, 'touch'], ['touchSens', 'range', 0.3, 3, 0.05, fx2, 'touch'], ['aimAssist', 'toggle', 'touch'], ['touchOpacity', 'range', 0.2, 1, 0.05, pct, 'touch'], 'TLEDIT', ['autoFire', 'toggle'], 'BINDS',
   ],
   tCross: [
     ['xStyle', 'select', [['cross', 'xCross'], ['t', 'xT'], ['dot', 'xDot'], ['circle', 'xCircle']]], ['xColor', 'color'],
@@ -152,6 +152,7 @@ function renderSettings() {
   }
   for (const it of sc) {
     if (it === 'BINDS') { renderBinds(body); continue; }
+    if (it === 'TLEDIT') { if (!TOUCH) continue; const b = document.createElement('button'); b.className = 'ghost'; b.textContent = t('tlOpen'); b.style.margin = '6px 0'; b.onclick = () => openTouchEditor(); body.appendChild(b); continue; }
     if (it === 'XPREV') { const d = document.createElement('div'); d.className = 'xprev'; d.innerHTML = '<div id="xpv"></div>'; body.appendChild(d); previewCross(); continue; }
     const [k, type, a, b, step, fmt, only] = it;
     if ((type === 'range' ? only : (type === 'toggle' ? a : null)) === 'touch' && !TOUCH) continue;
@@ -240,6 +241,7 @@ function applySettings() {
   shakeK = SET.strongShake ? 1 : 0.35;
   $('fps').classList.toggle('hidden', !SET.showFps);
   document.body.style.setProperty('--ts', SET.touchSize);
+  if (typeof applyTouchLayout === 'function') applyTouchLayout();
   // автоогонь: кнопка огня не нужна — убираем её целиком (display:none, касания не перехватывает)
   $('tFire').classList.toggle('hidden', !!SET.autoFire); if (SET.autoFire) { $('tFire').classList.remove('pr'); if (TOUCH) mouseDown = false; }
 }

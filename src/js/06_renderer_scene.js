@@ -155,9 +155,9 @@ const concreteSet = pbrSet(512, 512, (g, w, h) => {
 // листовой металл: гофра с потёртостями (цеха, ангары, заборы)
 const sheetSet = pbrSet(256, 256, (g, w, h) => {
   g.fillStyle = '#7f8a92'; g.fillRect(0, 0, w, h);
-  for (let x = 0; x < w; x += 16) { const gr = g.createLinearGradient(x, 0, x + 16, 0); gr.addColorStop(0, 'rgba(0,0,0,.25)'); gr.addColorStop(0.5, 'rgba(255,255,255,.12)'); gr.addColorStop(1, 'rgba(0,0,0,.25)'); g.fillStyle = gr; g.fillRect(x, 0, 16, h); }
+  for (let x = 0; x < w; x += 32) { const gr = g.createLinearGradient(x, 0, x + 32, 0); gr.addColorStop(0, 'rgba(0,0,0,.16)'); gr.addColorStop(0.5, 'rgba(255,255,255,.08)'); gr.addColorStop(1, 'rgba(0,0,0,.16)'); g.fillStyle = gr; g.fillRect(x, 0, 32, h); }
   speckle(g, w, h, 4000, 0.15); g.fillStyle = 'rgba(110,70,40,.3)'; for (let i = 0; i < 10; i++) g.fillRect(rnd01() * w, rnd01() * h, 3 + rnd01() * 10, 10 + rnd01() * 40);
-}, (g, w, h) => { for (let x = 0; x < w; x += 16) { const gr = g.createLinearGradient(x, 0, x + 16, 0); gr.addColorStop(0, '#404040'); gr.addColorStop(0.5, '#e0e0e0'); gr.addColorStop(1, '#404040'); g.fillStyle = gr; g.fillRect(x, 0, 16, h); } },
+}, (g, w, h) => { for (let x = 0; x < w; x += 32) { const gr = g.createLinearGradient(x, 0, x + 32, 0); gr.addColorStop(0, '#606060'); gr.addColorStop(0.5, '#b0b0b0'); gr.addColorStop(1, '#606060'); g.fillStyle = gr; g.fillRect(x, 0, 32, h); } },
 (g, w, h) => { g.fillStyle = '#6a6a6a'; g.fillRect(0, 0, w, h); speckle(g, w, h, 5000, 0.35); }, 3);
 // материалы мира: тип → PBR-материал и масштаб текстуры (метров на повтор)
 const WMAT = {};
@@ -166,7 +166,7 @@ function worldMat(m) {
   const T = (set, rep, o = {}) => { const mm = new THREE.MeshStandardMaterial({ map: set.map.clone(), normalMap: set.normalMap.clone(), roughnessMap: set.roughnessMap ? set.roughnessMap.clone() : null, roughness: 1, envMapIntensity: 0.45, ...o }); for (const t of [mm.map, mm.normalMap, mm.roughnessMap]) if (t) { t.repeat.set(1, 1); t.needsUpdate = true; } mm.userData.rep = rep; return mm; };
   const def = {
     concrete: () => T(concreteSet, 3.5, { normalScale: new THREE.Vector2(0.6, 0.6) }), panel: () => T(wallSet, 4.5, { normalScale: new THREE.Vector2(0.7, 0.7) }), brick: () => T(brickSet, 2.5), stone: () => T(stoneSet, 3), plaster: () => T(plasterSet, 2.5, { color: 0xf0ece4 }),
-    metal: () => T(sheetSet, 2.5, { metalness: 0.55, envMapIntensity: 0.8 }), roof: () => T(sheetSet, 2.5, { metalness: 0.5, color: 0xb07a5a }), duct: () => T(ductSet, 2, { metalness: 0.7, envMapIntensity: 0.9 }),
+    metal: () => T(sheetSet, 3, { metalness: 0.55, envMapIntensity: 0.8, normalScale: new THREE.Vector2(0.45, 0.45) }), roof: () => T(sheetSet, 3, { metalness: 0.5, color: 0xb07a5a, normalScale: new THREE.Vector2(0.45, 0.45) }), duct: () => T(ductSet, 2, { metalness: 0.7, envMapIntensity: 0.9 }),
     container: () => T(tallSet, 2.4, { metalness: 0.45, envMapIntensity: 0.6 }), wood: () => T(crateSet, 1.2, { roughness: 0.8, color: 0xc9a27a }), crate: () => T(crateSet, 1.1, { roughness: 0.78 }),
     asphalt: () => T(asphaltSet, 4), dirt: () => T(dirtSet, 4), tile: () => T(tileSet, 4, { normalScale: new THREE.Vector2(0.6, 0.6) }), sand: () => T(dirtSet, 1.5, { color: 0xd8c9a0 }),
     car: () => new THREE.MeshStandardMaterial({ color: 0x5a6b7c, metalness: 0.6, roughness: 0.35, envMapIntensity: 1.1 }),
@@ -302,7 +302,8 @@ function breakGlass(b, p) {
   b.alive = false;
   if (WR.glass && b.gi !== undefined) { const m4 = new THREE.Matrix4().makeScale(0, 0, 0); WR.glass.setMatrixAt(b.gi, m4); WR.glass.instanceMatrix.needsUpdate = true; }
   if (typeof glassFx === 'function') glassFx(b, p);
-  netEvent && NET && NET.mode === 'host' && netEvent({ k: 'gl', i: b.i });
+  if (NET.mode === 'client') GLASS_LOCAL.push(b.i);
+  if (NET.mode === 'host') netEvent({ k: 'gl', i: b.i });
 }
 function restoreGlass() {
   if (!WR.glass) return; const m4 = new THREE.Matrix4();
