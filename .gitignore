@@ -6,3 +6,5 @@ android/app/build/
 android/local.properties
 android/app/src/main/assets/www/
 *.apk
+physics/target/
+web/src/physics.wasm

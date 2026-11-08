@@ -466,3 +466,36 @@ export function updateToolScreen(weaponGroup, text) {
     o.material.map = tex; o.material.needsUpdate = true;
   });
 }
+
+// ---------- performance: collapse a static model into one mesh per material ----------
+// Returns a list of { geometry, baseMat, tint, defColor, cast } that can be cached and reused.
+import { mergeGeometries as _merge } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+export function collapseModel(root) {
+  root.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(root.matrixWorld).invert();
+  const buckets = new Map();
+  const keep = [];
+  root.traverse((m) => {
+    if (!m.isMesh) return;
+    if (m.isSkinnedMesh || !m.userData.baseMat || m.material.transparent) { keep.push(m); return; }
+    const key = `${m.userData.baseMat.uuid}|${m.userData.tint ? 1 : 0}|${m.userData.defColor ?? ''}|${m.castShadow ? 1 : 0}`;
+    if (!buckets.has(key)) buckets.set(key, { baseMat: m.userData.baseMat, tint: m.userData.tint, defColor: m.userData.defColor, cast: m.castShadow, geos: [] });
+    let g = m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone();
+    for (const name of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(name)) g.deleteAttribute(name);
+    if (!g.attributes.uv) g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2));
+    g.applyMatrix4(new THREE.Matrix4().multiplyMatrices(inv, m.matrixWorld));
+    buckets.get(key).geos.push(g);
+  });
+  const parts = [];
+  for (const b of buckets.values()) {
+    const geometry = b.geos.length === 1 ? b.geos[0] : _merge(b.geos, false);
+    if (geometry) parts.push({ geometry, baseMat: b.baseMat, tint: b.tint, defColor: b.defColor, cast: b.cast });
+  }
+  return { parts, keep };
+}
+export function meshFromCollapsed(p) {
+  const m = new THREE.Mesh(p.geometry, p.baseMat);
+  m.castShadow = p.cast; m.receiveShadow = true;
+  m.userData.tint = p.tint; m.userData.baseMat = p.baseMat; m.userData.defColor = p.defColor;
+  return m;
+}

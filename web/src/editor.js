@@ -3,6 +3,8 @@ import * as THREE from 'three';
 import { G } from './state.js';
 import { OPTIONS, SKIN_TONES, PALETTE, DEFAULT_AVATAR, sanitizeAvatar, randomAvatar, buildCharacter, shrinkImage } from './character.js';
 import { env } from './world.js';
+import { physicsInfo } from './phys.js';
+import { saveSettings } from './state.js';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -231,6 +233,9 @@ function renderDev() {
     parts.push(buttons([['Дождь из предметов', () => devAct('rain', { type: $('d-type').value, n: Number($('d-n').value), at: H.playerPos() })], ['Очистить всю карту', () => devAct('clear')]]));
   } else if (devTab === 'debug') {
     parts.push(buttons([[H.fpsOn() ? 'Счётчик FPS: вкл' : 'Счётчик FPS: выкл', () => { H.toggleFps(); renderDev(); }], ['Сменить PIN', () => { try { localStorage.removeItem('sf_dev_pin'); } catch (e) { /* ignore */ } devUnlocked = false; showPin('create'); }]]));
+    const rust = (G.settings.physics || 'rust') === 'rust';
+    parts.push(note('Физика: ' + physicsInfo.engine));
+    parts.push(buttons([[rust ? 'Переключить на старую физику (JS)' : 'Переключить на быструю физику (Rust)', () => { G.settings.physics = rust ? 'js' : 'rust'; saveSettings(); location.reload(); }]]));
     parts.push(note(`Предметов: ${G.ents.size} · связей: ${G.cons.size} · игроков: ${G.players.size + 1} · ${G.isHost ? 'вы хост' : 'вы гость'}`));
   }
   $('devcontent').innerHTML = parts.map(p => p.html).join('');

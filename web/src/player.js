@@ -1,6 +1,6 @@
 // Local player controller, first-person view model and remote player avatars.
 import * as THREE from 'three';
-import * as CANNON from 'cannon-es';
+import { CANNON } from './phys.js';
 import { G, GROUP } from './state.js';
 import { physMat, followSun } from './world.js';
 import { buildWeapon, buildHand, applyTint, updateToolScreen } from './models.js';

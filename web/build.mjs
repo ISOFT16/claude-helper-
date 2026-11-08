@@ -14,6 +14,15 @@ const addonText = {
   },
 };
 
+// Rust physics core (physics/ folder) compiled to WebAssembly; build it first with:
+//   cargo build --release --target wasm32-unknown-unknown   (inside physics/)
+const wasmSrc = '../physics/target/wasm32-unknown-unknown/release/sandforge_physics.wasm';
+if (!fs.existsSync(wasmSrc)) {
+  console.error('Не найден ' + wasmSrc + ' — сначала соберите Rust-ядро: cd physics && cargo build --release --target wasm32-unknown-unknown');
+  process.exit(1);
+}
+fs.copyFileSync(wasmSrc, 'src/physics.wasm');
+
 const outDirs = ['dist', '../android/app/src/main/assets/www'];
 for (const dir of outDirs) {
   fs.mkdirSync(dir, { recursive: true });
@@ -25,6 +34,7 @@ for (const dir of outDirs) {
     target: ['chrome80'],
     outfile: path.join(dir, 'game.js'),
     plugins: [addonText],
+    loader: { '.wasm': 'binary' },
     logLevel: 'warning',
   });
   fs.copyFileSync('index.html', path.join(dir, 'index.html'));

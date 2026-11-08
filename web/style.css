@@ -167,7 +167,7 @@ textarea { min-height: 150px; font-family: monospace; font-size: 12px; resize: v
 /* phones / narrow screens: weapon bar goes under the room info so it never covers the top buttons */
 @media (max-width: 1250px) {
   #weaponbar { left: 12px; transform: none; top: 50px; flex-wrap: wrap; max-width: 46vw; }
-  #toolinfo { top: 96px; left: auto; right: 12px; transform: none; max-width: 40vw; text-align: right; }
+  #toolinfo { top: 96px; left: 12px; transform: none; max-width: 44vw; text-align: left; font-size: 12px; }
 }
 
 .item .item-btn { background: none; border: none; display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; font-size: 12px; }

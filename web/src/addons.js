@@ -1,6 +1,6 @@
 // Addon system: a small JS API that addons use to add props, tools, commands and hooks.
 import * as THREE from 'three';
-import * as CANNON from 'cannon-es';
+import { CANNON } from './phys.js';
 import { G, on } from './state.js';
 import {
   registerProp, registerTool, hostSpawn, hostRemove, hostFx, explode, hostConstraint, hostSetColor, hostSetFrozen,

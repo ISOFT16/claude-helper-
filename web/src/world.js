@@ -1,12 +1,13 @@
 // Rendering (PBR + sky + image based lighting + post-processing), the map, effects and sounds.
 import * as THREE from 'three';
-import * as CANNON from 'cannon-es';
+import { CANNON } from './phys.js';
 import { Sky } from 'three/examples/jsm/objects/Sky.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { G, GROUP } from './state.js';
 import { material, setTextureQuality, smokeTexture, leafTexture } from './textures.js';
@@ -88,16 +89,25 @@ export function initWorld(container) {
   G.world = world;
 
   buildMap();
+  mergeStaticMap();
+  addClouds();
   applyQuality();
   window.addEventListener('resize', resize);
   resize();
 }
 
+function basePixelRatio() {
+  const dpr = window.devicePixelRatio || 1;
+  return { low: Math.min(dpr, 0.8), medium: Math.min(dpr, 1.1), high: Math.min(dpr, 1.5), ultra: Math.min(dpr, 2) }[G.settings.quality] || 1;
+}
+
 export function applyQuality() {
   const q = G.settings.quality;
   const r = G.renderer;
-  const dpr = window.devicePixelRatio || 1;
-  r.setPixelRatio({ low: Math.min(dpr, 0.8), medium: Math.min(dpr, 1.1), high: Math.min(dpr, 1.5), ultra: Math.min(dpr, 2) }[q] || 1);
+  adapt.scale = 1;
+  r.setPixelRatio(basePixelRatio());
+  addGrass({ low: 0, medium: 2500, high: 7000, ultra: 14000 }[q] ?? 4000);
+  if (clouds) clouds.visible = q !== 'low';
   r.shadowMap.enabled = q !== 'low';
   G.sun.castShadow = q !== 'low';
   const sm = { low: 512, medium: 1024, high: 2048, ultra: 4096 }[q] || 2048;
@@ -126,6 +136,7 @@ function setupComposer() {
   bloom = new UnrealBloomPass(new THREE.Vector2(size.x / 2, size.y / 2), 0.35, 0.5, 0.92);
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
+  composer.addPass(new ShaderPass(GradeShader));
 }
 
 export function render() {
@@ -561,4 +572,166 @@ export function playSound(kind, pos) {
     case 'click': gain.gain.setValueAtTime(vol * 0.3, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05); osc('square', 1200, 800, 0.05); break;
     default: break;
   }
+}
+
+// =====================================================================
+// Performance: merge the static map into a few big meshes (one draw call per material)
+// =====================================================================
+function mergeStaticMap() {
+  G.scene.updateMatrixWorld(true);
+  const buckets = new Map();
+  const victims = [];
+  G.scene.traverse((o) => {
+    if (!o.isMesh || !o.userData.map || o.isInstancedMesh) return;
+    if (o.material.transparent && o.material.opacity < 1 && !o.material.alphaTest) return; // keep glass separate (sorting)
+    const key = o.material.uuid + '|' + (o.castShadow ? 1 : 0);
+    if (!buckets.has(key)) buckets.set(key, { mat: o.material, cast: o.castShadow, geos: [], ray: false });
+    const b = buckets.get(key);
+    let g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
+    for (const name of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(name)) g.deleteAttribute(name);
+    if (!g.attributes.uv) g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2));
+    g.applyMatrix4(o.matrixWorld);
+    b.geos.push(g);
+    if (mapMeshes.includes(o)) b.ray = true;
+    victims.push(o);
+  });
+  for (const o of victims) o.parent.remove(o);
+  const keep = mapMeshes.filter(m => !victims.includes(m));
+  mapMeshes.length = 0;
+  mapMeshes.push(...keep);
+  for (const b of buckets.values()) {
+    const geo = mergeGeometries(b.geos, false);
+    if (!geo) continue;
+    geo.computeBoundingSphere();
+    const m = new THREE.Mesh(geo, b.mat);
+    m.castShadow = b.cast;
+    m.receiveShadow = true;
+    m.userData.map = true;
+    m.matrixAutoUpdate = false;
+    G.scene.add(m);
+    if (b.ray) mapMeshes.push(m);
+  }
+}
+
+// =====================================================================
+// Realism: drifting clouds, wind-swept grass, colour grading
+// =====================================================================
+let clouds = null;
+function addClouds() {
+  const mat = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, fog: false, side: THREE.BackSide,
+    uniforms: { time: { value: 0 }, sunDir: { value: SUN_DIR }, day: { value: 1 } },
+    vertexShader: 'varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: `
+      uniform float time; uniform vec3 sunDir; uniform float day; varying vec3 vDir;
+      float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
+        return mix(mix(h(i), h(i+vec2(1,0)), f.x), mix(h(i+vec2(0,1)), h(i+vec2(1,1)), f.x), f.y); }
+      float fbm(vec2 p){ float v = 0.0, a = 0.5; for (int i = 0; i < 5; i++){ v += a*n(p); p *= 2.03; a *= 0.5; } return v; }
+      void main(){
+        if (vDir.y < 0.02) discard;
+        vec2 uv = vDir.xz / (vDir.y + 0.12) * 1.6 + vec2(time * 0.012, time * 0.004);
+        float c = fbm(uv);
+        c = smoothstep(0.48, 0.78, c);
+        float fade = smoothstep(0.02, 0.25, vDir.y);
+        float lit = 0.75 + 0.25 * max(dot(normalize(vDir), normalize(sunDir)), 0.0);
+        vec3 col = mix(vec3(0.62, 0.66, 0.72), vec3(1.0), fbm(uv * 1.7 + 3.0)) * lit;
+        col *= mix(0.12, 1.0, day);
+        gl_FragColor = vec4(col, c * fade * 0.85);
+      }`,
+  });
+  clouds = new THREE.Mesh(new THREE.SphereGeometry(1500, 32, 16), mat);
+  clouds.renderOrder = -1;
+  clouds.frustumCulled = false;
+  G.scene.add(clouds);
+}
+
+let grass = null;
+function grassTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d');
+  for (let i = 0; i < 70; i++) {
+    const x = 8 + Math.random() * 112, h = 50 + Math.random() * 74, lean = (Math.random() - 0.5) * 30;
+    const l = 0.55 + Math.random() * 0.45;
+    g.strokeStyle = `rgb(${Math.floor(70 * l)},${Math.floor(120 * l)},${Math.floor(40 * l)})`;
+    g.lineWidth = 1.5 + Math.random() * 2;
+    g.beginPath(); g.moveTo(x, 128); g.quadraticCurveTo(x + lean * 0.3, 128 - h * 0.6, x + lean, 128 - h); g.stroke();
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+function addGrass(count) {
+  if (grass) { G.scene.remove(grass); grass.geometry.dispose(); grass = null; }
+  if (!count) return;
+  const a = new THREE.PlaneGeometry(1, 0.6); a.translate(0, 0.3, 0);
+  const b = a.clone(); b.rotateY(Math.PI / 2);
+  const geo = mergeGeometries([a, b]);
+  const mat = new THREE.MeshStandardMaterial({ map: grassTexture(), alphaTest: 0.45, side: THREE.DoubleSide, roughness: 0.9 });
+  mat.onBeforeCompile = (sh) => {
+    sh.uniforms.time = { value: 0 };
+    mat.userData.shader = sh;
+    sh.vertexShader = 'uniform float time;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+      vec4 wp = instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+      float sway = sin(time * 1.7 + wp.x * 0.35 + wp.z * 0.27) * 0.12 * position.y;
+      transformed.x += sway; transformed.z += sway * 0.6;`);
+  };
+  grass = new THREE.InstancedMesh(geo, mat, count);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
+  let i = 0, guard = 0;
+  while (i < count && guard++ < count * 20) {
+    const x = (Math.random() - 0.5) * 230, z = (Math.random() - 0.5) * 230;
+    if (Math.abs(x) < 54 && z > -59 && z < 49) continue;          // plaza and roads
+    if (Math.hypot(x + 55, z - 25) < 7) continue;
+    q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.random() * Math.PI);
+    const k = 0.6 + Math.random() * 0.9;
+    s.set(k, k * (0.7 + Math.random() * 0.6), k);
+    p.set(x, 0, z);
+    grass.setMatrixAt(i++, m.compose(p, q, s));
+  }
+  grass.count = i;
+  grass.receiveShadow = true;
+  G.scene.add(grass);
+}
+
+export function updateEnvironment(dt) {
+  if (clouds) {
+    clouds.material.uniforms.time.value += dt;
+    clouds.material.uniforms.day.value = THREE.MathUtils.smoothstep(G.sun.intensity, 0.3, 3.0);
+    clouds.position.copy(G.camera.position);
+  }
+  if (grass && grass.material.userData.shader) grass.material.userData.shader.uniforms.time.value += dt;
+}
+
+// gentle filmic grade: contrast, saturation and vignette (high / ultra)
+const GradeShader = {
+  uniforms: { tDiffuse: { value: null } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: `uniform sampler2D tDiffuse; varying vec2 vUv;
+    void main(){
+      vec4 c = texture2D(tDiffuse, vUv);
+      float l = dot(c.rgb, vec3(0.2126, 0.7152, 0.0722));
+      c.rgb = mix(vec3(l), c.rgb, 1.08);
+      c.rgb = (c.rgb - 0.5) * 1.05 + 0.5;
+      float d = distance(vUv, vec2(0.5));
+      c.rgb *= mix(1.0, 0.78, smoothstep(0.45, 0.85, d));
+      gl_FragColor = c;
+    }`,
+};
+
+// =====================================================================
+// Adaptive resolution: lowers the render resolution when FPS drops, restores it when there is headroom
+// =====================================================================
+const adapt = { scale: 1, t: 0, frames: 0, slow: 0, fast: 0 };
+export function adaptiveResolution(dt) {
+  if (G.settings.autoRes === false) return;
+  adapt.t += dt; adapt.frames++;
+  if (adapt.t < 1) return;
+  const fps = adapt.frames / adapt.t;
+  adapt.t = 0; adapt.frames = 0;
+  if (fps < 40) { adapt.slow++; adapt.fast = 0; } else if (fps > 57) { adapt.fast++; adapt.slow = 0; } else { adapt.slow = adapt.fast = 0; }
+  let changed = false;
+  if (adapt.slow >= 2 && adapt.scale > 0.5) { adapt.scale = Math.max(0.5, adapt.scale - 0.12); adapt.slow = 0; changed = true; }
+  if (adapt.fast >= 4 && adapt.scale < 1) { adapt.scale = Math.min(1, adapt.scale + 0.08); adapt.fast = 0; changed = true; }
+  if (changed) { G.renderer.setPixelRatio(basePixelRatio() * adapt.scale); resize(); }
 }

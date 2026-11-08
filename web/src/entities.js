@@ -1,9 +1,9 @@
 // Entities (props, NPCs, ragdolls), constraints, explosions and the host-side action handler.
 import * as THREE from 'three';
-import * as CANNON from 'cannon-es';
+import { CANNON } from './phys.js';
 import { G, GROUP, emit } from './state.js';
 import { physMat, spawnFx, playSound } from './world.js';
-import { shapeVisual, MODELS, applyTint } from './models.js';
+import { shapeVisual, MODELS, applyTint, collapseModel, meshFromCollapsed } from './models.js';
 
 // ---------- Definitions ----------
 function normalizeDef(def) {
@@ -23,6 +23,7 @@ function normalizeDef(def) {
 
 export function registerProp(type, def) {
   def.type = type;
+  clearVisualCache(type);
   G.propDefs.set(type, normalizeDef(def));
   emit('defsChanged');
 }
@@ -72,16 +73,10 @@ export function createEntity(desc) {
     });
     if (p.fixedRotation || def.fixedRotation) body.fixedRotation = true;
     for (const s of p.shapes) {
-      if (!p.model && !s.hidden) {
-        const vis = shapeVisual(s);
-        vis.position.set(...(s.offset || [0, 0, 0]));
-        if (s.rot) vis.quaternion.copy(eulerQuat(s.rot));
-        group.add(vis);
-      }
       const q = eulerQuat(s.rot);
       body.addShape(makeCannonShape(s), new CANNON.Vec3(...(s.offset || [0, 0, 0])), new CANNON.Quaternion(q.x, q.y, q.z, q.w));
     }
-    if (p.model && MODELS[p.model]) group.add(MODELS[p.model]({ color: p.modelColor, ...(p.modelArgs || {}) }));
+    addPartVisual(group, def, p, i);
     group.traverse((o) => {
       if (!o.isMesh) return;
       o.userData.entId = ent.id;
@@ -140,6 +135,30 @@ export function createEntity(desc) {
   emit('spawn', ent);
   return ent;
 }
+
+// Visual of one part: built once per prop type, collapsed to one mesh per material and cached
+const visualCache = new Map();
+function buildPartVisual(p) {
+  const g = new THREE.Group();
+  for (const s of p.shapes) {
+    if (p.model || s.hidden) continue;
+    const vis = shapeVisual(s);
+    vis.position.set(...(s.offset || [0, 0, 0]));
+    if (s.rot) vis.quaternion.copy(eulerQuat(s.rot));
+    g.add(vis);
+  }
+  if (p.model && MODELS[p.model]) g.add(MODELS[p.model]({ color: p.modelColor, ...(p.modelArgs || {}) }));
+  return g;
+}
+function addPartVisual(group, def, p, i) {
+  if (p.model && p.model.startsWith('custom_')) { group.add(buildPartVisual(p)); return; } // player models: keep as is
+  const key = def.type + '|' + i;
+  let c = visualCache.get(key);
+  if (!c) { c = collapseModel(buildPartVisual(p)); visualCache.set(key, c); }
+  for (const cp of c.parts) group.add(meshFromCollapsed(cp));
+  for (const k of c.keep) group.add(k.clone());
+}
+export function clearVisualCache(type) { for (const k of [...visualCache.keys()]) if (!type || k.startsWith(type + '|')) visualCache.delete(k); }
 
 // Visual-only model of a definition (used for spawn-menu previews)
 export function buildDefVisual(def, color) {
@@ -275,8 +294,8 @@ export function stepRopes() {
     const mEff = ma && mb ? (ma * mb) / (ma + mb) : (ma || mb || 1);
     const f = Math.min(mEff * (stretch * 400 + rel * 25), mEff * 3000);
     if (f <= 0) continue;
-    if (ba.type === CANNON.Body.DYNAMIC) { ba.applyForce(d.scale(f), _v1); ba.wakeUp(); }
-    if (bb && bb.type === CANNON.Body.DYNAMIC) { bb.applyForce(d.scale(-f), _v2); bb.wakeUp(); }
+    if (ba.type === CANNON.Body.DYNAMIC) { ba.applyForce(d.scale(f), _v1.vsub(ba.position)); ba.wakeUp(); }
+    if (bb && bb.type === CANNON.Body.DYNAMIC) { bb.applyForce(d.scale(-f), _v2.vsub(bb.position)); bb.wakeUp(); }
   }
 }
 
@@ -608,7 +627,7 @@ export function hostAction(pid, m) {
         const ent = G.ents.get(hit.id);
         const body = ent.parts[hit.part].body;
         if (body.type === CANNON.Body.DYNAMIC) {
-          body.applyImpulse(new CANNON.Vec3(m.d[0] * 60, m.d[1] * 60, m.d[2] * 60), new CANNON.Vec3(...hit.point));
+          body.applyImpulse(new CANNON.Vec3(m.d[0] * 60, m.d[1] * 60, m.d[2] * 60), new CANNON.Vec3(...hit.point).vsub(body.position));
           body.wakeUp();
         }
         damage(ent, 25, pid, m.d);
@@ -634,12 +653,12 @@ export function stepThink(dt) {
       for (const part of ent.parts) {
         const b = part.body;
         if (b.type !== CANNON.Body.DYNAMIC) continue;
-        b.applyForce(new CANNON.Vec3(0, def.lift + b.mass * 9.82, 0), b.position);
+        b.applyForce(new CANNON.Vec3(0, def.lift - b.mass * G.world.gravity.y, 0));
       }
     }
     if (ent.float) for (const part of ent.parts) {
       const b = part.body;
-      if (b.type === CANNON.Body.DYNAMIC) { b.applyForce(new CANNON.Vec3(0, -G.world.gravity.y * b.mass, 0), b.position); b.velocity.scale(0.995, b.velocity); }
+      if (b.type === CANNON.Body.DYNAMIC) { b.applyForce(new CANNON.Vec3(0, -G.world.gravity.y * b.mass, 0)); b.velocity.scale(0.995, b.velocity); }
     }
     if (def.fuse && G.time - ent.born > def.fuse) { explode(ent); continue; }
     if (def.think) safeCall(() => def.think(ent, dt, G.api));

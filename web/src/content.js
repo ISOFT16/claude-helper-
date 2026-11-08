@@ -1,5 +1,5 @@
 // Built-in props, NPCs and toolgun modes. Everything here uses the same API that addons use.
-import * as CANNON from 'cannon-es';
+import { CANNON } from './phys.js';
 import { G } from './state.js';
 import {
   registerProp, registerTool, hostSpawn, hostRemove, hostConstraint, hostRemoveConstraint,
@@ -97,7 +97,7 @@ export function registerBuiltins() {
       const b = ent.parts[0].body;
       if (b.type !== CANNON.Body.DYNAMIC) return;
       const up = b.quaternion.vmult(new CANNON.Vec3(0, 1, 0));
-      b.applyForce(up.scale(400), b.position);
+      b.applyForce(up.scale(400));
     },
   });
 
@@ -156,7 +156,7 @@ export function registerBuiltins() {
       if (!c.ent || c.hit.dist > 4) return;
       const b = c.ent.parts[c.hit.part].body;
       if (b.type !== CANNON.Body.DYNAMIC) return;
-      b.applyImpulse(new CANNON.Vec3(c.dir[0] * 25, c.dir[1] * 25 + 5, c.dir[2] * 25), new CANNON.Vec3(...c.hit.point));
+      b.applyImpulse(new CANNON.Vec3(c.dir[0] * 25, c.dir[1] * 25 + 5, c.dir[2] * 25), new CANNON.Vec3(...c.hit.point).vsub(b.position));
       b.wakeUp();
     },
   });

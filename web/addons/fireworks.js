@@ -15,7 +15,7 @@ addon({
         const age = api.time - ent.born;
         if (age > 1 && age < 3.2 && b.type === api.CANNON.Body.DYNAMIC) {
           const up = b.quaternion.vmult(new api.CANNON.Vec3(0, 1, 0));
-          b.applyForce(up.scale(45), b.position);
+          b.applyForce(up.scale(45));
           b.wakeUp();
         }
         if (age > 3.2) {

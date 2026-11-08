@@ -1,0 +1,19 @@
+[package]
+name = "sandforge-physics"
+version = "0.1.0"
+edition = "2021"
+description = "SandForge physics core: Rapier rigid-body physics compiled to WebAssembly"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+rapier3d = { version = "0.22", default-features = false, features = ["dim3", "f32"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

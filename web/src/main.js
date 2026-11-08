@@ -10,8 +10,9 @@ import { initControls, input, isTouch, takeLook, takeWheel } from './controls.js
 import * as UI from './ui.js';
 import { sanitizeAvatar } from './character.js';
 import { loadCustomModels } from './custommodels.js';
+import { initPhysics, physicsInfo } from './phys.js';
 import { initEditors, openCharEditor, charEditorOpen, updateCharPreview, openDevMenu, devMenuOpen } from './editor.js';
-import { setTimeOfDay, setFog, env } from './world.js';
+import { setTimeOfDay, setFog, env, updateEnvironment, adaptiveResolution } from './world.js';
 import { on } from './state.js';
 import { Net } from './net.js';
 
@@ -544,6 +545,8 @@ function frame() {
   requestAnimationFrame(frame);
   const dt = Math.min(clock.getDelta(), 0.05);
   updateFps(dt);
+  updateEnvironment(dt);
+  if (G.inGame) adaptiveResolution(dt);
   if (charEditorOpen()) {
     // dressing room: the world keeps running, the camera looks at the preview character
     if (G.inGame && G.isHost && !paused) { acc += dt; while (acc >= STEP) { E.stepGrabs(); E.stepRopes(); G.world.step(STEP * (G.timeScale || 1)); acc -= STEP; } E.stepThink(dt); }
@@ -820,8 +823,12 @@ function boot() {
     return false; // main menu: let Android close the app
   };
   window.SandForge = G; // handy for debugging and advanced addons
-  G.debug = { act, onPress, onRelease, selectWeapon, selectTool, spawnFromMenu, player: P.player };
+  G.debug = { act, onPress, onRelease, selectWeapon, selectTool, spawnFromMenu, player: P.player, physicsInfo };
 }
 
 // wait for the bundled font so text drawn on textures uses it
-(document.fonts ? Promise.race([document.fonts.load('800 20px "Exo 2"'), new Promise(r => setTimeout(r, 1500))]) : Promise.resolve()).then(boot, boot);
+// wait for the bundled font (text drawn on textures uses it) and the Rust physics core
+const fontReady = document.fonts ? Promise.race([document.fonts.load('800 20px "Exo 2"'), new Promise(r => setTimeout(r, 1500))]) : Promise.resolve();
+let physPref = 'rust';
+try { physPref = (JSON.parse(localStorage.getItem('sf_settings') || '{}').physics) || 'rust'; } catch (e) { /* ignore */ }
+Promise.all([fontReady.catch(() => {}), initPhysics(physPref)]).then(boot, boot);
