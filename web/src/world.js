@@ -19,6 +19,8 @@ export const physMat = {
 };
 
 const SUN_DIR = new THREE.Vector3().setFromSphericalCoords(1, THREE.MathUtils.degToRad(52), THREE.MathUtils.degToRad(140));
+let hemi = null;
+export const env = { tod: 13, fog: 1 };
 let composer = null, gtao = null, bloom = null;
 
 // ---------- setup ----------
@@ -71,7 +73,8 @@ export function initWorld(container) {
   scene.add(sun);
   scene.add(sun.target);
   G.sun = sun;
-  scene.add(new THREE.HemisphereLight(0xc9dcff, 0x5b5040, 0.25));
+  hemi = new THREE.HemisphereLight(0xc9dcff, 0x5b5040, 0.25);
+  scene.add(hemi);
 
   const world = new CANNON.World({ gravity: new CANNON.Vec3(0, -9.82, 0) });
   world.broadphase = new CANNON.SAPBroadphase(world);
@@ -100,7 +103,7 @@ export function applyQuality() {
   const sm = { low: 512, medium: 1024, high: 2048, ultra: 4096 }[q] || 2048;
   G.sun.shadow.mapSize.set(sm, sm);
   if (G.sun.shadow.map) { G.sun.shadow.map.dispose(); G.sun.shadow.map = null; }
-  G.scene.fog.density = q === 'low' ? 0.006 : 0.0032;
+  G.scene.fog.density = (q === 'low' ? 0.006 : 0.0032) * env.fog;
   G.scene.traverse(o => { if (o.material) [].concat(o.material).forEach(m => { m.needsUpdate = true; }); });
   setupComposer();
 }
@@ -140,6 +143,32 @@ export function resize() {
     composer.setPixelRatio(pr);
     composer.setSize(w, h);
   }
+}
+
+// Time of day (0..24 h): moves the sun, dims the light at night
+export function setTimeOfDay(h) {
+  env.tod = ((h % 24) + 24) % 24;
+  const dayT = (env.tod - 6) / 12;                       // 0 at sunrise, 1 at sunset
+  const elev = Math.sin(Math.PI * dayT) * 62;            // degrees above horizon (negative at night)
+  const az = 90 + dayT * 180;
+  SUN_DIR.setFromSphericalCoords(1, THREE.MathUtils.degToRad(90 - elev), THREE.MathUtils.degToRad(az));
+  G.sky.material.uniforms.sunPosition.value.copy(SUN_DIR);
+  const day = THREE.MathUtils.smoothstep(elev, -6, 12);  // 0 night .. 1 day
+  const warm = 1 - THREE.MathUtils.smoothstep(elev, 2, 25);
+  G.sun.intensity = 3.2 * day + 0.25;
+  G.sun.color.setRGB(1, 0.95 - warm * 0.35, 0.86 - warm * 0.55);
+  if (elev < 0) { // moonlight from the opposite side
+    SUN_DIR.setFromSphericalCoords(1, THREE.MathUtils.degToRad(50), THREE.MathUtils.degToRad(az + 180));
+    G.sun.color.setRGB(0.55, 0.65, 1.0);
+  }
+  G.scene.environmentIntensity = 0.12 + 0.78 * day;
+  hemi.intensity = 0.08 + 0.17 * day;
+  G.renderer.toneMappingExposure = 0.55 + 0.3 * day;
+  G.scene.fog.color.setRGB(0.05 + 0.69 * day, 0.07 + 0.75 * day, 0.12 + 0.75 * day).lerp(new THREE.Color(0xd9a070), warm * day * 0.5);
+}
+export function setFog(mult) {
+  env.fog = Math.max(0, mult);
+  G.scene.fog.density = (G.settings.quality === 'low' ? 0.006 : 0.0032) * env.fog;
 }
 
 // Keep the sun's shadow box centred on the player

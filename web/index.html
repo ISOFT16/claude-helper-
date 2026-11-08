@@ -20,6 +20,7 @@
   <div id="topbtns">
     <button id="b-pause" title="Меню (Esc)">Меню</button>
     <button id="b-spawn" title="Меню спавна (Q)">Спавн</button>
+    <button id="b-view" title="Вид (F)">Вид</button>
     <button id="b-chat" title="Чат (T)">Чат</button>
   </div>
   <div id="touch" class="hidden">
@@ -68,6 +69,7 @@
       <button class="mbtn" id="m-join">Подключиться</button>
     </div>
     <button class="mbtn" id="m-addons">Аддоны</button>
+    <button class="mbtn" id="m-char">Персонаж</button>
     <button class="mbtn" id="m-settings">Настройки</button>
     <div id="m-status" class="status"></div>
     <div class="ver">v1.0</div>
@@ -83,6 +85,8 @@
     <button class="mbtn" id="p-open">Открыть сервер для друзей</button>
     <button class="mbtn" id="p-players">Игроки</button>
     <button class="mbtn" id="p-addons">Аддоны</button>
+    <button class="mbtn" id="p-char">Персонаж</button>
+    <button class="mbtn" id="p-dev">Меню разработчика</button>
     <button class="mbtn" id="p-settings">Настройки</button>
     <button class="mbtn danger" id="p-quit">Выйти в главное меню</button>
   </div>
@@ -123,6 +127,9 @@
     <label>Своя текстура физпушки (картинка с телефона, хранится только у вас)</label>
     <div class="row"><input type="file" id="s-skin" accept="image/*"><button class="mbtn sm" id="s-skinreset">Убрать</button></div>
     <div id="s-skininfo" class="note"></div>
+    <label>Своя текстура ботов и манекенов (картинка с телефона, хранится только у вас)</label>
+    <div class="row"><input type="file" id="s-botskin" accept="image/*"><button class="mbtn sm" id="s-botskinreset">Убрать</button></div>
+    <div id="s-botskininfo" class="note"></div>
     <label>Цвет свечения физпушки</label>
     <div id="s-glow" class="swatches"></div>
     <label>Свой сервер связи PeerJS (необязательно) <input id="s-peer" placeholder="например 192.168.0.10:9000/"></label>
@@ -130,6 +137,50 @@
   </div>
 </div>
 
+<!-- Character editor (dressing room) -->
+<div id="charmenu" class="hidden">
+  <div id="charrotate" title="Проведите пальцем, чтобы повернуть"></div>
+  <div class="charpanel">
+    <div class="panel-head"><div class="logo small">Персонаж</div></div>
+    <div class="tabs" id="chartabs">
+      <button data-tab="body" class="active">Тело</button>
+      <button data-tab="clothes">Одежда</button>
+      <button data-tab="face">Лицо</button>
+      <button data-tab="head">Голова</button>
+      <button data-tab="acc">Аксессуары</button>
+    </div>
+    <div id="charcontent" class="scroll"></div>
+    <div class="row wrap">
+      <button class="mbtn sm" id="c-random">Случайно</button>
+      <button class="mbtn sm" id="c-reset">Сбросить</button>
+      <button class="mbtn sm" id="c-cancel">Отмена</button>
+      <button class="mbtn sm primary" id="c-save">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Developer menu -->
+<div id="devmenu" class="screen hidden">
+  <div class="menu-card wide">
+    <div class="panel-head"><div class="logo small">Меню разработчика</div><button class="close" id="devclose">Закрыть</button></div>
+    <div id="devpin" class="hidden">
+      <p id="devpintitle"></p>
+      <div class="row"><input id="devpininput" type="password" inputmode="numeric" maxlength="8" autocomplete="off"><button class="mbtn sm primary" id="devpinok">ОК</button><button class="mbtn sm" id="devpincancel">Отмена</button></div>
+    </div>
+    <div id="devmain" class="hidden">
+      <div class="tabs" id="devtabs">
+        <button data-tab="world" class="active">Мир</button>
+        <button data-tab="player">Игрок</button>
+        <button data-tab="object">Объект</button>
+        <button data-tab="spawn">Спавн</button>
+        <button data-tab="debug">Отладка</button>
+      </div>
+      <div id="devcontent" class="scroll"></div>
+    </div>
+  </div>
+</div>
+
+<div id="fps" class="hidden"></div>
 <div id="toast"></div>
 <script src="game.js"></script>
 </body>

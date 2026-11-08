@@ -374,11 +374,18 @@ export function buildHumanoid(color) {
 
 // Change tint of every tintable mesh under obj
 const tintCache = new Map();
-export function applyTint(obj, color) {
+const skinMats = new Map();
+// skin: optional picture chosen by the player (Settings) that replaces the colour of tintable parts
+export function applyTint(obj, color, skin = null) {
   obj.traverse((m) => {
     if (!m.isMesh || !m.userData.baseMat) return;
     const base = m.userData.baseMat;
     if (!m.userData.tint) { m.material = base; return; }
+    if (skin) {
+      if (!skinMats.has(skin.uuid)) skinMats.set(skin.uuid, new THREE.MeshStandardMaterial({ map: skin, roughness: 0.6, metalness: 0.05 }));
+      m.material = skinMats.get(skin.uuid);
+      return;
+    }
     const c = color ?? m.userData.defColor ?? 0xffffff;
     const key = base.uuid + '|' + c;
     if (!tintCache.has(key)) { const mm = base.clone(); mm.color = new THREE.Color(c); tintCache.set(key, mm); }

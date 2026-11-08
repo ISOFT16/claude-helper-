@@ -31,12 +31,16 @@ export function initUI(handlers) {
   $('m-code').addEventListener('keydown', e => { if (e.key === 'Enter') $('m-join').click(); });
   $('m-addons').onclick = () => openScreen('addonsmenu');
   $('m-settings').onclick = () => openScreen('settingsmenu');
+  $('m-char').onclick = () => { hideAllScreens(); H.openChar(); };
   // pause
   $('p-resume').onclick = () => H.resume();
   $('p-open').onclick = () => H.openServer();
   $('p-players').onclick = () => showPlayers();
   $('p-addons').onclick = () => openScreen('addonsmenu');
   $('p-settings').onclick = () => openScreen('settingsmenu');
+  $('p-char').onclick = () => { hideAllScreens(); H.openChar(); };
+  $('p-dev').onclick = () => { hideAllScreens(); H.openDev(); };
+  $('b-view').onclick = () => H.toggleView();
   $('p-quit').onclick = () => H.quit();
   // generic back/close buttons
   document.querySelectorAll('[data-back]').forEach(b => { b.onclick = () => backScreen(); });
@@ -107,7 +111,8 @@ export function backScreen() {
   else $('mainmenu').classList.remove('hidden');
 }
 export function anyScreenOpen() {
-  return !!currentScreen() || !$('spawnmenu').classList.contains('hidden') || !$('chatbox').classList.contains('hidden');
+  return !!currentScreen() || !$('spawnmenu').classList.contains('hidden') || !$('chatbox').classList.contains('hidden') ||
+    !$('charmenu').classList.contains('hidden') || !$('devmenu').classList.contains('hidden');
 }
 export function pauseOpen() { return !$('pausemenu').classList.contains('hidden'); }
 
@@ -137,25 +142,35 @@ function renderSettings() {
   gw.querySelectorAll('button').forEach(b => {
     b.onclick = () => { G.settings.physgunGlow = b.dataset.c; gw.querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b)); };
   });
-  const hasSkin = (() => { try { return !!localStorage.getItem('sf_physgun_skin'); } catch (e) { return false; } })();
-  $('s-skininfo').textContent = hasSkin ? 'Сейчас стоит ваша картинка.' : 'Сейчас стандартная окраска.';
-  $('s-skin').value = '';
-  $('s-skin').onchange = (e) => {
+  pictureSetting('sf_physgun_skin', 's-skin', 's-skinreset', 's-skininfo', () => H.applyPhysgun());
+  pictureSetting('sf_bot_skin', 's-botskin', 's-botskinreset', 's-botskininfo', () => H.applyBotSkin());
+  const sw = $('s-colors');
+  sw.innerHTML = COLORS.map(c => `<button style="background:${c}" data-c="${c}" class="${c === G.settings.color ? 'active' : ''}"></button>`).join('');
+  sw.querySelectorAll('button').forEach(b => {
+    b.onclick = () => { G.settings.color = b.dataset.c; sw.querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b)); };
+  });
+}
+
+// A picture slot in settings: pick an image on the device, shrink it, keep it in local storage
+function pictureSetting(key, inputId, resetId, infoId, apply) {
+  const has = (() => { try { return !!localStorage.getItem(key); } catch (e) { return false; } })();
+  $(infoId).textContent = has ? 'Сейчас стоит ваша картинка.' : 'Сейчас стандартная окраска.';
+  $(inputId).value = '';
+  $(inputId).onchange = (e) => {
     const f = e.target.files[0];
     if (!f) return;
     const rd = new FileReader();
     rd.onload = () => {
       const img = new Image();
       img.onload = () => {
-        // shrink to 1024 px so it fits in local storage
         const k = Math.min(1, 1024 / Math.max(img.width, img.height));
         const c = document.createElement('canvas');
         c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
         c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
         try {
-          localStorage.setItem('sf_physgun_skin', c.toDataURL('image/jpeg', 0.9));
-          $('s-skininfo').textContent = 'Картинка поставлена.';
-          H.applyPhysgun();
+          localStorage.setItem(key, c.toDataURL('image/jpeg', 0.9));
+          $(infoId).textContent = 'Картинка поставлена.';
+          apply();
         } catch (err) { toast('Картинка слишком большая, не удалось сохранить'); }
       };
       img.onerror = () => toast('Не удалось открыть картинку');
@@ -163,16 +178,11 @@ function renderSettings() {
     };
     rd.readAsDataURL(f);
   };
-  $('s-skinreset').onclick = () => {
-    try { localStorage.removeItem('sf_physgun_skin'); } catch (e) { /* ignore */ }
-    $('s-skininfo').textContent = 'Сейчас стандартная окраска.';
-    H.applyPhysgun();
+  $(resetId).onclick = () => {
+    try { localStorage.removeItem(key); } catch (e) { /* ignore */ }
+    $(infoId).textContent = 'Сейчас стандартная окраска.';
+    apply();
   };
-  const sw = $('s-colors');
-  sw.innerHTML = COLORS.map(c => `<button style="background:${c}" data-c="${c}" class="${c === G.settings.color ? 'active' : ''}"></button>`).join('');
-  sw.querySelectorAll('button').forEach(b => {
-    b.onclick = () => { G.settings.color = b.dataset.c; sw.querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b)); };
-  });
 }
 
 // ---------- Spawn menu ----------

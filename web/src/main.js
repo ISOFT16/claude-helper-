@@ -1,6 +1,6 @@
 // SandForge — entry point: game loop, weapons, networking glue.
 import * as THREE from 'three';
-import { G, loadSettings } from './state.js';
+import { G, loadSettings, saveSettings } from './state.js';
 import { initWorld, applyQuality, updateFx, unlockAudio, playSound, mapMeshes, render } from './world.js';
 import * as E from './entities.js';
 import { registerBuiltins } from './content.js';
@@ -8,6 +8,10 @@ import { createApi, loadEnabledAddons, runAddon, loadedAddons, addonsForClients 
 import * as P from './player.js';
 import { initControls, input, isTouch, takeLook, takeWheel } from './controls.js';
 import * as UI from './ui.js';
+import { sanitizeAvatar } from './character.js';
+import { initEditors, openCharEditor, charEditorOpen, updateCharPreview, openDevMenu, devMenuOpen } from './editor.js';
+import { setTimeOfDay, setFog, env } from './world.js';
+import { on } from './state.js';
 import { Net } from './net.js';
 
 const $ = id => document.getElementById(id);
@@ -200,6 +204,9 @@ function onRelease(name) {
 let runToggle = false;
 
 function onKey(code) {
+  if (code === 'Escape' && charEditorOpen()) { $('c-cancel').click(); return; }
+  if (code === 'Escape' && devMenuOpen()) { $('devclose').click(); return; }
+  if (charEditorOpen() || devMenuOpen()) return;
   if (code === 'Escape') {
     if (!$('chatbox').classList.contains('hidden')) { UI.closeChat(); return; }
     if (!$('spawnmenu').classList.contains('hidden')) { UI.closeSpawnMenu(); return; }
@@ -211,6 +218,7 @@ function onKey(code) {
   else if (code === 'KeyQ') UI.toggleSpawnMenu();
   else if (code === 'KeyZ') onPress('undo');
   else if (code === 'KeyV') onPress('noclip');
+  else if (code === 'KeyF') toggleView();
   else if (code === 'KeyT' || code === 'Enter') { setTimeout(UI.openChat, 0); }
 }
 
@@ -283,7 +291,7 @@ async function joinGame(code) {
     G.net = net;
     G.isHost = false;
     resetWorld();
-    net.sendToHost({ t: 'hello', name: G.me.name, color: G.me.color });
+    net.sendToHost({ t: 'hello', name: G.me.name, color: G.me.color, avatar: G.me.avatar });
     UI.setStatus('Загрузка мира…');
   } catch (e) {
     net.close();
@@ -411,10 +419,15 @@ function hostData(pid, d) {
     case 'hello': {
       const name = String(d.name || 'Игрок').slice(0, 16);
       const color = /^#[0-9a-f]{6}$/i.test(d.color) ? d.color : '#cccccc';
-      clientStates.set(pid, { name, color, s: null });
+      const avatar = sanitizeAvatar(d.avatar);
+      clientStates.set(pid, { name, color, s: null, avatar });
+      P.setAvatarFor(pid, avatar);
       P.createRemotePlayer(pid, name, color);
+      const avatars = { host: G.me.avatar };
+      for (const [id, st] of clientStates) avatars[id] = st.avatar;
+      G.net.broadcast({ t: 'av', id: pid, a: avatar }, pid);
       G.net.sendTo(pid, {
-        t: 'welcome', you: pid, addons: addonsForClients(), grav: G.world.gravity.y,
+        t: 'welcome', you: pid, addons: addonsForClients(), grav: G.world.gravity.y, avatars, env: { tod: env.tod, fog: env.fog },
         ents: [...G.ents.values()].map(E.serializeEntity), cons: [...G.cons.values()].map(E.serializeConstraint),
       });
       systemMessage(`${name} подключился`);
@@ -422,6 +435,14 @@ function hostData(pid, d) {
       break;
     }
     case 'act': if (clientStates.has(pid) && d.m) E.hostAction(pid, d.m); break;
+    case 'av': {
+      const st = clientStates.get(pid);
+      if (!st) return;
+      st.avatar = sanitizeAvatar(d.a);
+      P.setAvatarFor(pid, st.avatar);
+      G.net.broadcast({ t: 'av', id: pid, a: st.avatar }, pid);
+      break;
+    }
     case 'ps': {
       const st = clientStates.get(pid);
       if (!st || !d.s) return;
@@ -453,6 +474,8 @@ function clientData(d) {
         }
       }
       G.world.gravity.set(0, d.grav ?? -9.82, 0);
+      for (const [id, a] of Object.entries(d.avatars || {})) if (id !== G.net.myId) P.setAvatarFor(id, a);
+      if (d.env) { setTimeOfDay(d.env.tod); setFog(d.env.fog); }
       for (const e of d.ents) E.createEntity(e);
       for (const c of d.cons) E.createConstraint(c);
       enterGame();
@@ -475,6 +498,8 @@ function clientData(d) {
     case 'chat': UI.chatLine(d.name, d.text, d.color); break;
     case 'sys': UI.chatLine(null, d.text, null, true); break;
     case 'grav': G.world.gravity.set(0, d.y, 0); break;
+    case 'av': if (d.id !== G.net.myId) P.setAvatarFor(d.id, d.a); break;
+    case 'env': setTimeOfDay(d.tod); setFog(d.fog); break;
     case 'left': P.removeRemotePlayer(d.id); updateRoomInfo(); break;
     default: E.clientEntityMessage(d);
   }
@@ -517,6 +542,18 @@ const STEP = 1 / 60;
 function frame() {
   requestAnimationFrame(frame);
   const dt = Math.min(clock.getDelta(), 0.05);
+  updateFps(dt);
+  if (charEditorOpen()) {
+    // dressing room: the world keeps running, the camera looks at the preview character
+    if (G.inGame && G.isHost && !paused) { acc += dt; while (acc >= STEP) { E.stepGrabs(); E.stepRopes(); G.world.step(STEP * (G.timeScale || 1)); acc -= STEP; } E.stepThink(dt); }
+    E.syncEntityMeshes(dt);
+    P.animateRemotePlayers(dt);
+    updateFx(dt);
+    if (G.inGame) netTick(dt);
+    updateCharPreview(dt);
+    render();
+    return;
+  }
   if (!G.inGame) {
     // idle camera orbit for the menu background
     G.time += dt;
@@ -579,13 +616,14 @@ function frame() {
     let n = 0;
     while (acc >= STEP && n < 4) {
       if (G.isHost) { E.stepGrabs(); E.stepRopes(); }
-      G.world.step(STEP);
+      G.world.step(STEP * (G.timeScale || 1));
       acc -= STEP; n++;
     }
     if (n === 4) acc = 0;
     if (G.isHost) E.stepThink(dt);
   }
-  P.updateCamera();
+  P.player.holding = weapon === 'physgun' && !!grab;
+  P.updateCamera(dt);
   E.syncEntityMeshes(dt);
   P.animateRemotePlayers(dt);
   E.updateRopeLines();
@@ -623,17 +661,103 @@ function applyPhysgun() {
   });
 }
 
+let botTex = null;
+function applyBotSkin() {
+  let url = null;
+  try { url = localStorage.getItem('sf_bot_skin'); } catch (e) { url = null; }
+  if (botTex) { botTex.dispose(); botTex = null; }
+  if (!url) { E.setBotSkin(null); return; }
+  new THREE.TextureLoader().load(url, (t) => {
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 8;
+    botTex = t;
+    E.setBotSkin(t);
+  });
+}
+
+// ---------- view, fps, avatar ----------
+function toggleView() {
+  P.setThirdPerson(!P.player.thirdPerson);
+  UI.notice(P.player.thirdPerson ? 'Вид от третьего лица' : 'Вид от первого лица');
+}
+let fpsOn = false, fpsAcc = 0, fpsN = 0;
+function updateFps(dt) {
+  if (!fpsOn) return;
+  fpsAcc += dt; fpsN++;
+  if (fpsAcc >= 0.5) { $('fps').textContent = Math.round(fpsN / fpsAcc) + ' FPS'; fpsAcc = 0; fpsN = 0; }
+}
+function saveAvatar(a) {
+  G.settings.avatar = a;
+  saveSettings();
+  P.rebuildLocalAvatar(a);
+  P.tintViewModel(a.shirt);
+  if (G.net) {
+    if (G.isHost) G.net.broadcast({ t: 'av', id: 'host', a });
+    else G.net.sendToHost({ t: 'av', a });
+  }
+}
+
+// Developer menu actions (host only)
+function devAction(pid, m) {
+  if (m.a !== 'dev') return;
+  if (pid !== 'host') { systemMessage('Меню разработчика может менять мир только у хоста', pid); return; }
+  const num = (v, lo, hi) => Math.min(hi, Math.max(lo, Number(v) || 0));
+  switch (m.op) {
+    case 'grav': G.api.setGravity(-num(m.v, 0, 50)); break;
+    case 'tod': setTimeOfDay(num(m.v, 0, 24)); G.net?.broadcast({ t: 'env', tod: env.tod, fog: env.fog }); break;
+    case 'fog': setFog(num(m.v, 0, 5)); G.net?.broadcast({ t: 'env', tod: env.tod, fog: env.fog }); break;
+    case 'ts': G.timeScale = num(m.v, 0.05, 3); break;
+    case 'clear': E.hostCleanup(null); break;
+    case 'rain': {
+      if (!G.propDefs.has(m.type)) break;
+      const n = Math.round(num(m.n, 1, 40));
+      const at = Array.isArray(m.at) ? m.at.map(Number) : [0, 0, 0];
+      for (let i = 0; i < n; i++) {
+        setTimeout(() => {
+          const a = Math.random() * Math.PI * 2, r = Math.random() * 7;
+          E.hostSpawn(m.type, [at[0] + Math.cos(a) * r, at[1] + 10 + Math.random() * 8, at[2] + Math.sin(a) * r], null, { owner: pid });
+        }, i * 90);
+      }
+      break;
+    }
+    case 'obj': {
+      const ent = G.ents.get(m.id);
+      if (!ent) break;
+      const b0 = ent.parts[0].body;
+      if (m.d === 'del') E.hostRemove(ent.id);
+      else if (m.d === 'freeze') E.hostSetFrozen(ent, !ent.frozen);
+      else if (m.d === 'dup') {
+        const q = b0.quaternion;
+        const copy = E.hostSpawn(ent.type, [b0.position.x, b0.position.y + 1.5, b0.position.z], [q.x, q.y, q.z, q.w], { owner: pid, color: ent.color });
+        if (copy && ent.massMul) { copy.massMul = ent.massMul; E.applyMass(copy); }
+      } else if (m.d === 'mass2' || m.d === 'mass05') {
+        ent.massMul = Math.min(64, Math.max(1 / 64, (ent.massMul || 1) * (m.d === 'mass2' ? 2 : 0.5)));
+        E.applyMass(ent);
+      } else if (m.d === 'launch') {
+        if (ent.frozen) E.hostSetFrozen(ent, false);
+        for (const p of ent.parts) { p.body.velocity.y += 14; p.body.wakeUp(); }
+      } else if (m.d === 'float') ent.float = !ent.float;
+      break;
+    }
+    default: break;
+  }
+}
+
 // ---------- boot ----------
 function boot() {
   loadSettings();
+  G.me.avatar = sanitizeAvatar(G.settings.avatar);
   initWorld($('game'));
   createApi({ systemMessage });
   registerBuiltins();
   registerCommands();
   P.initPlayer();
+  P.rebuildLocalAvatar(G.me.avatar);
+  on('action', devAction);
   beam.obj = P.makeBeam(0x66ccff);
   P.setToolScreen(G.toolDefs.get(toolId)?.name || toolId);
   applyPhysgun();
+  applyBotSkin();
   const results = loadEnabledAddons();
   initControls({
     key: onKey,
@@ -658,15 +782,36 @@ function boot() {
     sendChat,
     listPlayers,
     kick: (id) => G.net?.kick(id),
-    applySettings: () => { applyQuality(); refreshHud(); P.tintViewModel(G.me.color); applyPhysgun(); },
+    applySettings: () => { applyQuality(); refreshHud(); applyPhysgun(); },
     applyPhysgun,
+    applyBotSkin,
+    openChar: () => openCharEditor(),
+    openDev: () => openDevMenu(),
+    toggleView,
   });
+  initEditors({
+    toast: UI.toast,
+    act,
+    aim: () => aim(120),
+    player: () => P.player,
+    playerPos: () => v3(P.player.body.position),
+    respawn: () => P.respawn(),
+    toggleView,
+    toggleNoclip: () => onPress('noclip'),
+    fpsOn: () => fpsOn,
+    toggleFps: () => { fpsOn = !fpsOn; $('fps').classList.toggle('hidden', !fpsOn); },
+    saveAvatar,
+    charClosed: () => { if (G.inGame) resume(); else UI.showMain(); },
+    devClosed: () => { if (G.inGame) resume(); },
+  });
+  P.tintViewModel(G.me.avatar.shirt);
   const bad = results.filter(r => !r.ok);
   if (bad.length) UI.toast('Ошибка аддона: ' + bad.map(b => b.name + ' — ' + b.error).join('; '));
   window.addEventListener('pointerdown', unlockAudio, { once: true });
   frame();
   // Android back button
   window.sfBack = () => {
+    if (charEditorOpen() || devMenuOpen()) { onKey('Escape'); return true; }
     if (G.inGame) { onKey('Escape'); return true; }
     const sub = !$('addonsmenu').classList.contains('hidden') || !$('settingsmenu').classList.contains('hidden');
     if (sub) { UI.backScreen(); return true; }

@@ -163,8 +163,15 @@ export function buildDefVisual(def, color) {
 
 function safeCall(fn) { try { return fn(); } catch (e) { console.error(e); return undefined; } }
 
+// Player-chosen picture for bots/mannequins (kept only on this device)
+let botSkin = null;
+export function setBotSkin(tex) {
+  botSkin = tex;
+  for (const ent of G.ents.values()) if (ent.def.skinnable) applyColor(ent);
+}
 export function applyColor(ent) {
-  for (const part of ent.parts) applyTint(part.group, ent.color);
+  const skin = ent.def.skinnable ? botSkin : null;
+  for (const part of ent.parts) applyTint(part.group, ent.color, skin);
 }
 
 export function setFrozen(ent, frozen) {
@@ -178,12 +185,18 @@ export function setFrozen(ent, frozen) {
       b.velocity.setZero(); b.angularVelocity.setZero();
     } else {
       b.type = CANNON.Body.DYNAMIC;
-      b.mass = part.def.mass;
+      b.mass = part.def.mass * (ent.massMul || 1);
       b.wakeUp();
     }
     b.updateMassProperties();
     b.aabbNeedsUpdate = true;
   }
+}
+
+// Developer menu: mass multiplier
+export function applyMass(ent) {
+  if (!G.isHost || ent.frozen) return;
+  for (const p of ent.parts) { p.body.mass = p.def.mass * (ent.massMul || 1); p.body.updateMassProperties(); p.body.wakeUp(); }
 }
 
 export function removeEntity(id) {
@@ -623,6 +636,10 @@ export function stepThink(dt) {
         if (b.type !== CANNON.Body.DYNAMIC) continue;
         b.applyForce(new CANNON.Vec3(0, def.lift + b.mass * 9.82, 0), b.position);
       }
+    }
+    if (ent.float) for (const part of ent.parts) {
+      const b = part.body;
+      if (b.type === CANNON.Body.DYNAMIC) { b.applyForce(new CANNON.Vec3(0, -G.world.gravity.y * b.mass, 0), b.position); b.velocity.scale(0.995, b.velocity); }
     }
     if (def.fuse && G.time - ent.born > def.fuse) { explode(ent); continue; }
     if (def.think) safeCall(() => def.think(ent, dt, G.api));

@@ -3,7 +3,9 @@ import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { G, GROUP } from './state.js';
 import { physMat, followSun } from './world.js';
-import { buildHumanoid, buildWeapon, buildHand, applyTint, updateToolScreen } from './models.js';
+import { buildWeapon, buildHand, applyTint, updateToolScreen } from './models.js';
+import { buildCharacter, sanitizeAvatar } from './character.js';
+import { mapMeshes } from './world.js';
 
 export const SPAWN = [0, 2, 12];
 
@@ -11,6 +13,8 @@ export const player = {
   body: null,
   yaw: 0, pitch: 0,
   noclip: false,
+  thirdPerson: false,
+  speedMul: 1, jumpMul: 1, flyMul: 1,
   grounded: false,
   input: { f: 0, s: 0, jump: false, run: false, up: 0 },
   eye: new THREE.Vector3(),
@@ -60,7 +64,7 @@ export function updatePlayer(dt) {
   if (wl > 1) { wx /= wl; wz /= wl; }
 
   if (player.noclip) {
-    const sp = inp.run ? 30 : 12;
+    const sp = (inp.run ? 30 : 12) * player.flyMul;
     const cp = Math.cos(player.pitch), spch = Math.sin(player.pitch);
     const vx = (fx * cp * inp.f + rx * inp.s) * sp;
     const vy = (spch * inp.f + inp.up) * sp;
@@ -75,27 +79,70 @@ export function updatePlayer(dt) {
       { collisionFilterMask: GROUP.MAP | GROUP.PROP, skipBackfaces: true }, ray,
     );
     player.grounded = ray.hasHit;
-    const speed = inp.run ? 9 : 5.5;
+    const speed = (inp.run ? 9 : 5.5) * player.speedMul;
     const accel = player.grounded ? 12 : 2.5;
     const k = Math.min(1, accel * dt);
     b.velocity.x += (wx * speed - b.velocity.x) * k;
     b.velocity.z += (wz * speed - b.velocity.z) * k;
     if (inp.jump && player.grounded && b.velocity.y < 2) {
-      b.velocity.y = 5.6;
+      b.velocity.y = 5.6 * Math.sqrt(player.jumpMul);
       player.grounded = false;
     }
     if (b.position.y < -30) respawn();
   }
 }
 
-export function updateCamera() {
+const _ray = new THREE.Raycaster();
+let localAv = null, localWalk = { t: 0 };
+export function updateCamera(dt = 0) {
   const b = player.body;
   player.pitch = Math.max(-1.55, Math.min(1.55, player.pitch));
-  player.eye.set(b.position.x, b.position.y + 0.7, b.position.z);
-  G.camera.position.copy(player.eye);
+  const head = new THREE.Vector3(b.position.x, b.position.y + 0.7, b.position.z);
   G.camera.quaternion.setFromEuler(new THREE.Euler(player.pitch, player.yaw, 0, 'YXZ'));
   player.dir.set(0, 0, -1).applyQuaternion(G.camera.quaternion);
+  if (player.thirdPerson) {
+    // over-the-shoulder camera that does not go through walls
+    const back = new THREE.Vector3(0.45, 0.25, 3.2).applyQuaternion(G.camera.quaternion);
+    const len = back.length();
+    back.normalize();
+    _ray.set(head, back); _ray.far = len;
+    const hit = _ray.intersectObjects(mapMeshes, false)[0];
+    const d = hit ? Math.max(0.3, hit.distance - 0.25) : len;
+    G.camera.position.copy(head).addScaledVector(back, d);
+  } else G.camera.position.copy(head);
+  player.eye.copy(G.camera.position);
   followSun(b.position.x, b.position.z);
+  if (vm) vm.visible = !player.thirdPerson;
+  if (localAv) {
+    localAv.group.visible = player.thirdPerson;
+    if (player.thirdPerson) {
+      const v = b.velocity;
+      animateAvatar(localAv, b.position, player.noclip ? new THREE.Vector3() : new THREE.Vector3(v.x, v.y, v.z), player.yaw, player.pitch, !!player.holding, dt, localWalk);
+    }
+  }
+}
+
+export function setThirdPerson(v) { player.thirdPerson = v; }
+// (Re)build the local player's own character from the saved avatar
+export function rebuildLocalAvatar(cfg) {
+  if (localAv) G.scene.remove(localAv.group);
+  localAv = buildCharacter(cfg);
+  localAv.group.visible = player.thirdPerson;
+  G.scene.add(localAv.group);
+}
+
+// Shared animation: walking legs/arms, head pitch, arm raised while holding something
+export function animateAvatar(av, pos, vel, yaw, pitch, holding, dt, st) {
+  const g = av.group;
+  g.position.set(pos.x, pos.y - 0.9, pos.z);
+  g.rotation.y = yaw + Math.PI;
+  av.head.rotation.x = -pitch * 0.6;
+  const sp = Math.hypot(vel.x, vel.z);
+  st.t += dt * sp * 2;
+  const sw = Math.sin(st.t) * Math.min(1, sp / 4) * 0.7;
+  av.legL.rotation.x = sw; av.legR.rotation.x = -sw;
+  av.armL.rotation.x = -sw;
+  av.armR.rotation.x = holding ? -1.45 - pitch * 0.8 : sw;
 }
 
 // ---------- View model (weapon in hands) ----------
@@ -159,6 +206,7 @@ export function updateViewModel(dt) {
 }
 export function gunTip() {
   const p = new THREE.Vector3();
+  if (player.thirdPerson && localAv && localAv.hand) { localAv.hand.getWorldPosition(p); return p; }
   tipMarker.getWorldPosition(p);
   return p;
 }
@@ -206,18 +254,23 @@ function nameSprite(text, color) {
   return s;
 }
 
-export function buildAvatar(color) {
-  const av = buildHumanoid(0xffffff);
-  applyTint(av.group, new THREE.Color(color).getHex());
-  return av;
+const avatarCache = new Map(); // player id -> avatar settings received over the network
+export function setAvatarFor(id, cfg) {
+  avatarCache.set(id, sanitizeAvatar(cfg));
+  const rp = G.players.get(id);
+  if (rp) rebuildRemoteAvatar(rp);
+}
+
+function rebuildRemoteAvatar(rp) {
+  if (rp.av) G.scene.remove(rp.av.group);
+  rp.av = buildCharacter(avatarCache.get(rp.id));
+  rp.av.group.add(rp.tag);
+  G.scene.add(rp.av.group);
 }
 
 export function createRemotePlayer(id, name, color) {
-  const av = buildAvatar(color);
-  G.scene.add(av.group);
   const tag = nameSprite(name, color);
-  tag.position.set(0, 2.3, 0);
-  av.group.add(tag);
+  tag.position.set(0, 2.2, 0);
   const body = new CANNON.Body({
     mass: 0, type: CANNON.Body.KINEMATIC, collisionFilterGroup: GROUP.PLAYER,
     collisionFilterMask: GROUP.PROP | GROUP.PLAYER,
@@ -226,10 +279,11 @@ export function createRemotePlayer(id, name, color) {
   body.addShape(new CANNON.Sphere(0.35), new CANNON.Vec3(0, 0.3, 0));
   G.world.addBody(body);
   const rp = {
-    id, name, color, av, tag, body, beam: makeBeam(),
+    id, name, color, av: null, tag, body, beam: makeBeam(),
     target: new THREE.Vector3(SPAWN[0], SPAWN[1], SPAWN[2]), pos: new THREE.Vector3(SPAWN[0], SPAWN[1], SPAWN[2]),
-    yaw: 0, pitch: 0, walk: 0, weapon: 'physgun', beamTo: null, noclip: false,
+    yaw: 0, pitch: 0, walk: { t: 0 }, weapon: 'physgun', beamTo: null, noclip: false,
   };
+  rebuildRemoteAvatar(rp);
   G.players.set(id, rp);
   return rp;
 }
@@ -238,7 +292,6 @@ export function updateRemotePlayer(rp, s) {
   rp.target.set(s.p[0], s.p[1], s.p[2]);
   rp.yaw = s.y; rp.pitch = s.pi;
   rp.weapon = s.w; rp.beamTo = s.b || null; rp.noclip = !!s.n;
-  if (s.c && s.c !== rp.color) { rp.color = s.c; applyTint(rp.av.group, new THREE.Color(s.c).getHex()); }
 }
 
 export function removeRemotePlayer(id) {
@@ -258,17 +311,9 @@ export function animateRemotePlayers(dt) {
     const vel = rp.pos.clone().sub(prev).divideScalar(Math.max(dt, 1e-3));
     rp.body.position.set(rp.pos.x, rp.pos.y, rp.pos.z);
     rp.body.velocity.set(vel.x, vel.y, vel.z);
-    const g = rp.av.group;
-    g.position.set(rp.pos.x, rp.pos.y - 0.9, rp.pos.z);
-    g.rotation.y = rp.yaw + Math.PI;
-    rp.av.head.rotation.x = -rp.pitch * 0.7;
-    const sp = Math.hypot(vel.x, vel.z);
-    rp.walk += dt * sp * 2;
-    const sw = Math.sin(rp.walk) * Math.min(1, sp / 4) * 0.7;
-    rp.av.legL.rotation.x = sw; rp.av.legR.rotation.x = -sw;
-    rp.av.armL.rotation.x = -sw; rp.av.armR.rotation.x = rp.beamTo ? -1.4 : sw;
+    animateAvatar(rp.av, rp.pos, vel, rp.yaw, rp.pitch, !!rp.beamTo, dt, rp.walk);
     if (rp.weapon === 'physgun' && rp.beamTo) {
-      const from = new THREE.Vector3(0.47, 1.0, -0.6).applyEuler(new THREE.Euler(0, rp.yaw, 0)).add(g.position);
+      const from = rp.av.hand ? rp.av.hand.getWorldPosition(new THREE.Vector3()) : rp.pos.clone();
       setBeam(rp.beam, from, null, new THREE.Vector3(...rp.beamTo));
     } else setBeam(rp.beam, null, null, null);
   }

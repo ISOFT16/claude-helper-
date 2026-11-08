@@ -103,7 +103,7 @@ export function registerBuiltins() {
 
   // ----- Персонажи -----
   registerProp('ragdoll', {
-    name: 'Манекен', category: 'Персонажи', damping: 0.1, angularDamping: 0.4,
+    name: 'Манекен', category: 'Персонажи', skinnable: true, damping: 0.1, angularDamping: 0.4,
     parts: [
       { mass: 25, offset: [0, 1.1, 0], model: 'dummy_torso', shapes: [box([0.7, 0.8, 0.4])] },
       { mass: 5, offset: [0, 1.75, 0], model: 'dummy_head', shapes: [sph(0.22)] },
@@ -121,7 +121,7 @@ export function registerBuiltins() {
     ],
   });
   registerProp('walker', {
-    name: 'Бот-бродяга', category: 'Персонажи', health: 60, fixedRotation: true, damping: 0.3,
+    name: 'Бот-бродяга', category: 'Персонажи', skinnable: true, health: 60, fixedRotation: true, damping: 0.3,
     parts: [{
       mass: 50, offset: [0, 1, 0], model: 'dummy_full', modelColor: 0x5fa860,
       shapes: [box([0.7, 0.8, 0.4], { offset: [0, 0.1, 0] }), box([0.45, 0.42, 0.42], { offset: [0, 0.75, 0] }), box([0.6, 0.65, 0.26], { offset: [0, -0.62, 0] })],
