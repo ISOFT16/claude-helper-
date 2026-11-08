@@ -9,7 +9,7 @@ const DIFF = [
 let diff = DIFF[SET.diff] || DIFF[1];
 class Agent {
   constructor(team, name, isPlayer) {
-    Object.assign(this, { team, name, isPlayer, pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0, pitch: 0, hp: 100, armor: 0, alive: true, kills: 0, deaths: 0, money: 800, onGround: true, crouch: false, eye: 1.62 });
+    Object.assign(this, { team, name, isPlayer, pos: new THREE.Vector3(), vel: new THREE.Vector3(), yaw: 0, pitch: 0, hp: 100, armor: 0, alive: true, kills: 0, deaths: 0, money: START_MONEY, onGround: true, crouch: false, eye: 1.62 });
     this.inv = { 1: null, 2: newGun('osa'), 3: { id: 'knife' } }; this.slot = 2; this.lastSlot = 3; this.gren = { he: 0, smoke: 0, flash: 0 }; this.nadeSel = 'he'; this.blindT = 0; this.burstLeft = 0;
     this.fireCd = 0; this.reloading = 0; this.spreadAcc = 0; this.punchP = 0; this.punchY = 0; this.switchT = 0;
     this.spot = [0, 0]; this.lastHitBy = null; this.tp = 0; this.net = isPlayer ? 'local' : 'bot';

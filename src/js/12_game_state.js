@@ -20,7 +20,7 @@ function spawnAgent(a, cell) {
 function hideEmpty(a) { a.alive = false; a.model.visible = false; a.hp = 0; }
 function startMatch() {
   G.score = [0, 0]; G.round = 0; G.over = false; G.lobbyT = -1;
-  for (const a of agents) { a.money = 800; a.kills = a.deaths = 0; a.inv = freshInv(); a.armor = 0; a.gren = freshGren(); a.alive = false; if (a.net === 'bot') applyCos(a, randomCos()); }
+  for (const a of agents) { a.money = START_MONEY; a.kills = a.deaths = 0; a.inv = freshInv(); a.armor = 0; a.gren = freshGren(); a.alive = false; if (a.net === 'bot') applyCos(a, randomCos()); }
   $('feed').innerHTML = '';
   clearSmokes();
   startRound();
@@ -45,14 +45,14 @@ function startLobby() {
   G.state = 'lobby'; G.round = 0; G.score = [0, 0]; G.prog = [0, 0]; G.over = false; G.lobbyT = -1; G.liveT = 0;
   for (const a of agents) {
     if (!active(a)) { hideEmpty(a); continue; }
-    a.money = 16000; a.kills = a.deaths = 0; a.inv = freshInv(); a.armor = 0; a.gren = freshGren();
+    a.money = START_MONEY; a.kills = a.deaths = 0; a.inv = freshInv(); a.armor = 0; a.gren = freshGren();
     spawnAgent(a);
   }
   clearSmokes();
   P.scoped = false; specTarget = null;
 }
 function lobbyTick(dt) {
-  for (const a of agents) if (active(a)) { a.money = 16000; if (!a.alive) spawnAgent(a); }
+  for (const a of agents) if (active(a)) { a.money = START_MONEY; if (!a.alive) spawnAgent(a); }
   const n = humans().length;
   if (G.autoN && n >= G.autoN) {
     if (G.lobbyT < 0) G.lobbyT = 10;
@@ -132,7 +132,7 @@ function endRound(winner, reason) {
   if (G.state !== 'live') return;
   G.state = 'end'; G.timer = 5;
   if (winner >= 0) G.score[winner]++;
-  for (const a of agents) if (active(a)) a.money = Math.min(16000, a.money + (a.team === winner ? 3000 : 1800));
+  for (const a of agents) if (active(a)) a.money = Math.min(MAX_MONEY, a.money + (a.team === winner ? 3000 : 1800));
   roundEndFx(winner, reason); netEvent({ k: 're', w: winner, r: reason });
   if (G.score[0] >= G.winRounds || G.score[1] >= G.winRounds) G.over = true;
 }

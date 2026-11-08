@@ -79,7 +79,7 @@ function moveHuman(from, to) {
   if (from === P) { P.isPlayer = false; P = to; P.isPlayer = true; to.net = 'local'; applyLocalLook(); }
   else { to.net = 'remote'; to.conn = from.conn; to.netState = null; if (to.conn) to.conn.agent = to; }
   from.net = 'empty'; from.conn = null; from.name = ''; hideEmpty(from);
-  if (G.state === 'lobby') { to.money = 16000; spawnAgent(to); } else hideEmpty(to);
+  if (G.state === 'lobby') { to.money = START_MONEY; spawnAgent(to); } else hideEmpty(to);
   if (to.conn && to.conn.open) to.conn.send({ t: 'welcome', i: idxOf(to), code: NET.code, names: agents.map(x => x.name), cos: agents.map(x => x.rig.cos) });
   netEvent({ k: 'nm', n: agents.map(x => x.name) }); netEvent({ k: 'cos', c: agents.map(x => x.rig.cos) });
 }
@@ -138,8 +138,8 @@ function hostAccept(conn) {
     slot.name = String((conn.metadata && conn.metadata.name) || t('playerDef')).slice(0, 14);
     slot.kills = slot.deaths = 0; slot.inv = freshInv(); slot.gren = freshGren(); slot.armor = 0; slot.tp++;
     applyCos(slot, conn.metadata && conn.metadata.cos);
-    if (G.state === 'lobby') { slot.money = 16000; spawnAgent(slot); }
-    else { slot.money = 800; hideEmpty(slot); }
+    if (G.state === 'lobby') { slot.money = START_MONEY; spawnAgent(slot); }
+    else { slot.money = START_MONEY; hideEmpty(slot); }
     conn.agent = slot; conn.lastSeen = performance.now(); NET.conns.push(conn);
     conn.send({ t: 'welcome', i: idxOf(slot), code: NET.code, names: agents.map(a => a.name), cos: agents.map(a => a.rig.cos) });
     netEvent({ k: 'cos', c: agents.map(a => a.rig.cos) });

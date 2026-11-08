@@ -14,6 +14,8 @@ const PRESETS = {
   high: { renderScale: 1, shadows: 2, charShadows: true, reflections: true, drawDist: 1, effects: 1 },
   ultra: { renderScale: 1.5, shadows: 4, charShadows: true, reflections: true, drawDist: 2, effects: 1 },
 };
+// стартовые деньги в матче и их потолок
+const START_MONEY = 100000, MAX_MONEY = 100000;
 const DEF_SET = {
   lang: LANG, preset: TOUCH ? 'medium' : 'high', ...PRESETS[TOUCH ? 'medium' : 'high'], antialias: !TOUCH, fpsLimit: 0, showFps: false, brightness: 1.1, fov: 80,
   vmSide: 'right', bob: true, master: 0.8, sfxVol: 1, announcer: true,
