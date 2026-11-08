@@ -142,3 +142,4 @@ function updateFx(dt) {
   }
   updateParticles(PSMOKE, dt); updateParticles(PGLOW, dt);
 }
+bootMark('07_fx');

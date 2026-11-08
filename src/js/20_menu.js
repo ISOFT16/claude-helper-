@@ -104,12 +104,12 @@ const SCHEMA = {
     ['charShadows', 'toggle'], ['reflections', 'toggle'], ['drawDist', 'select', [[0, 'near'], [1, 'mid'], [2, 'far']]],
     ['effects', 'select', [[0, 'low'], [1, 'high']]], ['antialias', 'toggle', 'restart'], ['grading', 'toggle'], ['bloom', 'toggle'], ['ao', 'toggle'],
     ['fpsLimit', 'select', [[30, '#30'], [60, '#60'], [75, '#75'], [90, '#90'], [120, '#120'], [144, '#144'], [165, '#165'], [240, '#240'], [0, 'unlimited']]],
-    ['showFps', 'toggle'], ['brightness', 'range', 0.6, 1.8, 0.05, fx2], ['fov', 'range', 60, 110, 1, v => v + '°'],
+    ['showFps', 'toggle'], ['autoQuality', 'toggle'], ['brightness', 'range', 0.6, 1.8, 0.05, fx2], ['fov', 'range', 60, 110, 1, v => v + '°'],
     ['vmSide', 'select', [['right', 'right'], ['left', 'left']]], ['bob', 'toggle'],
   ],
   tSnd: [['master', 'range', 0, 1, 0.05, pct], ['sfxVol', 'range', 0, 1, 0.05, pct], ['announcer', 'toggle']],
   tCtl: [
-    ['sens', 'range', 0.2, 4, 0.05, fx2], ['scopeSens', 'range', 0.1, 1.5, 0.05, fx2], ['invertY', 'toggle'], ['toggleCrouch', 'toggle'],
+    ['sens', 'range', 0.2, 4, 0.05, fx2], ['strongShake', 'toggle'], ['scopeSens', 'range', 0.1, 1.5, 0.05, fx2], ['invertY', 'toggle'], ['toggleCrouch', 'toggle'],
     ['keyLayout', 'select', [['en', 'kAuto'], ['ru', 'kRu']]],
     ['touchSize', 'range', 0.7, 1.4, 0.05, pct, 'touch'], ['touchSens', 'range', 0.3, 3, 0.05, fx2, 'touch'], ['aimAssist', 'toggle', 'touch'], ['autoFire', 'toggle'], 'BINDS',
   ],
@@ -128,6 +128,7 @@ function setVal(k, v) {
   SET[k] = v;
   if (k === 'preset' && PRESETS[v]) Object.assign(SET, PRESETS[v]);
   else if (['renderScale', 'shadows', 'charShadows', 'reflections', 'drawDist', 'effects', 'grading', 'bloom', 'ao', 'antialias'].includes(k)) SET.preset = 'custom';
+  if (['preset', 'renderScale', 'shadows', 'ao', 'bloom', 'autoQuality'].includes(k)) { PERF.dyn = 1; PERF.cut = 0; }
   if (k === 'lang') { LANG = v; }
   saveSettings(); applySettings();
   if (k === 'lang') applyLang();
@@ -207,11 +208,16 @@ function previewCross() {
 }
 /* --- применение настроек --- */
 let shadowSize = 2048;
-function applySettings() {
-  renderer.setPixelRatio(clamp(Math.min(devicePixelRatio, 2) * SET.renderScale, 0.4, 3)); renderer.setSize(innerWidth, innerHeight);
-  sun.castShadow = SET.shadows > 0;
-  const sz = [1024, 1024, 2048, 3072, 4096][SET.shadows] || 2048;
+function applyShadows() {
+  const lv = effShadows(); sun.castShadow = lv > 0;
+  const sz = [1024, 1024, 2048, 3072, 4096][lv] || 2048;
   if (sz !== shadowSize) { shadowSize = sz; sun.shadow.mapSize.set(sz, sz); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
+}
+function applySettings() {
+  if (!SET.autoQuality) { PERF.dyn = 1; PERF.cut = 0; }
+  const pr = targetPixelRatio(); if (Math.abs(renderer.getPixelRatio() - pr) > 0.01) renderer.setPixelRatio(pr);
+  renderer.setSize(innerWidth, innerHeight);
+  applyShadows();
   for (const a of agents) if (a.rig) a.rig.lodDirty = true; // тени бойцов выставит LOD с учётом дальности
   scene.environment = SET.reflections ? envTex : null; vmScene.environment = SET.reflections ? envTex : null;
   const dd = [[30, 90, 120], [50, 170, 300], [80, 260, 420]][SET.drawDist] || [50, 170, 300];
@@ -222,6 +228,7 @@ function applySettings() {
   applyVolume();
   buildCrosshair();
   for (const id of ['top', 'bl', 'br', 'feed', 'radar', 'chat']) $(id).style.zoom = SET.hudScale;
+  shakeK = SET.strongShake ? 1 : 0.35;
   $('fps').classList.toggle('hidden', !SET.showFps);
   document.body.style.setProperty('--ts', SET.touchSize);
   // автоогонь: кнопка огня не нужна — убираем её целиком (display:none, касания не перехватывает)
@@ -230,3 +237,4 @@ function applySettings() {
 applySettings();
 applyLang();
 showMenu('main');
+bootMark('20_menu');

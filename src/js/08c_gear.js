@@ -124,3 +124,4 @@ function buildGearLook(a) {
   if (c.vest && c.vest[0] === 'vest_heavy') for (const x of [-0.2, 0.2]) add(R.chest, gearGeo.shoulder, c.vest[1], x, 0.42, 0, 1.1, 0.8, 1.1);
   if (c.collar) add(R.chest, gearGeo.collar, c.collar[1], 0, 0.5, 0, 1.2, 1.2, 0.9, Math.PI / 2);
 }
+bootMark('08c_gear');

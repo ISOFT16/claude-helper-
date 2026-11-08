@@ -578,6 +578,9 @@ function setRigGun(R, id) {
   if (!R.guns[id]) { const g = GUNS[id].clone(); g.traverse(o => { if (o.isMesh) o.castShadow = false; }); skinGun(g, R.cos && R.cos.w && R.cos.w[id]); R.gunHolder.add(g); R.guns[id] = { g, p: gunParts(g) }; R.lodDirty = true; }
   R.gun = R.guns[id].g; R.parts = R.guns[id].p; R.gun.visible = true; R.gunId = id;
   R.gun.position.set(...gunPose(id));
+  // кэш копий оружия: не больше 3 на бойца (аудит v8: без предела сцена росла на сотни объектов за матч)
+  R.gunOrder = (R.gunOrder || []).filter(k => k !== id); R.gunOrder.push(id);
+  while (R.gunOrder.length > 3) { const old = R.gunOrder.shift(); if (R.guns[old]) { R.gunHolder.remove(R.guns[old].g); delete R.guns[old]; } }
 }
 function resetRig(a) {
   const R = a.rig; R.deadT = 0;
@@ -860,3 +863,4 @@ function updateViewmodel(dt) {
   }
 }
 
+bootMark('08_models');

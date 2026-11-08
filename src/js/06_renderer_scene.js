@@ -205,3 +205,6 @@ for (const t of [0, 1]) {
   L.position.set(c[0] * CELL + 1, 3, c[1] * CELL + 1); scene.add(L);
 }
 
+// статичная геометрия мира — слой 1 (для AO и будущего отсечения невидимого)
+for (const o of scene.children) if ((o.isMesh || o.isInstancedMesh) && o !== sky && !(o.material && o.material.transparent)) o.layers.enable(1);
+bootMark('06_renderer_scene');

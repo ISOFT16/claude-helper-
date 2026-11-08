@@ -178,3 +178,4 @@ function drawRadar() {
   rctx.fillStyle = '#ffd85a';
   for (const p of WM.pins) { rctx.beginPath(); rctx.moveTo(p.x * sx, p.z * sz); rctx.lineTo(p.x * sx - 3, p.z * sz - 7); rctx.lineTo(p.x * sx + 3, p.z * sz - 7); rctx.fill(); }
 }
+bootMark('17_hud');

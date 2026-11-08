@@ -72,23 +72,33 @@ function updateCamera(dt) {
     for (const a of agents) a.model.visible = active(a) && (a !== st || !a.alive);
     if (st) { camera.position.set(st.pos.x, st.pos.y + 1.62, st.pos.z); camera.rotation.set(st.pitch, st.yaw, 0); }
   }
-  if (shake > 0) { shake -= dt; camera.rotation.x += rand(-1, 1) * shake * 0.05; camera.rotation.y += rand(-1, 1) * shake * 0.05; }
+  if (shake > 0) { shake -= dt; camera.rotation.x += rand(-1, 1) * shake * 0.05 * shakeK; camera.rotation.y += rand(-1, 1) * shake * 0.05 * shakeK; }
   const targetFov = P.scoped && P.alive ? (P.w().zoom || 20) : SET.fov;
   if (camera.fov !== targetFov) { camera.fov = targetFov; camera.updateProjectionMatrix(); }
   if (P.alive) updateViewmodel(dt);
   updateLOD();
 }
-let last = performance.now(), fpsFrames = 0, fpsT = 0, camRoll = 0;
+let last = performance.now(), fpsFrames = 0, fpsT = 0, camRoll = 0, shakeK = 1;
 function frame(ts) {
   requestAnimationFrame(frame);
   // ограничение FPS: пропускаем кадр, если он пришёл раньше срока
   if (SET.fpsLimit > 0 && ts - last < 1000 / SET.fpsLimit - 1) return;
-  const dt = Math.min(0.05, (ts - last) / 1000); last = ts;
+  const rawMs = ts - last;
+  // полуфиксированный шаг: длинный кадр делится на подшаги не длиннее 1/60 с (до 6) —
+  // физика и столкновения не «проскакивают» при просадках FPS, а игра не замедляется
+  const dt = Math.min(0.1, rawMs / 1000); last = ts;
+  perfFrame(rawMs);
   fpsFrames++; fpsT += dt;
-  if (fpsT >= 0.5) { if (SET.showFps) $('fps').textContent = Math.round(fpsFrames / fpsT) + ' FPS'; fpsFrames = 0; fpsT = 0; }
+  if (fpsT >= 0.5) {
+    if (SET.showFps) { const st = perfStats(); $('fps').textContent = Math.round(fpsFrames / fpsT) + ' FPS' + (st ? ` · 1% ${Math.round(st.low1)} · ${st.ms.toFixed(1)} мс` : '') + (PERF.dyn < 1 || PERF.cut ? ` · ${Math.round(PERF.dyn * 100)}%${PERF.cut ? ' −' + PERF.cut : ''}` : ''); }
+    fpsFrames = 0; fpsT = 0;
+  }
   if (G.started && (!G.paused || NET.mode !== 'off')) {
-    if (NET.mode === 'client') { now += dt; clientUpdate(dt); }
-    else if (G.state !== 'over') { now += dt; updateGame(dt); }
+    const steps = Math.min(6, Math.ceil(dt / (1 / 60) - 1e-6)), sdt = dt / steps;
+    for (let i = 0; i < steps; i++) {
+      if (NET.mode === 'client') { now += sdt; clientUpdate(sdt); }
+      else if (G.state !== 'over') { now += sdt; updateGame(sdt); }
+    }
     if (NET.mode === 'host') hostTick(dt);
   }
   if (joy.id === null) joy.x = joy.y = 0;

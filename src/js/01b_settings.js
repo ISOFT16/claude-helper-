@@ -12,14 +12,14 @@ const PRESETS = {
   low: { renderScale: 0.75, shadows: 0, charShadows: false, reflections: false, drawDist: 0, effects: 0, grading: false, bloom: false, ao: false },
   medium: { renderScale: 1, shadows: 1, charShadows: false, reflections: true, drawDist: 1, effects: 1, grading: true, bloom: false, ao: false },
   high: { renderScale: 1, shadows: 2, charShadows: true, reflections: true, drawDist: 1, effects: 1, grading: true, bloom: true, ao: false },
-  ultra: { renderScale: 1.5, shadows: 4, charShadows: true, reflections: true, drawDist: 2, effects: 1, grading: true, bloom: true, ao: true },
+  ultra: { renderScale: 1.25, shadows: 4, charShadows: true, reflections: true, drawDist: 2, effects: 1, grading: true, bloom: true, ao: true },
 };
 // стартовые деньги в матче и их потолок
 const START_MONEY = 100000, MAX_MONEY = 100000;
 const DEF_SET = {
   lang: LANG, preset: TOUCH ? 'medium' : 'high', ...PRESETS[TOUCH ? 'medium' : 'high'], antialias: !TOUCH, fpsLimit: 0, showFps: false, brightness: 1.1, fov: 80,
   vmSide: 'right', bob: true, master: 0.8, sfxVol: 1, announcer: true,
-  sens: 1, scopeSens: 0.45, invertY: false, toggleCrouch: false, keyLayout: 'en', touchSize: 1, touchSens: 1, aimAssist: true, autoFire: false,
+  sens: 1, scopeSens: 0.45, invertY: false, toggleCrouch: false, keyLayout: 'en', touchSize: 1, touchSens: 1, aimAssist: true, autoFire: false, autoQuality: true, strongShake: true,
   xStyle: 'cross', xColor: '#7dffb0', xSize: 8, xThick: 2, xGap: 4, xCenter: false, xDynamic: true, xOutline: true,
   radar: true, radarAll: true, killfeed: true, hitmarkers: true, dmgNumbers: true, hudScale: 1,
   diff: 1, hp: 210, rounds: 8, mpHp: 210, mpRounds: 8, mpAuto: 4, name: '', srvName: '', mpPublic: true,

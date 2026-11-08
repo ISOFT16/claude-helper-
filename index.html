@@ -316,7 +316,7 @@
       <button class="nb" data-screen="daily"><span data-i18n="mDaily"></span><i class="badge hidden" id="dailybadge">!</i></button>
       <button class="nb" data-open="settings" data-i18n="mSettings"></button>
       <button class="nb" data-screen="help" data-i18n="mHelp"></button>
-      <div class="ver">v8</div>
+      <div class="ver">v9</div>
     </div>
     <div class="panel" id="scr-sp">
       <button class="backbtn" data-i18n="back"></button>
@@ -448,6 +448,9 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { FXAAShader } from 'three/addons/shaders/FXAAShader.js';
+// замеры загрузки: время от старта скрипта до готовности каждой системы
+const BOOT = { t0: performance.now(), marks: {} };
+const bootMark = name => { BOOT.marks[name] = Math.round(performance.now() - BOOT.t0); };
 /* ================= helpers ================= */
 const IS_APP = /[?&]app=android/.test(location.search);
 const TOUCH = IS_APP || matchMedia('(pointer: coarse)').matches;
@@ -480,7 +483,7 @@ STR.ru = {
   setTitle: 'Настройки', tGfx: 'Графика', tSnd: 'Звук', tCtl: 'Управление', tCross: 'Прицел', tUi: 'Интерфейс', tLang: 'Язык',
   preset: 'Качество графики', pLow: 'Низкое', pMed: 'Среднее', pHigh: 'Высокое', pUltra: 'Ультра', pCustom: 'Своё',
   renderScale: 'Разрешение рендера', shadows: 'Тени', off: 'Выкл', low: 'Низкие', med: 'Средние', high: 'Высокие', ultra: 'Ультра',
-  charShadows: 'Тени от бойцов', reflections: 'Отражения', grading: 'Цветокоррекция', bloom: 'Свечение ярких источников', ao: 'Затенение в углах (AO)', drawDist: 'Дальность прорисовки', near: 'Близко', mid: 'Средне', far: 'Далеко',
+  charShadows: 'Тени от бойцов', reflections: 'Отражения', autoQuality: 'Авто-качество (держать FPS)', strongShake: 'Сильная тряска камеры', grading: 'Цветокоррекция', bloom: 'Свечение ярких источников', ao: 'Затенение в углах (AO)', drawDist: 'Дальность прорисовки', near: 'Близко', mid: 'Средне', far: 'Далеко',
   effects: 'Эффекты (гильзы, следы пуль)', antialias: 'Сглаживание', restartNote: 'Применится после перезапуска', restartBtn: 'Перезапустить',
   fpsLimit: 'Ограничение FPS', unlimited: 'Без ограничения', showFps: 'Показывать FPS', brightness: 'Яркость', fov: 'Поле зрения (FOV)',
   vmSide: 'Оружие в руке', right: 'Справа', left: 'Слева', bob: 'Покачивание оружия',
@@ -552,7 +555,7 @@ STR.en = {
   setTitle: 'Settings', tGfx: 'Graphics', tSnd: 'Sound', tCtl: 'Controls', tCross: 'Crosshair', tUi: 'Interface', tLang: 'Language',
   preset: 'Graphics quality', pLow: 'Low', pMed: 'Medium', pHigh: 'High', pUltra: 'Ultra', pCustom: 'Custom',
   renderScale: 'Render resolution', shadows: 'Shadows', off: 'Off', low: 'Low', med: 'Medium', high: 'High', ultra: 'Ultra',
-  charShadows: 'Character shadows', reflections: 'Reflections', grading: 'Color grading', bloom: 'Bloom on bright lights', ao: 'Ambient occlusion (AO)', drawDist: 'Draw distance', near: 'Near', mid: 'Medium', far: 'Far',
+  charShadows: 'Character shadows', reflections: 'Reflections', autoQuality: 'Auto quality (keep FPS)', strongShake: 'Strong camera shake', grading: 'Color grading', bloom: 'Bloom on bright lights', ao: 'Ambient occlusion (AO)', drawDist: 'Draw distance', near: 'Near', mid: 'Medium', far: 'Far',
   effects: 'Effects (casings, bullet holes)', antialias: 'Anti-aliasing', restartNote: 'Applies after restart', restartBtn: 'Restart',
   fpsLimit: 'FPS limit', unlimited: 'Unlimited', showFps: 'Show FPS', brightness: 'Brightness', fov: 'Field of view (FOV)',
   vmSide: 'Weapon hand', right: 'Right', left: 'Left', bob: 'Weapon bob',
@@ -624,7 +627,7 @@ STR.uk = {
   setTitle: 'Налаштування', tGfx: 'Графіка', tSnd: 'Звук', tCtl: 'Керування', tCross: 'Приціл', tUi: 'Інтерфейс', tLang: 'Мова',
   preset: 'Якість графіки', pLow: 'Низька', pMed: 'Середня', pHigh: 'Висока', pUltra: 'Ультра', pCustom: 'Своя',
   renderScale: 'Роздільність рендеру', shadows: 'Тіні', off: 'Вимк', low: 'Низькі', med: 'Середні', high: 'Високі', ultra: 'Ультра',
-  charShadows: 'Тіні бійців', reflections: 'Відблиски', grading: 'Кольорокорекція', bloom: 'Світіння яскравих джерел', ao: 'Затінення в кутах (AO)', drawDist: 'Дальність промальовки', near: 'Близько', mid: 'Середньо', far: 'Далеко',
+  charShadows: 'Тіні бійців', reflections: 'Відблиски', autoQuality: 'Авто-якість (тримати FPS)', strongShake: 'Сильне трясіння камери', grading: 'Кольорокорекція', bloom: 'Світіння яскравих джерел', ao: 'Затінення в кутах (AO)', drawDist: 'Дальність промальовки', near: 'Близько', mid: 'Середньо', far: 'Далеко',
   effects: 'Ефекти (гільзи, сліди куль)', antialias: 'Згладжування', restartNote: 'Застосується після перезапуску', restartBtn: 'Перезапустити',
   fpsLimit: 'Обмеження FPS', unlimited: 'Без обмеження', showFps: 'Показувати FPS', brightness: 'Яскравість', fov: 'Поле зору (FOV)',
   vmSide: 'Зброя в руці', right: 'Праворуч', left: 'Ліворуч', bob: 'Похитування зброї',
@@ -678,7 +681,7 @@ STR.de = {
   setTitle: 'Einstellungen', tGfx: 'Grafik', tSnd: 'Ton', tCtl: 'Steuerung', tCross: 'Fadenkreuz', tUi: 'Oberfläche', tLang: 'Sprache',
   preset: 'Grafikqualität', pLow: 'Niedrig', pMed: 'Mittel', pHigh: 'Hoch', pUltra: 'Ultra', pCustom: 'Eigene',
   renderScale: 'Renderauflösung', shadows: 'Schatten', off: 'Aus', low: 'Niedrig', med: 'Mittel', high: 'Hoch', ultra: 'Ultra',
-  charShadows: 'Figurenschatten', reflections: 'Reflexionen', grading: 'Farbkorrektur', bloom: 'Bloom bei hellen Lichtern', ao: 'Umgebungsverdeckung (AO)', drawDist: 'Sichtweite', near: 'Nah', mid: 'Mittel', far: 'Weit',
+  charShadows: 'Figurenschatten', reflections: 'Reflexionen', autoQuality: 'Auto-Qualität (FPS halten)', strongShake: 'Starkes Kamerawackeln', grading: 'Farbkorrektur', bloom: 'Bloom bei hellen Lichtern', ao: 'Umgebungsverdeckung (AO)', drawDist: 'Sichtweite', near: 'Nah', mid: 'Mittel', far: 'Weit',
   effects: 'Effekte (Hülsen, Einschüsse)', antialias: 'Kantenglättung', restartNote: 'Gilt nach Neustart', restartBtn: 'Neu starten',
   fpsLimit: 'FPS-Limit', unlimited: 'Unbegrenzt', showFps: 'FPS anzeigen', brightness: 'Helligkeit', fov: 'Sichtfeld (FOV)',
   vmSide: 'Waffenhand', right: 'Rechts', left: 'Links', bob: 'Waffenwippen',
@@ -732,7 +735,7 @@ STR.fr = {
   setTitle: 'Paramètres', tGfx: 'Graphismes', tSnd: 'Son', tCtl: 'Commandes', tCross: 'Viseur', tUi: 'Interface', tLang: 'Langue',
   preset: 'Qualité graphique', pLow: 'Basse', pMed: 'Moyenne', pHigh: 'Haute', pUltra: 'Ultra', pCustom: 'Perso',
   renderScale: 'Résolution du rendu', shadows: 'Ombres', off: 'Non', low: 'Basses', med: 'Moyennes', high: 'Hautes', ultra: 'Ultra',
-  charShadows: 'Ombres des personnages', reflections: 'Reflets', grading: 'Étalonnage des couleurs', bloom: 'Halo des lumières vives', ao: 'Occlusion ambiante (AO)', drawDist: 'Distance d’affichage', near: 'Proche', mid: 'Moyenne', far: 'Loin',
+  charShadows: 'Ombres des personnages', reflections: 'Reflets', autoQuality: 'Qualité auto (maintenir les FPS)', strongShake: 'Fortes secousses de caméra', grading: 'Étalonnage des couleurs', bloom: 'Halo des lumières vives', ao: 'Occlusion ambiante (AO)', drawDist: 'Distance d’affichage', near: 'Proche', mid: 'Moyenne', far: 'Loin',
   effects: 'Effets (douilles, impacts)', antialias: 'Anticrénelage', restartNote: 'Appliqué après redémarrage', restartBtn: 'Redémarrer',
   fpsLimit: 'Limite FPS', unlimited: 'Illimité', showFps: 'Afficher les FPS', brightness: 'Luminosité', fov: 'Champ de vision (FOV)',
   vmSide: 'Main de l’arme', right: 'Droite', left: 'Gauche', bob: 'Balancement de l’arme',
@@ -786,7 +789,7 @@ STR.es = {
   setTitle: 'Ajustes', tGfx: 'Gráficos', tSnd: 'Sonido', tCtl: 'Controles', tCross: 'Mira', tUi: 'Interfaz', tLang: 'Idioma',
   preset: 'Calidad gráfica', pLow: 'Baja', pMed: 'Media', pHigh: 'Alta', pUltra: 'Ultra', pCustom: 'Personal',
   renderScale: 'Resolución de render', shadows: 'Sombras', off: 'No', low: 'Bajas', med: 'Medias', high: 'Altas', ultra: 'Ultra',
-  charShadows: 'Sombras de personajes', reflections: 'Reflejos', grading: 'Corrección de color', bloom: 'Resplandor de luces', ao: 'Oclusión ambiental (AO)', drawDist: 'Distancia de dibujado', near: 'Cerca', mid: 'Media', far: 'Lejos',
+  charShadows: 'Sombras de personajes', reflections: 'Reflejos', autoQuality: 'Calidad automática (mantener FPS)', strongShake: 'Sacudida fuerte de cámara', grading: 'Corrección de color', bloom: 'Resplandor de luces', ao: 'Oclusión ambiental (AO)', drawDist: 'Distancia de dibujado', near: 'Cerca', mid: 'Media', far: 'Lejos',
   effects: 'Efectos (casquillos, impactos)', antialias: 'Antialiasing', restartNote: 'Se aplica al reiniciar', restartBtn: 'Reiniciar',
   fpsLimit: 'Límite de FPS', unlimited: 'Sin límite', showFps: 'Mostrar FPS', brightness: 'Brillo', fov: 'Campo de visión (FOV)',
   vmSide: 'Mano del arma', right: 'Derecha', left: 'Izquierda', bob: 'Balanceo del arma',
@@ -840,7 +843,7 @@ STR.pt = {
   setTitle: 'Configurações', tGfx: 'Gráficos', tSnd: 'Som', tCtl: 'Controles', tCross: 'Mira', tUi: 'Interface', tLang: 'Idioma',
   preset: 'Qualidade gráfica', pLow: 'Baixa', pMed: 'Média', pHigh: 'Alta', pUltra: 'Ultra', pCustom: 'Personalizada',
   renderScale: 'Resolução de renderização', shadows: 'Sombras', off: 'Desl.', low: 'Baixas', med: 'Médias', high: 'Altas', ultra: 'Ultra',
-  charShadows: 'Sombras dos personagens', reflections: 'Reflexos', grading: 'Correção de cor', bloom: 'Brilho das luzes', ao: 'Oclusão de ambiente (AO)', drawDist: 'Distância de visão', near: 'Perto', mid: 'Média', far: 'Longe',
+  charShadows: 'Sombras dos personagens', reflections: 'Reflexos', autoQuality: 'Qualidade automática (manter FPS)', strongShake: 'Tremor forte da câmera', grading: 'Correção de cor', bloom: 'Brilho das luzes', ao: 'Oclusão de ambiente (AO)', drawDist: 'Distância de visão', near: 'Perto', mid: 'Média', far: 'Longe',
   effects: 'Efeitos (cápsulas, marcas de tiro)', antialias: 'Antisserrilhado', restartNote: 'Aplicado após reiniciar', restartBtn: 'Reiniciar',
   fpsLimit: 'Limite de FPS', unlimited: 'Sem limite', showFps: 'Mostrar FPS', brightness: 'Brilho', fov: 'Campo de visão (FOV)',
   vmSide: 'Mão da arma', right: 'Direita', left: 'Esquerda', bob: 'Balanço da arma',
@@ -894,7 +897,7 @@ STR.pl = {
   setTitle: 'Ustawienia', tGfx: 'Grafika', tSnd: 'Dźwięk', tCtl: 'Sterowanie', tCross: 'Celownik', tUi: 'Interfejs', tLang: 'Język',
   preset: 'Jakość grafiki', pLow: 'Niska', pMed: 'Średnia', pHigh: 'Wysoka', pUltra: 'Ultra', pCustom: 'Własna',
   renderScale: 'Rozdzielczość renderowania', shadows: 'Cienie', off: 'Wył.', low: 'Niskie', med: 'Średnie', high: 'Wysokie', ultra: 'Ultra',
-  charShadows: 'Cienie postaci', reflections: 'Odbicia', grading: 'Korekcja kolorów', bloom: 'Poświata jasnych świateł', ao: 'Okluzja otoczenia (AO)', drawDist: 'Zasięg widzenia', near: 'Blisko', mid: 'Średnio', far: 'Daleko',
+  charShadows: 'Cienie postaci', reflections: 'Odbicia', autoQuality: 'Auto jakość (utrzymuj FPS)', strongShake: 'Silne wstrząsy kamery', grading: 'Korekcja kolorów', bloom: 'Poświata jasnych świateł', ao: 'Okluzja otoczenia (AO)', drawDist: 'Zasięg widzenia', near: 'Blisko', mid: 'Średnio', far: 'Daleko',
   effects: 'Efekty (łuski, ślady kul)', antialias: 'Wygładzanie', restartNote: 'Zadziała po restarcie', restartBtn: 'Uruchom ponownie',
   fpsLimit: 'Limit FPS', unlimited: 'Bez limitu', showFps: 'Pokaż FPS', brightness: 'Jasność', fov: 'Pole widzenia (FOV)',
   vmSide: 'Ręka z bronią', right: 'Prawa', left: 'Lewa', bob: 'Kołysanie broni',
@@ -948,7 +951,7 @@ STR.tr = {
   setTitle: 'Ayarlar', tGfx: 'Grafik', tSnd: 'Ses', tCtl: 'Kontroller', tCross: 'Nişangâh', tUi: 'Arayüz', tLang: 'Dil',
   preset: 'Grafik kalitesi', pLow: 'Düşük', pMed: 'Orta', pHigh: 'Yüksek', pUltra: 'Ultra', pCustom: 'Özel',
   renderScale: 'Görüntü çözünürlüğü', shadows: 'Gölgeler', off: 'Kapalı', low: 'Düşük', med: 'Orta', high: 'Yüksek', ultra: 'Ultra',
-  charShadows: 'Karakter gölgeleri', reflections: 'Yansımalar', grading: 'Renk düzeltme', bloom: 'Parlak ışık parlaması', ao: 'Ortam kapatma (AO)', drawDist: 'Görüş mesafesi', near: 'Yakın', mid: 'Orta', far: 'Uzak',
+  charShadows: 'Karakter gölgeleri', reflections: 'Yansımalar', autoQuality: 'Otomatik kalite (FPS\'i koru)', strongShake: 'Güçlü kamera sarsıntısı', grading: 'Renk düzeltme', bloom: 'Parlak ışık parlaması', ao: 'Ortam kapatma (AO)', drawDist: 'Görüş mesafesi', near: 'Yakın', mid: 'Orta', far: 'Uzak',
   effects: 'Efektler (kovanlar, mermi izleri)', antialias: 'Kenar yumuşatma', restartNote: 'Yeniden başlatınca uygulanır', restartBtn: 'Yeniden başlat',
   fpsLimit: 'FPS sınırı', unlimited: 'Sınırsız', showFps: 'FPS göster', brightness: 'Parlaklık', fov: 'Görüş alanı (FOV)',
   vmSide: 'Silah eli', right: 'Sağ', left: 'Sol', bob: 'Silah sallanması',
@@ -1002,7 +1005,7 @@ STR.zh = {
   setTitle: '设置', tGfx: '画面', tSnd: '声音', tCtl: '操作', tCross: '准星', tUi: '界面', tLang: '语言',
   preset: '画质', pLow: '低', pMed: '中', pHigh: '高', pUltra: '极高', pCustom: '自定义',
   renderScale: '渲染分辨率', shadows: '阴影', off: '关', low: '低', med: '中', high: '高', ultra: '极高',
-  charShadows: '角色阴影', reflections: '反射', grading: '调色', bloom: '亮光泛光', ao: '环境光遮蔽 (AO)', drawDist: '视距', near: '近', mid: '中', far: '远',
+  charShadows: '角色阴影', reflections: '反射', autoQuality: '自动画质（保持帧率）', strongShake: '强烈镜头抖动', grading: '调色', bloom: '亮光泛光', ao: '环境光遮蔽 (AO)', drawDist: '视距', near: '近', mid: '中', far: '远',
   effects: '特效（弹壳、弹孔）', antialias: '抗锯齿', restartNote: '重启后生效', restartBtn: '重启',
   fpsLimit: '帧率上限', unlimited: '不限制', showFps: '显示帧率', brightness: '亮度', fov: '视野 (FOV)',
   vmSide: '持枪手', right: '右手', left: '左手', bob: '武器晃动',
@@ -1082,14 +1085,14 @@ const PRESETS = {
   low: { renderScale: 0.75, shadows: 0, charShadows: false, reflections: false, drawDist: 0, effects: 0, grading: false, bloom: false, ao: false },
   medium: { renderScale: 1, shadows: 1, charShadows: false, reflections: true, drawDist: 1, effects: 1, grading: true, bloom: false, ao: false },
   high: { renderScale: 1, shadows: 2, charShadows: true, reflections: true, drawDist: 1, effects: 1, grading: true, bloom: true, ao: false },
-  ultra: { renderScale: 1.5, shadows: 4, charShadows: true, reflections: true, drawDist: 2, effects: 1, grading: true, bloom: true, ao: true },
+  ultra: { renderScale: 1.25, shadows: 4, charShadows: true, reflections: true, drawDist: 2, effects: 1, grading: true, bloom: true, ao: true },
 };
 // стартовые деньги в матче и их потолок
 const START_MONEY = 100000, MAX_MONEY = 100000;
 const DEF_SET = {
   lang: LANG, preset: TOUCH ? 'medium' : 'high', ...PRESETS[TOUCH ? 'medium' : 'high'], antialias: !TOUCH, fpsLimit: 0, showFps: false, brightness: 1.1, fov: 80,
   vmSide: 'right', bob: true, master: 0.8, sfxVol: 1, announcer: true,
-  sens: 1, scopeSens: 0.45, invertY: false, toggleCrouch: false, keyLayout: 'en', touchSize: 1, touchSens: 1, aimAssist: true, autoFire: false,
+  sens: 1, scopeSens: 0.45, invertY: false, toggleCrouch: false, keyLayout: 'en', touchSize: 1, touchSens: 1, aimAssist: true, autoFire: false, autoQuality: true, strongShake: true,
   xStyle: 'cross', xColor: '#7dffb0', xSize: 8, xThick: 2, xGap: 4, xCenter: false, xDynamic: true, xOutline: true,
   radar: true, radarAll: true, killfeed: true, hitmarkers: true, dmgNumbers: true, hudScale: 1,
   diff: 1, hp: 210, rounds: 8, mpHp: 210, mpRounds: 8, mpAuto: 4, name: '', srvName: '', mpPublic: true,
@@ -1737,6 +1740,9 @@ for (const t of [0, 1]) {
   L.position.set(c[0] * CELL + 1, 3, c[1] * CELL + 1); scene.add(L);
 }
 
+// статичная геометрия мира — слой 1 (для AO и будущего отсечения невидимого)
+for (const o of scene.children) if ((o.isMesh || o.isInstancedMesh) && o !== sky && !(o.material && o.material.transparent)) o.layers.enable(1);
+bootMark('06_renderer_scene');
 /* ================= постобработка ================= */
 // Цепочка: сцена (MSAA при включённом сглаживании) → AO (только «Ультра») → умеренное свечение →
 // тональная компрессия ACES и экспозиция (OutputPass) → цветокоррекция с лёгкой виньеткой → FXAA, если MSAA выключен.
@@ -1757,26 +1763,31 @@ const GradeShader = {
     }`,
 };
 const POST = { composer: null, bloom: null, ao: null, fxaa: null, key: '' };
-const postWanted = () => !!(SET.grading || SET.bloom || SET.ao);
+const postWanted = () => !!(SET.grading || effBloom() || effAO());
+// AO считается только по статичной геометрии (слой 1): иначе он заново рисует всех бойцов
+// и удваивает число вызовов отрисовки (замер v8: 492 → 888)
+const aoCam = new THREE.PerspectiveCamera();
 function buildPost() {
-  const key = [SET.grading, SET.bloom, SET.ao, SET.antialias, renderer.getPixelRatio()].join('|');
+  const key = [SET.grading, effBloom(), effAO(), SET.antialias, renderer.getPixelRatio()].join('|');
   if (key === POST.key) { resizePost(); return; }
   POST.key = key;
   if (POST.composer) { POST.composer.renderTarget1.dispose(); POST.composer.renderTarget2.dispose(); POST.ao && POST.ao.dispose && POST.ao.dispose(); }
   POST.composer = POST.bloom = POST.ao = POST.fxaa = null;
   if (!postWanted()) return;
   const gl2 = renderer.capabilities.isWebGL2;
-  const rt = new THREE.WebGLRenderTarget(innerWidth * renderer.getPixelRatio(), innerHeight * renderer.getPixelRatio(), { type: THREE.HalfFloatType, samples: SET.antialias && gl2 ? 4 : 0 });
+  // MSAA: 4 выборки при обычной плотности, 2 — при высокой (там зубцы и так мельче)
+  const msaa = SET.antialias && gl2 ? (renderer.getPixelRatio() <= 1.25 ? 4 : 2) : 0;
+  const rt = new THREE.WebGLRenderTarget(innerWidth * renderer.getPixelRatio(), innerHeight * renderer.getPixelRatio(), { type: THREE.HalfFloatType, samples: msaa });
   const c = new EffectComposer(renderer, rt);
   c.addPass(new RenderPass(scene, camera));
-  if (SET.ao) {
+  if (effAO()) {
     // AO в половинном разрешении: мягкое контактное затенение в углах и под объектами
-    POST.ao = new GTAOPass(scene, camera, innerWidth / 2, innerHeight / 2);
+    POST.ao = new GTAOPass(scene, aoCam, innerWidth / 2, innerHeight / 2);
     POST.ao.updateGtaoMaterial({ radius: 0.6, distanceExponent: 1.5, thickness: 1.2, scale: 1.0, samples: 12 });
     POST.ao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 6, rings: 2, samples: 12 });
-    POST.ao.blendIntensity = 0.85; c.addPass(POST.ao);
+    POST.ao.blendIntensity = 0.75; c.addPass(POST.ao);
   }
-  if (SET.bloom) { POST.bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth / 2, innerHeight / 2), 0.32, 0.35, 0.9); c.addPass(POST.bloom); }
+  if (effBloom()) { POST.bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth / 2, innerHeight / 2), 0.32, 0.35, 0.9); c.addPass(POST.bloom); }
   c.addPass(new OutputPass());
   if (SET.grading) c.addPass(new ShaderPass(GradeShader));
   if (!SET.antialias || !gl2) { POST.fxaa = new ShaderPass(FXAAShader); c.addPass(POST.fxaa); }
@@ -1791,9 +1802,71 @@ function resizePost() {
 }
 addEventListener('resize', resizePost);
 function renderWorld() {
+  if (POST.ao) { aoCam.copy(camera); aoCam.layers.set(1); }
   if (POST.composer) POST.composer.render();
   else { renderer.clear(); renderer.render(scene, camera); }
 }
+bootMark('06b_post');
+/* ================= менеджер производительности ================= */
+// Аудит v8 показал, почему «Ультра» тормозила: опции перемножались —
+// масштаб 1,5 × плотность экрана телефона (до 2) = рендер в 3 раза плотнее, плюс MSAA ×4 в HDR-буфере,
+// плюс AO, который заново рисовал всю сцену (≈ вдвое больше вызовов отрисовки), плюс тени 4096.
+// Здесь собраны:
+//  • предел итоговой плотности пикселей (на телефоне ≤ 1,5, на ПК ≤ 2);
+//  • динамическое разрешение и адаптация качества: если кадр не укладывается в цель,
+//    сначала плавно (шагами по 0,1) снижается разрешение, затем временно выключаются AO,
+//    свечение и понижаются тени; при запасе — всё возвращается в обратном порядке;
+//  • статистика кадров: средний FPS, 1% худших кадров, время кадра.
+const PERF = {
+  dyn: 1,            // множитель разрешения от адаптации (0,6…1)
+  cut: 0,            // сколько дорогих опций временно выключено (0…3)
+  hist: [], histI: 0, // последние 240 времён кадра, мс
+  lastAdj: 0, badT: 0, goodT: 0,
+};
+const maxPixelRatio = () => TOUCH ? 1.5 : 2;
+function targetPixelRatio() {
+  return clamp(Math.min(devicePixelRatio, 2) * SET.renderScale * PERF.dyn, 0.5, maxPixelRatio());
+}
+function applyPixelRatio() {
+  const pr = targetPixelRatio();
+  if (Math.abs(renderer.getPixelRatio() - pr) < 0.01) return;
+  renderer.setPixelRatio(pr); renderer.setSize(innerWidth, innerHeight);
+  if (typeof buildPost === 'function') buildPost();
+}
+// временные упрощения при нехватке производительности (настройки игрока не меняются)
+const effAO = () => SET.ao && PERF.cut < 1, effBloom = () => SET.bloom && PERF.cut < 2;
+const effShadows = () => PERF.cut >= 3 ? Math.min(SET.shadows, 1) : SET.shadows;
+function perfFrame(frameMs) {
+  PERF.hist[PERF.histI++ % 240] = frameMs;
+  if (!SET.autoQuality || !G.started || G.paused) return;
+  const target = 1000 / (SET.fpsLimit > 0 ? Math.min(SET.fpsLimit, 60) : 60);
+  // сглаженное время кадра за последние ~0,5 с
+  const n = Math.min(30, PERF.hist.length); let s = 0;
+  for (let i = 1; i <= n; i++) s += PERF.hist[(PERF.histI - i + 240) % 240];
+  const avg = s / n, now_ = performance.now();
+  if (avg > target * 1.2) { PERF.badT += frameMs; PERF.goodT = 0; } else if (avg < target * 1.06) { PERF.goodT += frameMs; PERF.badT = 0; } else { PERF.badT = PERF.goodT = 0; }
+  if (now_ - PERF.lastAdj < 2000) return; // не чаще раза в 2 с — без резких скачков картинки
+  if (PERF.badT > 1500) {
+    PERF.badT = 0;
+    if (PERF.dyn > 0.61) { PERF.dyn = Math.max(0.6, +(PERF.dyn - 0.1).toFixed(2)); applyPixelRatio(); PERF.lastAdj = now_; }
+    else if (PERF.cut < 3) { PERF.cut++; applyCut(); PERF.lastAdj = now_; }
+  } else if (PERF.goodT > 6000) {
+    PERF.goodT = 0;
+    // возврат в обратном порядке: сначала эффекты, потом разрешение
+    if (PERF.cut > 0) { PERF.cut--; applyCut(); PERF.lastAdj = now_; }
+    else if (PERF.dyn < 1) { PERF.dyn = Math.min(1, +(PERF.dyn + 0.1).toFixed(2)); applyPixelRatio(); PERF.lastAdj = now_; }
+  }
+}
+function applyCut() { if (typeof applyShadows === 'function') applyShadows(); if (typeof buildPost === 'function') buildPost(); }
+function resetPerf() { PERF.dyn = 1; PERF.cut = 0; PERF.badT = PERF.goodT = 0; applyPixelRatio(); applyCut(); }
+// статистика: средний FPS, 1% low (по худшему 1% кадров), среднее время кадра
+function perfStats() {
+  const h = PERF.hist.filter(x => x > 0); if (h.length < 10) return null;
+  const s = [...h].sort((a, b) => b - a), avg = h.reduce((a, b) => a + b, 0) / h.length;
+  const worst = s.slice(0, Math.max(1, Math.floor(h.length / 100)));
+  return { fps: 1000 / avg, low1: 1000 / (worst.reduce((a, b) => a + b, 0) / worst.length), ms: avg };
+}
+bootMark('06c_perf');
 /* ================= FX ================= */
 const fx = [];
 // --- трассеры: пул готовых линий, без создания геометрии на каждый выстрел ---
@@ -1938,6 +2011,7 @@ function updateFx(dt) {
   }
   updateParticles(PSMOKE, dt); updateParticles(PGLOW, dt);
 }
+bootMark('07_fx');
 /* ================= models ================= */
 // Все модели собираются процедурно из гладких примитивов (капсулы, сферы, скруглённые блоки,
 // выдавленные профили), затем статичные части сливаются в несколько мешей для скорости.
@@ -2518,6 +2592,9 @@ function setRigGun(R, id) {
   if (!R.guns[id]) { const g = GUNS[id].clone(); g.traverse(o => { if (o.isMesh) o.castShadow = false; }); skinGun(g, R.cos && R.cos.w && R.cos.w[id]); R.gunHolder.add(g); R.guns[id] = { g, p: gunParts(g) }; R.lodDirty = true; }
   R.gun = R.guns[id].g; R.parts = R.guns[id].p; R.gun.visible = true; R.gunId = id;
   R.gun.position.set(...gunPose(id));
+  // кэш копий оружия: не больше 3 на бойца (аудит v8: без предела сцена росла на сотни объектов за матч)
+  R.gunOrder = (R.gunOrder || []).filter(k => k !== id); R.gunOrder.push(id);
+  while (R.gunOrder.length > 3) { const old = R.gunOrder.shift(); if (R.guns[old]) { R.gunHolder.remove(R.guns[old].g); delete R.guns[old]; } }
 }
 function resetRig(a) {
   const R = a.rig; R.deadT = 0;
@@ -2800,6 +2877,7 @@ function updateViewmodel(dt) {
   }
 }
 
+bootMark('08_models');
 /* ================= cosmetics ================= */
 // Внешний вид бойцов и оружия: одежда (камуфляж), головные уборы, тон кожи, скины оружия.
 // Профиль игрока (монеты, покупки, надетое, ежедневные подарки) хранится в localStorage.
@@ -3148,6 +3226,7 @@ function buildGearLook(a) {
   if (c.vest && c.vest[0] === 'vest_heavy') for (const x of [-0.2, 0.2]) add(R.chest, gearGeo.shoulder, c.vest[1], x, 0.42, 0, 1.1, 0.8, 1.1);
   if (c.collar) add(R.chest, gearGeo.collar, c.collar[1], 0, 0.5, 0, 1.2, 1.2, 0.9, Math.PI / 2);
 }
+bootMark('08c_gear');
 /* ================= agents ================= */
 // имена ботов: [кириллица, латиница] по индексу бойца (0–4 — «Вектор», 5–9 — «Ржавчина»)
 const NAMES = [['Вы', 'Сыч', 'Крот', 'Грач', 'Кедр', 'Шмель', 'Ёрш', 'Вяз', 'Жук', 'Клык'], ['You', 'Sych', 'Krot', 'Grach', 'Kedr', 'Shmel', 'Yorsh', 'Vyaz', 'Zhuk', 'Klyk']];
@@ -3185,6 +3264,7 @@ const agents = [];
 for (let tm = 0; tm < 2; tm++) for (let i = 0; i < 5; i++) agents.push(new Agent(tm, NAMES[LANG === 'ru' || LANG === 'uk' ? 0 : 1][tm * 5 + i], tm === 0 && i === 0));
 let P = agents[0];
 
+bootMark('09_agents');
 /* ================= physics ================= */
 function resolveAxis(a, axis, d) {
   const r = 0.32, H = a.height(), p = a.pos;
@@ -4455,6 +4535,7 @@ function drawRadar() {
   rctx.fillStyle = '#ffd85a';
   for (const p of WM.pins) { rctx.beginPath(); rctx.moveTo(p.x * sx, p.z * sz); rctx.lineTo(p.x * sx - 3, p.z * sz - 7); rctx.lineTo(p.x * sx + 3, p.z * sz - 7); rctx.fill(); }
 }
+bootMark('17_hud');
 /* ================= карта мира ================= */
 // Полноэкранная карта: масштаб (колёсико, щипок, кнопки), сдвиг перетаскиванием, свои метки.
 // Статичные объекты описаны в WORLD_MARKERS — новые точки интереса и локации добавляются данными.
@@ -4662,23 +4743,33 @@ function updateCamera(dt) {
     for (const a of agents) a.model.visible = active(a) && (a !== st || !a.alive);
     if (st) { camera.position.set(st.pos.x, st.pos.y + 1.62, st.pos.z); camera.rotation.set(st.pitch, st.yaw, 0); }
   }
-  if (shake > 0) { shake -= dt; camera.rotation.x += rand(-1, 1) * shake * 0.05; camera.rotation.y += rand(-1, 1) * shake * 0.05; }
+  if (shake > 0) { shake -= dt; camera.rotation.x += rand(-1, 1) * shake * 0.05 * shakeK; camera.rotation.y += rand(-1, 1) * shake * 0.05 * shakeK; }
   const targetFov = P.scoped && P.alive ? (P.w().zoom || 20) : SET.fov;
   if (camera.fov !== targetFov) { camera.fov = targetFov; camera.updateProjectionMatrix(); }
   if (P.alive) updateViewmodel(dt);
   updateLOD();
 }
-let last = performance.now(), fpsFrames = 0, fpsT = 0, camRoll = 0;
+let last = performance.now(), fpsFrames = 0, fpsT = 0, camRoll = 0, shakeK = 1;
 function frame(ts) {
   requestAnimationFrame(frame);
   // ограничение FPS: пропускаем кадр, если он пришёл раньше срока
   if (SET.fpsLimit > 0 && ts - last < 1000 / SET.fpsLimit - 1) return;
-  const dt = Math.min(0.05, (ts - last) / 1000); last = ts;
+  const rawMs = ts - last;
+  // полуфиксированный шаг: длинный кадр делится на подшаги не длиннее 1/60 с (до 6) —
+  // физика и столкновения не «проскакивают» при просадках FPS, а игра не замедляется
+  const dt = Math.min(0.1, rawMs / 1000); last = ts;
+  perfFrame(rawMs);
   fpsFrames++; fpsT += dt;
-  if (fpsT >= 0.5) { if (SET.showFps) $('fps').textContent = Math.round(fpsFrames / fpsT) + ' FPS'; fpsFrames = 0; fpsT = 0; }
+  if (fpsT >= 0.5) {
+    if (SET.showFps) { const st = perfStats(); $('fps').textContent = Math.round(fpsFrames / fpsT) + ' FPS' + (st ? ` · 1% ${Math.round(st.low1)} · ${st.ms.toFixed(1)} мс` : '') + (PERF.dyn < 1 || PERF.cut ? ` · ${Math.round(PERF.dyn * 100)}%${PERF.cut ? ' −' + PERF.cut : ''}` : ''); }
+    fpsFrames = 0; fpsT = 0;
+  }
   if (G.started && (!G.paused || NET.mode !== 'off')) {
-    if (NET.mode === 'client') { now += dt; clientUpdate(dt); }
-    else if (G.state !== 'over') { now += dt; updateGame(dt); }
+    const steps = Math.min(6, Math.ceil(dt / (1 / 60) - 1e-6)), sdt = dt / steps;
+    for (let i = 0; i < steps; i++) {
+      if (NET.mode === 'client') { now += sdt; clientUpdate(sdt); }
+      else if (G.state !== 'over') { now += sdt; updateGame(sdt); }
+    }
     if (NET.mode === 'host') hostTick(dt);
   }
   if (joy.id === null) joy.x = joy.y = 0;
@@ -5353,12 +5444,12 @@ const SCHEMA = {
     ['charShadows', 'toggle'], ['reflections', 'toggle'], ['drawDist', 'select', [[0, 'near'], [1, 'mid'], [2, 'far']]],
     ['effects', 'select', [[0, 'low'], [1, 'high']]], ['antialias', 'toggle', 'restart'], ['grading', 'toggle'], ['bloom', 'toggle'], ['ao', 'toggle'],
     ['fpsLimit', 'select', [[30, '#30'], [60, '#60'], [75, '#75'], [90, '#90'], [120, '#120'], [144, '#144'], [165, '#165'], [240, '#240'], [0, 'unlimited']]],
-    ['showFps', 'toggle'], ['brightness', 'range', 0.6, 1.8, 0.05, fx2], ['fov', 'range', 60, 110, 1, v => v + '°'],
+    ['showFps', 'toggle'], ['autoQuality', 'toggle'], ['brightness', 'range', 0.6, 1.8, 0.05, fx2], ['fov', 'range', 60, 110, 1, v => v + '°'],
     ['vmSide', 'select', [['right', 'right'], ['left', 'left']]], ['bob', 'toggle'],
   ],
   tSnd: [['master', 'range', 0, 1, 0.05, pct], ['sfxVol', 'range', 0, 1, 0.05, pct], ['announcer', 'toggle']],
   tCtl: [
-    ['sens', 'range', 0.2, 4, 0.05, fx2], ['scopeSens', 'range', 0.1, 1.5, 0.05, fx2], ['invertY', 'toggle'], ['toggleCrouch', 'toggle'],
+    ['sens', 'range', 0.2, 4, 0.05, fx2], ['strongShake', 'toggle'], ['scopeSens', 'range', 0.1, 1.5, 0.05, fx2], ['invertY', 'toggle'], ['toggleCrouch', 'toggle'],
     ['keyLayout', 'select', [['en', 'kAuto'], ['ru', 'kRu']]],
     ['touchSize', 'range', 0.7, 1.4, 0.05, pct, 'touch'], ['touchSens', 'range', 0.3, 3, 0.05, fx2, 'touch'], ['aimAssist', 'toggle', 'touch'], ['autoFire', 'toggle'], 'BINDS',
   ],
@@ -5377,6 +5468,7 @@ function setVal(k, v) {
   SET[k] = v;
   if (k === 'preset' && PRESETS[v]) Object.assign(SET, PRESETS[v]);
   else if (['renderScale', 'shadows', 'charShadows', 'reflections', 'drawDist', 'effects', 'grading', 'bloom', 'ao', 'antialias'].includes(k)) SET.preset = 'custom';
+  if (['preset', 'renderScale', 'shadows', 'ao', 'bloom', 'autoQuality'].includes(k)) { PERF.dyn = 1; PERF.cut = 0; }
   if (k === 'lang') { LANG = v; }
   saveSettings(); applySettings();
   if (k === 'lang') applyLang();
@@ -5456,11 +5548,16 @@ function previewCross() {
 }
 /* --- применение настроек --- */
 let shadowSize = 2048;
-function applySettings() {
-  renderer.setPixelRatio(clamp(Math.min(devicePixelRatio, 2) * SET.renderScale, 0.4, 3)); renderer.setSize(innerWidth, innerHeight);
-  sun.castShadow = SET.shadows > 0;
-  const sz = [1024, 1024, 2048, 3072, 4096][SET.shadows] || 2048;
+function applyShadows() {
+  const lv = effShadows(); sun.castShadow = lv > 0;
+  const sz = [1024, 1024, 2048, 3072, 4096][lv] || 2048;
   if (sz !== shadowSize) { shadowSize = sz; sun.shadow.mapSize.set(sz, sz); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
+}
+function applySettings() {
+  if (!SET.autoQuality) { PERF.dyn = 1; PERF.cut = 0; }
+  const pr = targetPixelRatio(); if (Math.abs(renderer.getPixelRatio() - pr) > 0.01) renderer.setPixelRatio(pr);
+  renderer.setSize(innerWidth, innerHeight);
+  applyShadows();
   for (const a of agents) if (a.rig) a.rig.lodDirty = true; // тени бойцов выставит LOD с учётом дальности
   scene.environment = SET.reflections ? envTex : null; vmScene.environment = SET.reflections ? envTex : null;
   const dd = [[30, 90, 120], [50, 170, 300], [80, 260, 420]][SET.drawDist] || [50, 170, 300];
@@ -5471,6 +5568,7 @@ function applySettings() {
   applyVolume();
   buildCrosshair();
   for (const id of ['top', 'bl', 'br', 'feed', 'radar', 'chat']) $(id).style.zoom = SET.hudScale;
+  shakeK = SET.strongShake ? 1 : 0.35;
   $('fps').classList.toggle('hidden', !SET.showFps);
   document.body.style.setProperty('--ts', SET.touchSize);
   // автоогонь: кнопка огня не нужна — убираем её целиком (display:none, касания не перехватывает)
@@ -5479,6 +5577,7 @@ function applySettings() {
 applySettings();
 applyLang();
 showMenu('main');
+bootMark('20_menu');
 /* ================= arsenal & daily ================= */
 // Арсенал: покупка и примерка одежды, головных уборов, скинов оружия и тона кожи с 3D-превью.
 let arTab = 'o', arSel = null, arWeapon = 'buran', prevR = null, prevScene = null, prevCam = null, prevAgent = null, prevGun = null, prevLast = 0;
@@ -5754,7 +5853,7 @@ window.__onBack = () => {
   return false;
 };
 
-window.__game = { keys, moveStateName, toggleProne, setWantProne: v => { wantProne = v; }, canUseWeapon, dash, dodge, dodgeTry: (x, z) => dodge(P, x, z), setPosture, setMove, WM, toggleWorldMap, gearAction, absorbDamage, PROF, GEAR_ITEMS, restoreGear, myGearCfg, gearProf, MOVE_CFG, POST, buildPost, G, agents, SET, toggleBuy, buyKey, chat: sendChat, uiBufs, applySettings, hostStartMatch, startLobby, throwNade, WEAPONS, get P() { return P; }, NET, renderer, fire, damage, buy: buyItem, animateSoldier, vm, vmGuns, get now() { return now; }, findPath, spawnCells, zoneCells, walk, step: (n, dt = 1 / 60) => { for (let i = 0; i < n && G.state !== "over"; i++) { now += dt; updateGame(dt); } } };
+window.__game = { BOOT, PERF, perfFrame, perfStats, keys, moveStateName, toggleProne, setWantProne: v => { wantProne = v; }, canUseWeapon, dash, dodge, dodgeTry: (x, z) => dodge(P, x, z), setPosture, setMove, WM, toggleWorldMap, gearAction, absorbDamage, PROF, GEAR_ITEMS, restoreGear, myGearCfg, gearProf, MOVE_CFG, POST, buildPost, G, agents, SET, toggleBuy, buyKey, chat: sendChat, uiBufs, applySettings, hostStartMatch, startLobby, throwNade, WEAPONS, get P() { return P; }, NET, renderer, fire, damage, buy: buyItem, animateSoldier, vm, vmGuns, get now() { return now; }, findPath, spawnCells, zoneCells, walk, step: (n, dt = 1 / 60) => { for (let i = 0; i < n && G.state !== "over"; i++) { now += dt; updateGame(dt); } } };
 </script>
 </body>
 </html>

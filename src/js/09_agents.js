@@ -35,3 +35,4 @@ const agents = [];
 for (let tm = 0; tm < 2; tm++) for (let i = 0; i < 5; i++) agents.push(new Agent(tm, NAMES[LANG === 'ru' || LANG === 'uk' ? 0 : 1][tm * 5 + i], tm === 0 && i === 0));
 let P = agents[0];
 
+bootMark('09_agents');

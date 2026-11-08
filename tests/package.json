@@ -1,0 +1,7 @@
+{
+  "name": "perehvat-tests",
+  "private": true,
+  "description": "Автотесты «Перехвата»: механики, броня, полный матч, память, производительность",
+  "scripts": { "test": "node run.js", "perf": "node perf.js" },
+  "devDependencies": { "three": "0.160.0", "peerjs": "1.5.4", "playwright": "^1.50.0" }
+}
