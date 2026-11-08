@@ -9,6 +9,7 @@ import * as P from './player.js';
 import { initControls, input, isTouch, takeLook, takeWheel } from './controls.js';
 import * as UI from './ui.js';
 import { sanitizeAvatar } from './character.js';
+import { loadCustomModels } from './custommodels.js';
 import { initEditors, openCharEditor, charEditorOpen, updateCharPreview, openDevMenu, devMenuOpen } from './editor.js';
 import { setTimeOfDay, setFog, env } from './world.js';
 import { on } from './state.js';
@@ -759,6 +760,7 @@ function boot() {
   applyPhysgun();
   applyBotSkin();
   const results = loadEnabledAddons();
+  loadCustomModels();
   initControls({
     key: onKey,
     press: onPress,

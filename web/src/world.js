@@ -61,7 +61,7 @@ export function initWorld(container) {
   scene.environmentIntensity = 0.9;
   scene.fog = new THREE.FogExp2(0xbcd0de, 0.0032);
 
-  G.camera = new THREE.PerspectiveCamera(72, 1, 0.03, 4000);
+  G.camera = new THREE.PerspectiveCamera(72, 1, 0.05, 3000);
   scene.add(G.camera);
 
   const sun = new THREE.DirectionalLight(0xfff1dc, 3.2);
@@ -314,12 +314,15 @@ function hills() {
 function buildMap() {
   // ground: grass everywhere, concrete plaza in the middle, asphalt road around it
   const grass = new THREE.PlaneGeometry(240, 240, 1, 1); grass.rotateX(-Math.PI / 2); boxUV(grass, 5);
-  addMesh(grass, material('grass'), [0, 0, 0], null, false);
+  // ground grass is pushed back in the depth buffer so plaza/roads never flicker through it
+  const grassMat = material('grass').clone();
+  grassMat.polygonOffset = true; grassMat.polygonOffsetFactor = 4; grassMat.polygonOffsetUnits = 8;
+  addMesh(grass, grassMat, [0, 0, 0], null, false);
   const plaza = new THREE.PlaneGeometry(90, 90); plaza.rotateX(-Math.PI / 2); boxUV(plaza, 6);
-  addMesh(plaza, material('tiles'), [0, 0.012, -5], null, false);
+  addMesh(plaza, material('tiles'), [0, 0.02, -5], null, false);
   for (const [w, d, x, z] of [[106, 8, 0, -54], [106, 8, 0, 44], [8, 90, -49, -5], [8, 90, 49, -5]]) {
     const road = new THREE.PlaneGeometry(w, d); road.rotateX(-Math.PI / 2); boxUV(road, 4);
-    addMesh(road, material('asphalt'), [x, 0.008, z], null, false);
+    addMesh(road, material('asphalt'), [x, 0.015, z], null, false);
   }
   // curbs
   for (const [w, d, x, z] of [[90, 0.3, 0, -50.15], [90, 0.3, 0, 40.15], [0.3, 90, -45.15, -5], [0.3, 90, 45.15, -5]]) {

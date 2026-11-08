@@ -5,6 +5,7 @@ import {
 } from './addons.js';
 import { isTouch } from './controls.js';
 import { thumbnail } from './thumbs.js';
+import { customList, importModelFile, deleteCustomModel } from './custommodels.js';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -201,12 +202,33 @@ export function renderSpawnMenu() {
   const cats = new Set();
   for (const d of G.propDefs.values()) if (!d.hidden) cats.add(d.category);
   const ordered = [...CAT_ORDER.filter(c => cats.has(c)), ...[...cats].filter(c => !CAT_ORDER.includes(c))];
-  const tabs = [...ordered, 'Инструменты', 'Утилиты'];
+  const tabs = [...ordered.filter(c => c !== 'Свои модели'), 'Свои модели', 'Инструменты', 'Утилиты'];
   if (!tabs.includes(spawnTab)) spawnTab = tabs[0];
   $('spawntabs').innerHTML = tabs.map(t => `<button class="${t === spawnTab ? 'active' : ''}" data-t="${esc(t)}">${esc(t)}</button>`).join('');
   $('spawntabs').querySelectorAll('button').forEach(b => { b.onclick = () => { spawnTab = b.dataset.t; renderSpawnMenu(); }; });
   const body = $('spawncontent');
-  if (spawnTab === 'Инструменты') {
+  if (spawnTab === 'Свои модели') {
+    let html = `<div class="note">Загрузите свою 3D-модель в формате .glb с телефона. Она сохранится только на этом устройстве и появится здесь как неподвижный NPC: стоит, не падает, её можно толкать и носить физпушкой. В мультиплеере работает, если вы хост; другие игроки её не увидят.</div>
+      <div class="row" style="margin:8px 0;align-items:end;flex-wrap:wrap">
+        <label style="flex:2;min-width:180px">Файл модели (.glb)<input type="file" id="cm-file" accept=".glb,.gltf,model/gltf-binary,application/octet-stream,*/*"></label>
+        <label style="flex:1;min-width:120px">Рост, м (0 — как в файле)<input type="number" id="cm-height" value="1.85" min="0" max="50" step="0.05"></label>
+      </div><div id="cm-status" class="note"></div><div class="grid">`;
+    html += customList.map(m => `<div class="item"><button class="item-btn" data-type="custom_${esc(m.id)}"><img class="thumb" alt="" src="${thumbnail('custom_' + m.id)}">${esc(m.name)}</button><button class="mbtn sm danger" data-cmdel="${esc(m.id)}">Удалить</button></div>`).join('');
+    html += '</div>';
+    body.innerHTML = html;
+    body.querySelectorAll('[data-type]').forEach(b => { b.onclick = () => { H.spawn(b.dataset.type); if (!isTouch) closeSpawnMenu(); else toast('Создано: ' + b.textContent.trim()); }; });
+    body.querySelectorAll('[data-cmdel]').forEach(b => { b.onclick = async () => { await deleteCustomModel(b.dataset.cmdel); renderSpawnMenu(); toast('Модель удалена'); }; });
+    $('cm-file').onchange = async (e) => {
+      const f = e.target.files[0];
+      if (!f) return;
+      $('cm-status').textContent = 'Загружаю модель…';
+      try {
+        const rec = await importModelFile(f, $('cm-height').value);
+        toast(`Модель «${rec.name}» добавлена`);
+        renderSpawnMenu();
+      } catch (err) { $('cm-status').textContent = 'Не получилось: ' + (err.message || err); }
+    };
+  } else if (spawnTab === 'Инструменты') {
     const cur = H.currentTool();
     let html = '<div class="section">Режимы тулгана (выберите, затем стреляйте тулганом)</div><div class="grid">';
     for (const t of G.toolDefs.values()) {
