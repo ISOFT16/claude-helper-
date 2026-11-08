@@ -12,15 +12,15 @@ const humans = (tm) => agents.filter(a => (a.net === 'local' || a.net === 'remot
 function spawnAgent(a, cell) {
   const [cx, cz] = cell || pick(spawnCells[a.team]);
   a.pos.set(cx * CELL + CELL / 2 + rand(-0.3, 0.3), 0, cz * CELL + CELL / 2 + rand(-0.3, 0.3));
-  a.vel.set(0, 0, 0); a.hp = G.maxHp; a.alive = true; a.crouch = false; a.reloading = 0; a.fireCd = 0; a.burstLeft = 0;
+  a.vel.set(0, 0, 0); a.hp = G.maxHp; a.alive = true; a.posture = 0; a.mstate = 'ground'; a.mT = 0; a.proneK = 0; a.ledge = null; a.dodgeT = 0; a.dodgeCd = 0; a.eyeOff.set(0, 0, 0); if (a === P) { wantProne = false; crouchToggled = false; } a.reloading = 0; a.fireCd = 0; a.burstLeft = 0;
   a.yaw = a.team === 0 ? -Math.PI / 2 : Math.PI / 2; a.pitch = 0; a.punchP = a.punchY = 0; a.spreadAcc = 0;
-  a.slot = a.inv[1] ? 1 : 2; a.lastSlot = 3; a.spot = [0, 0]; a.dashCd = 0; a.tp++; a.blindT = 0;
+  a.slot = a.inv[1] ? 1 : 2; a.lastSlot = 3; a.spot = [0, 0]; a.tp++; a.blindT = 0;
   a.model.visible = true; resetRig(a);
 }
 function hideEmpty(a) { a.alive = false; a.model.visible = false; a.hp = 0; }
 function startMatch() {
   G.score = [0, 0]; G.round = 0; G.over = false; G.lobbyT = -1;
-  for (const a of agents) { a.money = START_MONEY; a.kills = a.deaths = 0; a.inv = freshInv(); a.armor = 0; a.gren = freshGren(); a.alive = false; if (a.net === 'bot') applyCos(a, randomCos()); }
+  for (const a of agents) { a.money = START_MONEY; a.kills = a.deaths = 0; a.inv = freshInv(); clearGear(a); a.gren = freshGren(); a.alive = false; if (a.net === 'bot') applyCos(a, randomCos()); }
   $('feed').innerHTML = '';
   clearSmokes();
   startRound();
@@ -31,7 +31,7 @@ function startRound() {
     const cells = [...spawnCells[tm]].sort(() => Math.random() - 0.5);
     agents.filter(a => a.team === tm).forEach((a, i) => {
       if (!active(a)) { hideEmpty(a); return; }
-      if (!a.alive) { a.inv = freshInv(); a.armor = 0; a.gren = freshGren(); }
+      if (!a.alive) { a.inv = freshInv(); clearGear(a); a.gren = freshGren(); }
       else { for (const s of [1, 2]) if (a.inv[s]) a.inv[s].res = WEAPONS[a.inv[s].id].res; }
       spawnAgent(a, cells[i]);
       if (a.net === 'bot') { a.ai = newAI(a); botBuy(a); a.slot = a.inv[1] ? 1 : 2; }
@@ -45,7 +45,7 @@ function startLobby() {
   G.state = 'lobby'; G.round = 0; G.score = [0, 0]; G.prog = [0, 0]; G.over = false; G.lobbyT = -1; G.liveT = 0;
   for (const a of agents) {
     if (!active(a)) { hideEmpty(a); continue; }
-    a.money = START_MONEY; a.kills = a.deaths = 0; a.inv = freshInv(); a.armor = 0; a.gren = freshGren();
+    a.money = START_MONEY; a.kills = a.deaths = 0; a.inv = freshInv(); clearGear(a); a.gren = freshGren();
     spawnAgent(a);
   }
   clearSmokes();
@@ -76,7 +76,7 @@ function hostStartMatch() {
 }
 function roundStartFx() {
   P.eye = 1.62; P.scoped = false; specTarget = null;
-  for (const d of decals) d.visible = false;
+  decals.count = 0; decalI = 0;
   showCenter(t('round', G.round), TOUCH ? t('buyTouch') : t('buyKey', keyOf('buy')), 2.5);
   radio('start');
 }
@@ -126,7 +126,7 @@ function botBuy(a) {
       if (pis.length) { const id = pick(pis); a.money -= WEAPONS[id].price; a.inv[2] = newGun(id); }
     }
   }
-  if (a.armor < 50 && a.money >= 650) { a.money -= 650; a.armor = 100; }
+  if (a.armor < 50 && a.money >= 650) { a.money -= 650; restoreGear(a); }
 }
 function endRound(winner, reason) {
   if (G.state !== 'live') return;

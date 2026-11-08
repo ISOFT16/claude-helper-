@@ -41,7 +41,7 @@ function botGoal(b) {
 function updateBot(b, dt) {
   const ai = b.ai, M = b.model;
   if (!b.alive) { if (b.rig.deadT < 3) animateSoldier(b, dt); return; }
-  b.fireCd -= dt; b.switchT -= dt; ai.holdT -= dt;
+  b.fireCd -= dt; b.switchT -= dt; ai.holdT -= dt; b.dodgeCd = Math.max(0, b.dodgeCd - dt);
   if (b.reloading > 0) { b.reloading -= dt; if (b.reloading <= 0) finishReload(b); }
   let mx = 0, mz = 0, spd = 4.6 * b.w().move;
   if (G.state === 'freeze') { b.vel.x = b.vel.z = 0; }
@@ -104,7 +104,8 @@ function updateBot(b, dt) {
       }
       b.pitch = turnTo(b.pitch, 0, 2 * dt);
     }
-    b.vel.x += (mx * spd - b.vel.x) * Math.min(1, 10 * dt); b.vel.z += (mz * spd - b.vel.z) * Math.min(1, 10 * dt);
+    if (b.mstate === 'dodge') updateDodge(b, dt);
+    else { spd *= 1 - gearMobility(b); b.vel.x += (mx * spd - b.vel.x) * Math.min(1, 10 * dt); b.vel.z += (mz * spd - b.vel.z) * Math.min(1, 10 * dt); }
   }
   const before = b.pos.clone();
   if (moveBody(b, dt)) { ai.stuckT += dt; if (ai.stuckT > 0.8) { ai.path = null; ai.stuckT = 0; ai.holdT = 0; } } else ai.stuckT = Math.max(0, ai.stuckT - dt);

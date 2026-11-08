@@ -57,8 +57,14 @@ function localSpot(dt) {
 function updateCamera(dt) {
   if (window.__camOverride) { window.__camOverride(camera, dt); return; }
   if (P.alive) {
-    camera.position.set(P.pos.x, P.pos.y + P.eye, P.pos.z);
-    camera.rotation.set(P.pitch + P.punchP, P.yaw + P.punchY, 0);
+    P.eyePos(camera.position);
+    // приземление: короткое проседание камеры; уклонение: наклон и пригибание
+    landKick *= Math.exp(-7 * dt); camera.position.y -= Math.sin(Math.min(1, landKick) * Math.PI * 0.5) * 0.09;
+    let roll = 0;
+    if (P.mstate === 'dodge') { const k = Math.sin(clamp(P.mT / MOVE_CFG.dodge.time, 0, 1) * Math.PI); roll = -(P.dodgeLx || 0) * 0.11 * k; camera.position.y -= 0.16 * k; }
+    else if (P.mstate === 'climbing') roll = Math.sin(P.mT * 9) * 0.02;
+    camRoll += (roll - camRoll) * Math.min(1, 14 * dt);
+    camera.rotation.set(P.pitch + P.punchP, P.yaw + P.punchY, camRoll);
     for (const a of agents) a.model.visible = active(a) && (!a.alive || a !== P);
   } else {
     if (!specTarget || !specTarget.alive) nextSpec();
@@ -70,8 +76,9 @@ function updateCamera(dt) {
   const targetFov = P.scoped && P.alive ? (P.w().zoom || 20) : SET.fov;
   if (camera.fov !== targetFov) { camera.fov = targetFov; camera.updateProjectionMatrix(); }
   if (P.alive) updateViewmodel(dt);
+  updateLOD();
 }
-let last = performance.now(), fpsFrames = 0, fpsT = 0;
+let last = performance.now(), fpsFrames = 0, fpsT = 0, camRoll = 0;
 function frame(ts) {
   requestAnimationFrame(frame);
   // ограничение FPS: пропускаем кадр, если он пришёл раньше срока
@@ -87,7 +94,7 @@ function frame(ts) {
   if (joy.id === null) joy.x = joy.y = 0;
   if (G.started) { updateCamera(dt); updateHUD(dt); }
   else { now += dt; updateSmokes(dt); camera.position.set(zone.cx + Math.sin(now * 0.08) * 34, 16, zone.cz + Math.cos(now * 0.08) * 22); camera.lookAt(zone.cx, 0, zone.cz); ring.rotation.z += dt; }
-  renderer.clear(); renderer.render(scene, camera);
+  renderWorld();
   if (G.started && P.alive && !P.scoped && !window.__camOverride) { renderer.clearDepth(); renderer.render(vmScene, vmCam); }
 }
 requestAnimationFrame(frame);

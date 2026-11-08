@@ -74,7 +74,7 @@ function netShutdown() { if (NET.mode !== 'off') netReset(); }
 function moveHuman(from, to) {
   if (from === to || to.net !== 'empty') return;
   to.name = from.name; to.money = from.money; to.kills = from.kills; to.deaths = from.deaths;
-  to.inv = freshInv(); to.gren = freshGren(); to.armor = 0; to.tp = from.tp + 1;
+  to.inv = freshInv(); to.gren = freshGren(); clearGear(to); to.tp = from.tp + 1;
   applyCos(to, from.rig.cos);
   if (from === P) { P.isPlayer = false; P = to; P.isPlayer = true; to.net = 'local'; applyLocalLook(); }
   else { to.net = 'remote'; to.conn = from.conn; to.netState = null; if (to.conn) to.conn.agent = to; }
@@ -136,7 +136,7 @@ function hostAccept(conn) {
     if (!slot) { conn.send({ t: 'full' }); setTimeout(() => conn.close(), 500); return; }
     slot.net = 'remote'; slot.conn = conn; slot.netState = null;
     slot.name = String((conn.metadata && conn.metadata.name) || t('playerDef')).slice(0, 14);
-    slot.kills = slot.deaths = 0; slot.inv = freshInv(); slot.gren = freshGren(); slot.armor = 0; slot.tp++;
+    slot.kills = slot.deaths = 0; slot.inv = freshInv(); slot.gren = freshGren(); clearGear(slot); slot.tp++;
     applyCos(slot, conn.metadata && conn.metadata.cos);
     if (G.state === 'lobby') { slot.money = START_MONEY; spawnAgent(slot); }
     else { slot.money = START_MONEY; hideEmpty(slot); }
@@ -186,7 +186,7 @@ function netRemoteShot(a, m) {
   const maxD = W.dmg * (W.head || 1) * (W.melee ? G.maxHp / 100 : 1) + 1;
   for (const h of (Array.isArray(m.h) ? m.h.slice(0, 12) : [])) {
     const v = agents[h[0]]; if (!v || !v.alive || v.team === a.team) continue;
-    damage(v, Math.min(+h[1] || 0, maxD), a, !!h[2], m.w, a.eyePos());
+    damage(v, Math.min(+h[1] || 0, maxD), a, !!h[2], m.w, a.eyePos(), h[2] ? 'head' : ZONES[h[3] | 0] || 'torso');
   }
   hearShot(a, W);
 }
@@ -194,14 +194,14 @@ function hostTick(dt) {
   NET.sendT -= dt; if (NET.sendT > 0) return; NET.sendT = 0.05;
   const g = [G.state, r2(G.timer), r2(G.liveT), G.round, G.score[0], G.score[1], r3(G.prog[0]), r3(G.prog[1]), G.over ? 1 : 0, G.maxHp, G.winRounds, G.autoN, r2(G.lobbyT)];
   const A = agents.map(a => [r2(a.pos.x), r2(a.pos.y), r2(a.pos.z), r3(a.yaw), r3(a.pitch), r2(a.vel.x), r2(a.vel.z),
-    (a.alive ? 1 : 0) | (a.crouch ? 2 : 0) | (a.reloading > 0 ? 4 : 0) | (a.net !== 'bot' && a.net !== 'empty' ? 8 : 0) | (a.net === 'empty' ? 16 : 0),
+    (a.alive ? 1 : 0) | (a.posture === 1 ? 2 : 0) | (a.posture === 2 ? 32 : 0) | (a.posture === 3 ? 64 : 0) | (a.reloading > 0 ? 4 : 0) | (a.net !== 'bot' && a.net !== 'empty' ? 8 : 0) | (a.net === 'empty' ? 16 : 0),
     Math.ceil(Math.max(0, a.hp)), Math.ceil(a.armor), WIDS.indexOf(a.gun().id), a.tp, a.kills, a.deaths]);
   const N = grenades.map(n => [r2(n.pos.x), r2(n.pos.y), r2(n.pos.z), NADES.indexOf(n.kind)]);
   const ev = NET.events; NET.events = [];
   for (const c of [...NET.conns]) if (performance.now() - c.lastSeen > NET_TIMEOUT) { try { c.close(); } catch (e) {} c.drop(); }
   for (const c of NET.conns) {
     if (!c.open || !c.agent) continue; const a = c.agent, gr = a.gren || freshGren();
-    try { c.send({ t: 's', g, a: A, n: N, e: ev, me: [a.money, a.inv[1] ? a.inv[1].id : '', a.inv[2] ? a.inv[2].id : '', gr.he, gr.smoke, gr.flash] }); } catch (e) {}
+    try { c.send({ t: 's', g, a: A, n: N, e: ev, me: [a.money, a.inv[1] ? a.inv[1].id : '', a.inv[2] ? a.inv[2].id : '', gr.he, gr.smoke, gr.flash, (a.gear || []).map(g => [g.slot, r2(g.dur / g.max)])] }); } catch (e) {}
   }
 }
 
@@ -214,9 +214,10 @@ function shotFx(a, w, ends) {
   ends.forEach((e, i) => {
     const p = new THREE.Vector3(e[0], e[1], e[2]);
     if (i < 3 && !W.quiet) addTracer(muz, p, a.team + 1);
-    if (e[3] === 1) sparks(p, 5, true); else if (e[3] === 0) { sparks(p, 3); addDecal(p, e[4], e[5], e[6]); }
+    if (i === 0 && a !== P) { const d = p.clone().sub(muz), L = d.length(); if (L > 0.1) nearMiss(muz, d.divideScalar(L), L); }
+    if (e[3] === 1) sparks(p, 5, true); else if (e[3] === 0) addDecal(p, e[4], e[5], e[6]);
   });
-  sfx(W.snd, a.pos);
+  sfx(W.snd, a.pos); muzzleSmoke(muz, W.cat === 'shotgun' || W.cat === 'sniper');
   if (W.act === 'pump' || W.act === 'bolt') setTimeout(() => sfxAct(W.act, a.pos), W.act === 'pump' ? 250 : 350);
   if (SET.effects && R && R.parts && W.act !== 'rev' && W.act !== 'break' && a.pos.distanceTo(camera.position) < 25)
     ejectCasing(R.parts.eject.getWorldPosition(new THREE.Vector3()), new THREE.Vector3(Math.cos(a.yaw), 0.2, -Math.sin(a.yaw)), new THREE.Vector3(a.vel.x, 0, a.vel.z), W.cat === 'shotgun');
@@ -229,7 +230,8 @@ function followNet(a, dt) {
     const k = Math.min(1, dt * 16);
     a.pos.x += (s.p[0] - a.pos.x) * k; a.pos.y += (s.p[1] - a.pos.y) * k; a.pos.z += (s.p[2] - a.pos.z) * k;
     a.yaw += angDiff(a.yaw, s.y) * k; a.pitch += (s.pt - a.pitch) * k;
-    a.vel.set(s.v[0], 0, s.v[1]); a.crouch = !!s.c;
+    a.vel.set(s.v[0], 0, s.v[1]); a.posture = clamp(s.c | 0, 0, 3);
+    a.proneK = clamp(a.proneK + (a.posture === 2 ? 1 : -1) * dt / MOVE_CFG.proneTime, 0, 1); updateProneBody(a, dt);
     if (a.net === 'remote' && WEAPONS[s.w]) {
       const sl = s.w === 'knife' ? 3 : a.inv[1] && a.inv[1].id === s.w ? 1 : a.inv[2] && a.inv[2].id === s.w ? 2 : a.slot;
       a.slot = a.inv[sl] ? sl : 2;
@@ -320,7 +322,7 @@ function clientSnap(m) {
     }
     if (empty) { a.net = 'empty'; a.alive = false; a.model.visible = false; continue; }
     a.net = 'proxy';
-    a.netState = { p: [s[0], s[1], s[2]], y: s[3], pt: s[4], v: [s[5], s[6]], c: s[7] & 2, r: s[7] & 4 };
+    a.netState = { p: [s[0], s[1], s[2]], y: s[3], pt: s[4], v: [s[5], s[6]], c: s[7] & 2 ? 1 : s[7] & 32 ? 2 : s[7] & 64 ? 3 : 0, r: s[7] & 4 };
     const wid = WIDS[s[10]] || 'osa', W = WEAPONS[wid];
     if (!a.inv[W.slot] || a.inv[W.slot].id !== wid) a.inv[W.slot] = W.slot === 3 ? { id: 'knife' } : newGun(wid);
     a.slot = W.slot;
@@ -330,9 +332,10 @@ function clientSnap(m) {
   }
   if (newRound) {
     for (const sl of [1, 2]) if (P.inv[sl] && WEAPONS[P.inv[sl].id].res) P.inv[sl].res = WEAPONS[P.inv[sl].id].res;
-    roundStartFx(); resetRig(P); P.crouch = false; clearSmokes();
+    roundStartFx(); resetRig(P); P.posture = 0; P.mstate = 'ground'; P.proneK = 0; P.ledge = null; wantProne = false; clearSmokes();
   }
-  const [money, i1, i2, he, sm, fl] = m.me;
+  const [money, i1, i2, he, sm, fl, gh] = m.me;
+  P.gearHud = Array.isArray(gh) ? gh.filter(x => Array.isArray(x) && GEAR_SLOTS.includes(x[0])).map(x => [x[0], clamp(+x[1] || 0, 0, 1)]) : null;
   P.money = money; P.gren = { he: he | 0, smoke: sm | 0, flash: fl | 0 }; syncInv(1, i1); syncInv(2, i2);
   if (!P.inv[P.slot]) P.slot = P.inv[1] ? 1 : 2;
   if (G.buyOpen) renderBuy();
@@ -393,7 +396,7 @@ function clientUpdate(dt) {
   NET.sendT -= dt;
   if (NET.sendT <= 0) {
     NET.sendT = 1 / 30;
-    netSend({ t: 'st', tp: P.tp, p: [r2(P.pos.x), r2(P.pos.y), r2(P.pos.z)], y: r3(P.yaw), pt: r3(P.pitch), v: [r2(P.vel.x), r2(P.vel.z)], c: P.crouch ? 1 : 0, w: P.gun().id, r: P.reloading > 0 ? 1 : 0 });
+    netSend({ t: 'st', tp: P.tp, p: [r2(P.pos.x), r2(P.pos.y), r2(P.pos.z)], y: r3(P.yaw), pt: r3(P.pitch), v: [r2(P.vel.x), r2(P.vel.z)], c: P.posture, w: P.gun().id, r: P.reloading > 0 ? 1 : 0 });
   }
 }
 // если вкладка хоста свёрнута, браузер почти останавливает requestAnimationFrame —

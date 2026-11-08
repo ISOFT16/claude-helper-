@@ -37,7 +37,14 @@
   #hit:after{transform:rotate(-45deg)}
   #hit.hs:before,#hit.hs:after{background:#ff4d4d}
   #dmg{position:absolute;inset:0;box-shadow:inset 0 0 120px 30px rgba(255,0,0,.55);opacity:0;transition:opacity .25s}
-  #dmgarrow{position:absolute;left:50%;top:50%;width:0;height:0}
+  #dmgarrow,#whizarrow{position:absolute;left:50%;top:50%;width:0;height:0}
+  #whizarrow i{position:absolute;left:-22px;top:-175px;width:44px;height:14px;border-radius:50% 50% 0 0;border-top:3px solid #ffd85a;opacity:0;transition:opacity .5s}
+  #gearhud{display:flex;gap:4px;flex-wrap:wrap;max-width:260px}
+  #gearhud span{font-size:10px;color:#cfd6e6;background:rgba(10,14,24,.55);border-radius:5px;padding:2px 5px;display:flex;align-items:center;gap:4px}
+  #gearhud b{display:inline-block;width:26px;height:4px;border-radius:2px;background:#2a3142;overflow:hidden;position:relative}
+  #gearhud b i{position:absolute;left:0;top:0;bottom:0;background:#7dffb0}
+  #dashbar{display:inline-block;width:44px;height:4px;border-radius:2px;background:#2a3142;margin-left:6px;vertical-align:middle;position:relative;overflow:hidden}
+  #dashbar i{position:absolute;left:0;top:0;bottom:0;background:#7dc8ff}
   #dmgarrow i{position:absolute;left:-14px;top:-150px;width:28px;height:36px;background:linear-gradient(#ff3b3b,transparent);clip-path:polygon(50% 0,100% 100%,0 100%);opacity:0;transition:opacity .4s}
   #feed{position:absolute;right:14px;top:12px;display:flex;flex-direction:column;gap:4px;align-items:flex-end;font-size:14px}
   #feed div{background:var(--panel);padding:4px 10px;border-radius:6px}
@@ -88,6 +95,8 @@
   #tJump{right:126px;bottom:18px} #tCrouch{right:196px;bottom:18px} #tReload{right:126px;bottom:90px} #tSwap{right:196px;bottom:90px}
   #tDash{right:20px;bottom:145px} #tNade{right:90px;bottom:165px} #tScope{right:160px;bottom:160px}
   .tsm{width:46px;height:46px;border-radius:12px;font-size:18px}
+  #tProne{right:266px;bottom:18px} #tMap{top:62px;right:8px} #tProne.on{background:rgba(125,255,176,.32);border-color:#7dffb0}
+  #tDash .cd{position:absolute;inset:-2px;border-radius:50%;pointer-events:none}
   #tPause{top:8px;right:8px} #tBoard{top:8px;right:60px} #tBuy{left:12px;top:108px;width:auto;padding:0 14px;height:40px;border-radius:10px;font-size:13px;background:rgba(40,120,70,.55)}
   #joyBase{position:absolute;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;border:2px solid rgba(255,255,255,.3);background:rgba(255,255,255,.06);display:none;pointer-events:none}
   #joyKnob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:rgba(255,255,255,.35)}
@@ -181,15 +190,15 @@
   .srv{display:flex;align-items:center;gap:12px;background:rgba(27,36,56,.7);border:1px solid #2b3550;border-radius:10px;padding:8px 12px}
   .srv>div{flex:1;display:flex;flex-direction:column} .srv small{color:var(--dim)} .srvn{font-weight:800;color:#7dffb0}
   .chk{display:flex;align-items:center;gap:8px;cursor:pointer} .chk input{width:18px;height:18px}
-  .arwrap{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
-  .argrid{flex:1;min-width:260px;display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;max-height:430px;overflow:auto;padding:2px}
+  .arwrap{display:flex;gap:16px;align-items:flex-start;flex-wrap:nowrap}
+  .argrid{flex:1;min-width:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;max-height:430px;overflow:auto;padding:2px}
   .arcard{background:rgba(27,36,56,.75);border:2px solid #2b3550;border-radius:12px;padding:10px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;text-align:center}
   .arcard:hover{background:#25314d} .arcard.sel{border-color:#ffb35a} .arcard.eq{border-color:#7dffb0}
   .arcard b{font-size:13px} .arcard small{color:var(--dim);font-size:12px} .arcard.own small{color:#7dffb0}
   .arcard .ic{width:52px;height:52px;border-radius:50%;border:2px solid rgba(255,255,255,.15)} .arcard .emo{display:flex;align-items:center;justify-content:center;font-size:30px;background:#141a28}
   .arcard .tone{width:52px;height:52px;border-radius:50%}
-  .arprev{width:300px;display:flex;flex-direction:column;gap:8px;align-items:stretch}
-  #prevc{width:300px;height:380px;background:radial-gradient(circle at 50% 40%,#2a3550,#0f1420);border-radius:14px}
+  .arprev{width:clamp(190px,22vw,300px);display:flex;flex-direction:column;gap:8px;align-items:stretch}
+  #prevc{width:100%;height:auto;aspect-ratio:300/380;background:radial-gradient(circle at 50% 40%,#2a3550,#0f1420);border-radius:14px}
   .days{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin:12px 0}
   .day{position:relative;background:rgba(27,36,56,.75);border:2px solid #2b3550;border-radius:12px;padding:12px 4px;display:flex;flex-direction:column;align-items:center;gap:4px}
   .day small{color:var(--dim)} .day b{font-size:15px;color:#ffb35a} .day em{font-style:normal;font-size:20px}
@@ -198,4 +207,21 @@
   #coinpops{position:fixed;right:18px;top:120px;z-index:60;display:flex;flex-direction:column;gap:6px;align-items:flex-end;pointer-events:none}
   .coinpop{background:rgba(20,14,8,.85);border:1px solid #ffb35a;color:#ffd38a;font-weight:800;padding:6px 14px;border-radius:10px;animation:cp 2.6s ease-out forwards}
   @keyframes cp{0%{opacity:0;transform:translateY(10px)}10%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0;transform:translateY(-14px)}}
-  @media (max-width:820px),(max-height:520px){ .arprev{width:200px} #prevc{width:200px;height:250px} .days{grid-template-columns:repeat(4,1fr)} .argrid{max-height:250px} #srvlist{max-height:140px} }
+  @media (max-width:820px),(max-height:520px){ .arprev{width:180px} #prevc{width:100%;height:auto} .days{grid-template-columns:repeat(4,1fr)} .argrid{max-height:250px} #srvlist{max-height:140px} }
+
+  /* v8: карта мира */
+  #wmap{position:fixed;inset:0;z-index:30;background:rgba(6,8,14,.92);display:flex;flex-direction:column}
+  #wmapc{flex:1;width:100%;min-height:0;touch-action:none;cursor:grab}
+  .wmbar{display:flex;align-items:center;gap:12px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:#121826;border-top:1px solid #2b3550;flex-wrap:wrap}
+  .wmbar b{font-size:16px} .wmbar small{color:var(--dim);flex:1;min-width:180px}
+  .wmbtns{display:flex;gap:8px} .wmbtns button{min-width:44px;height:40px;padding:0 14px;border-radius:9px;border:1px solid #33405e;background:#1d2538;color:#fff;font-weight:700;font-size:15px}
+  body.touch .wmbar small{display:none}
+
+  /* v8: броня в арсенале */
+  .argroup{grid-column:1/-1;font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-top:6px}
+  .arcard .lv{display:flex;gap:2px} .arcard .lv i{width:8px;height:4px;border-radius:2px;background:#2b3550} .arcard .lv i.on{background:#ffb35a}
+  #argear{width:100%;font-size:12px;color:#cfd6e6;display:flex;flex-direction:column;gap:3px;margin:4px 0}
+  #argear .row{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid rgba(255,255,255,.06);padding:2px 0}
+  #argear .up{color:#7dffb0} #argear .down{color:#ff8a8a} #argear .note{color:var(--dim);font-size:11px;margin-top:4px}
+  #arbuy2{margin-top:6px;width:100%;padding:8px;border-radius:9px;border:1px solid #33405e;background:#1d2538;color:#fff;font-weight:700}
+  #arbuy2:disabled{opacity:.45}

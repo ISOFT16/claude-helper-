@@ -10,7 +10,13 @@ OUT=build
 rm -rf "$OUT"; mkdir -p "$OUT"/{assets/www,gen,obj}
 
 # 1. Ресурсы игры: index.html + локальная копия three.js (работает без интернета)
-ADDONS="geometries/RoundedBoxGeometry.js environments/RoomEnvironment.js utils/BufferGeometryUtils.js"
+ADDONS="geometries/RoundedBoxGeometry.js environments/RoomEnvironment.js utils/BufferGeometryUtils.js \
+  postprocessing/EffectComposer.js postprocessing/RenderPass.js postprocessing/ShaderPass.js postprocessing/UnrealBloomPass.js \
+  postprocessing/OutputPass.js postprocessing/GTAOPass.js postprocessing/MaskPass.js postprocessing/Pass.js \
+  shaders/CopyShader.js shaders/LuminosityHighPassShader.js shaders/OutputShader.js shaders/GTAOShader.js \
+  shaders/PoissonDenoiseShader.js shaders/FXAAShader.js math/SimplexNoise.js"
+# кэш пересоздаётся, если в нём нет какого-то из нужных дополнений
+for a in $ADDONS; do [ -f "cache/three-$THREE_VER/package/examples/jsm/$a" ] || rm -rf "cache/three-$THREE_VER"; done
 if [ ! -d "cache/three-$THREE_VER" ]; then
   mkdir -p "cache/three-$THREE_VER"
   curl -fsSL "https://registry.npmjs.org/three/-/three-$THREE_VER.tgz" | tar -xz -C "cache/three-$THREE_VER" package/build/three.module.js $(for a in $ADDONS; do echo "package/examples/jsm/$a"; done)
@@ -28,7 +34,13 @@ sed -e "s|https://unpkg.com/three@$THREE_VER/build/three.module.js|./three.modul
 grep -q "'./peerjs.min.js'" "$OUT/assets/www/index.html" || { echo "адрес PeerJS не заменён" >&2; exit 1; }
 grep -q '"./three.module.js"' "$OUT/assets/www/index.html" && grep -q '"./addons/"' "$OUT/assets/www/index.html" || { echo "importmap не заменён" >&2; exit 1; }
 # дополнения не должны тянуть файлы, которых нет в APK
-if grep -ho "from '[^']*'" $(for a in $ADDONS; do echo "$OUT/assets/www/addons/$a"; done) | grep -v "from 'three'" ; then echo "лишние зависимости дополнений" >&2; exit 1; fi
+# дополнения не должны тянуть файлы, которых нет в APK: проверяем каждый относительный импорт
+for a in $ADDONS; do
+  for dep in $(grep -ho "from '\.[^']*'" "$OUT/assets/www/addons/$a" | sed "s/from '//; s/'$//"); do
+    [ -f "$OUT/assets/www/addons/$(dirname "$a")/$dep" ] || { echo "нет зависимости $dep для $a" >&2; exit 1; }
+  done
+  if grep -ho "from '[^.'][^']*'" "$OUT/assets/www/addons/$a" | grep -v "from 'three'"; then echo "лишние зависимости в $a" >&2; exit 1; fi
+done
 
 # 2. Ресурсы приложения и R.java
 aapt package -f -m -J "$OUT/gen" -M AndroidManifest.xml -S res -I "$SDK"

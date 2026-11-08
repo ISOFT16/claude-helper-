@@ -575,7 +575,7 @@ function makeSoldier(team) {
 function setRigGun(R, id) {
   if (R.gunId === id) return;
   if (R.gun) R.gun.visible = false;
-  if (!R.guns[id]) { const g = GUNS[id].clone(); g.traverse(o => { if (o.isMesh) o.castShadow = SET.charShadows; }); skinGun(g, R.cos && R.cos.w && R.cos.w[id]); R.gunHolder.add(g); R.guns[id] = { g, p: gunParts(g) }; }
+  if (!R.guns[id]) { const g = GUNS[id].clone(); g.traverse(o => { if (o.isMesh) o.castShadow = false; }); skinGun(g, R.cos && R.cos.w && R.cos.w[id]); R.gunHolder.add(g); R.guns[id] = { g, p: gunParts(g) }; R.lodDirty = true; }
   R.gun = R.guns[id].g; R.parts = R.guns[id].p; R.gun.visible = true; R.gunId = id;
   R.gun.position.set(...gunPose(id));
 }
@@ -586,11 +586,20 @@ function resetRig(a) {
   for (const k in R.guns) R.guns[k].p.flash.visible = false;
   R.hand[0].visible = true; setRigGun(R, a.gun().id);
 }
-const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _v3 = new THREE.Vector3(), _v4 = new THREE.Vector3(), _v5 = new THREE.Vector3(), _q1 = new THREE.Quaternion();
+const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _v3 = new THREE.Vector3(), _v4 = new THREE.Vector3(), _v5 = new THREE.Vector3(), _v6 = new THREE.Vector3(), _q1 = new THREE.Quaternion();
 const POLE_KNEE = new THREE.Vector3(), POLE_ELB = new THREE.Vector3();
 const sm = (x, a, b) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 function animateSoldier(a, dt) {
-  const R = a.rig, B = R.body, id = a.gun().id, W = WEAPONS[id];
+  const R = a.rig;
+  // LOD: поза не пересчитывается (боец за кадром или далеко), но фаза шагов и их звук идут всегда
+  if (R.lodSkip && a.alive) {
+    const sp = Math.hypot(a.vel.x, a.vel.z), prev = R.phase;
+    R.phase += dt * (1.6 + sp * 2.1) * (sp > 0.3 ? 1 : 0);
+    if (!a.proneK) R.body.position.set(a.pos.x, a.pos.y, a.pos.z);
+    if (sp > 3 && Math.floor(R.phase / Math.PI) !== Math.floor(prev / Math.PI)) sfx('step', a.pos, 0.8);
+    return;
+  }
+  const B = R.body, id = a.gun().id, W = WEAPONS[id];
   setRigGun(R, id);
   const yaw = a.yaw;
   // скорость в локальных координатах
@@ -613,21 +622,28 @@ function animateSoldier(a, dt) {
     const e = Math.min(1, ft / 0.75); fall = e * e; if (ft > 0.75) fall = 1 - Math.sin(Math.min(1, (ft - 0.75) / 0.25) * Math.PI) * 0.05;
     slump = Math.min(1, ft / 0.35);
   }
-  B.position.set(a.pos.x, a.pos.y + fall * 0.12, a.pos.z);
-  B.rotation.set(R.fallDir * fall * Math.PI * 0.47, yaw, fall * 0.15 * R.fallDir, 'YXZ');
+  // позы: присед, лёжа (тело вдоль bodyYaw, поворот вокруг ступней), висит на краю; наклон при резком рывке вбок
+  const pw = a.alive ? (a.proneK || 0) : 0, ease = Math.min(1, dt * 10);
+  R.cw = (R.cw || 0) + ((a.alive && a.posture === 1 ? 1 : 0) - (R.cw || 0)) * ease;
+  R.hw = (R.hw || 0) + ((a.alive && a.posture === 3 ? 1 : 0) - (R.hw || 0)) * ease;
+  R.lean = (R.lean || 0) + ((a.alive && speed > 6.5 ? clamp(lvx / 12, -1, 1) * 0.32 : 0) - (R.lean || 0)) * Math.min(1, dt * 12);
+  const byaw = pw > 0 && a.bodyYaw !== undefined ? a.bodyYaw : yaw, lie = pw * (Math.PI / 2 - 0.22), dip = Math.abs(R.lean) * 0.6;
+  B.position.set(a.pos.x + Math.sin(byaw) * 0.85 * pw, a.pos.y + fall * 0.12 + pw * 0.1, a.pos.z + Math.cos(byaw) * 0.85 * pw);
+  B.rotation.set(R.fallDir * fall * Math.PI * 0.47 - lie, byaw, fall * 0.15 * R.fallDir - R.lean, 'YXZ');
   // корпус
   const pitch = a.alive ? a.pitch : -0.15 * slump;
-  R.pelvis.position.y = LEG.hipY - 0.025 * k + 0.03 * k * Math.cos(2 * R.phase) - slump * 0.06 + Math.sin(t * 2) * 0.004 * (1 - k);
+  R.pelvis.position.y = LEG.hipY - 0.025 * k + 0.03 * k * Math.cos(2 * R.phase) - slump * 0.06 + Math.sin(t * 2) * 0.004 * (1 - k) - 0.36 * R.cw - 0.2 * dip;
   R.pelvis.rotation.set(0, Math.sin(R.phase) * 0.12 * k, Math.cos(R.phase) * 0.04 * k);
   const twist = id === 'knife' ? 0 : -0.3;
-  R.chest.rotation.set(pitch * 0.55 - 0.1 * k + R.kick * 0.06 + R.flinch * 0.25 + Math.sin(t * 2.1) * 0.012 - slump * 0.1, -Math.sin(R.phase) * 0.1 * k + twist, 0);
-  R.head.rotation.set(pitch * 0.4 + R.flinch * 0.2, -twist, 0); R.gunHolder.rotation.y = -twist;
+  R.chest.rotation.set(pitch * 0.55 - 0.1 * k + R.kick * 0.06 + R.flinch * 0.25 + Math.sin(t * 2.1) * 0.012 - slump * 0.1 - 0.24 * R.cw - 0.15 * dip + pw * 0.55, -Math.sin(R.phase) * 0.1 * k * (1 - pw) + twist, 0);
+  R.head.rotation.set(pitch * 0.4 + R.flinch * 0.2 + pw * 0.55, -twist, 0); R.gunHolder.rotation.y = -twist;
   // оружие
   const gp = gunPose(id);
   let reloadP = a.reloading > 0 && W.reload ? 1 - a.reloading / W.reload : -1;
   const tilt = reloadP >= 0 ? sm(reloadP, 0, 0.15) * (1 - sm(reloadP, 0.85, 1)) : 0;
   R.gun.position.set(gp[0], gp[1] - tilt * 0.05 - slump * 0.1, gp[2] + R.kick * 0.045 + tilt * 0.06);
-  R.gun.rotation.set(pitch * 0.45 + R.kick * 0.12 - tilt * 0.3 - slump * 0.6, 0, tilt * 0.5);
+  R.gun.rotation.set(pitch * 0.45 + R.kick * 0.12 - tilt * 0.3 - slump * 0.6 + pw * 0.62, 0, tilt * 0.5);
+  if (a.alive && R.gun) R.gun.visible = R.hw < 0.5; // на краю руки заняты
   const P_ = R.parts;
   if (P_.mag) P_.mag.position.y = P_.mag.userData.base.y - (reloadP >= 0 ? sm(reloadP, 0.22, 0.38) * (1 - sm(reloadP, 0.5, 0.66)) * 0.25 : 0);
   if (P_.flash.visible) { R.flashT -= dt; P_.flash.rotation.z = Math.random() * 6; P_.flash.scale.setScalar(rand(0.7, 1.2)); if (R.flashT <= 0) P_.flash.visible = false; }
@@ -639,6 +655,10 @@ function animateSoldier(a, dt) {
   R.gun.localToWorld(foreW);
   if (id === 'knife') { foreW.set(-0.22, 0.25 - slump * 0.2, -0.15); R.chest.localToWorld(foreW); }
   if (!a.alive) { gripW.lerp(_v5.set(0.35, 0.2, 0.05).applyMatrix4(R.chest.matrixWorld), slump * 0.6); foreW.lerp(_v5.set(-0.4, 0.25, 0.05).applyMatrix4(R.chest.matrixWorld), slump * 0.8); }
+  if (R.hw > 0.01) { // висит: ладони на кромке над головой
+    gripW.lerp(_v6.set(0.2, 1.08, -0.22).applyMatrix4(R.chest.matrixWorld), R.hw);
+    foreW.lerp(_v6.set(-0.2, 1.08, -0.22).applyMatrix4(R.chest.matrixWorld), R.hw);
+  }
   R.gun.getWorldQuaternion(_q1);
   for (let i = 0; i < 2; i++) {
     const sh = (i ? R.shR : R.shL).getWorldPosition(_v3), hand = i ? gripW : foreW;
@@ -657,7 +677,12 @@ function animateSoldier(a, dt) {
     const ph = R.phase + (i ? Math.PI : 0);
     const along = -Math.cos(ph) * stride, lift = Math.max(0, Math.sin(ph)) * 0.13 * k;
     const side = i ? 0.12 : -0.12;
-    _v4.set(side + mvx * along, 0.075 + lift, (i ? 0.05 : -0.07) * (1 - k) + mvz * along);
+    _v4.set(side * (1 + 0.35 * R.cw) + mvx * along, 0.075 + lift, (i ? 0.05 : -0.07) * (1 - k) + mvz * along + (i ? 0.16 : -0.1) * R.cw);
+    if (pw > 0.01) { // ползание: ноги поочерёдно подтягиваются вдоль тела
+      const cr = Math.max(0, Math.sin(ph)) * 0.24 * Math.min(1, speed / 0.6);
+      _v4.set(side * (1 + 0.8 * pw) + side * cr * 0.6, 0.075 + cr * pw, 0.04 * pw);
+      POLE_KNEE.set(i ? 1 : -1, 0.2, -0.6).applyQuaternion(B.quaternion);
+    }
     if (!a.alive) _v4.set(side * (1.5 + i * 0.5), 0.075 - slump * 0.12, 0.05 * R.fallDir * slump + (i ? 0.06 : -0.04) * slump);
     const foot = B.localToWorld(_v4);
     if (a.alive) foot.y = Math.max(foot.y, a.pos.y + 0.075);
@@ -685,7 +710,7 @@ function updateCasings(dt) {
   for (const c of casings) if (c.life > 0) {
     c.life -= dt; c.v.y -= 12 * dt; c.m.position.addScaledVector(c.v, dt);
     c.m.rotation.x += c.w.x * dt; c.m.rotation.y += c.w.y * dt; c.m.rotation.z += c.w.z * dt;
-    const fx = Math.floor(c.m.position.x / CELL), fz = Math.floor(c.m.position.z / CELL), fl = hAt(fx, fz) < 90 ? hAt(fx, fz) : 0;
+    const fx = Math.floor(c.m.position.x / CELL), fz = Math.floor(c.m.position.z / CELL), fl = floorAt(fx, fz, c.m.position.y);
     if (c.m.position.y < fl + 0.006 && c.v.y < 0) {
       c.m.position.y = fl + 0.006; c.v.y *= -0.35; c.v.x *= 0.5; c.v.z *= 0.5; c.w.multiplyScalar(0.4);
       if (c.bounced++ < 2 && c.m.position.distanceTo(camera.position) < 6) tone(rand(3200, 4200), 0.04, 'triangle', 0.03);
@@ -751,6 +776,11 @@ function updateViewmodel(dt) {
   const lx = clamp(lookDX, -80, 80), ly = clamp(lookDY, -80, 80);
   px -= lx * 0.00028; py += ly * 0.00025; ry -= lx * 0.0012; rx -= ly * 0.001; rz -= lx * 0.0008;
   if (P.crouch) { px -= 0.018; py += 0.008; rz += 0.07; }
+  // лёжа оружие ниже и устойчивее; на краю, при подъёме и в переходе позы — опущено
+  if (P.posture === 2) { py += 0.012 * P.proneK; rz -= 0.04 * P.proneK; }
+  const lowT = busyMove(P) ? 1 : (P.proneK > 0.02 && P.proneK < 0.98) ? 0.7 : P.mstate === 'dodge' ? 0.25 : 0;
+  vm.low = (vm.low || 0) + (lowT - (vm.low || 0)) * Math.min(1, 10 * dt);
+  py -= vm.low * 0.32; rx -= vm.low * 0.9; rz += vm.low * 0.35;
   if (!P.onGround) { py -= clamp(P.vel.y, -7, 7) * 0.0025; rx += clamp(P.vel.y, -7, 7) * 0.008; }
   if (P.switchT > 0) { const e = P.switchT / 0.35; py -= e * e * 0.28; rx -= e * 0.9; rz += e * 0.3; }
   px += vm.p.x * 0.3; py += vm.p.y * 0.3; pz += vm.p.z * 0.3; rx += vm.rp.x * 0.2; ry += vm.rp.y * 0.2; rz += vm.rp.z * 0.2;

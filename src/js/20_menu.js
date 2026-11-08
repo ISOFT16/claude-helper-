@@ -67,6 +67,7 @@ $('buyclose').onclick = () => toggleBuy(false);
 $('board').onclick = () => { G.board = false; $('board').classList.add('hidden'); };
 /* --- пауза --- */
 function showPause() {
+  if (WM.open) { WM.open = false; G.mapOpen = false; $('wmap').classList.add('hidden'); }
   if (G.over || !G.started) return;
   $('pause').classList.remove('hidden');
   $('pausemp').classList.toggle('hidden', NET.mode === 'off');
@@ -81,7 +82,7 @@ $('pcopy').onclick = () => {
   else { const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); ok(); } catch (e) {} ta.remove(); }
 };
 function goToMenu() {
-  netShutdown(); $('touch').classList.remove('on'); G.started = false; G.paused = true; document.exitPointerLock?.();
+  toggleWorldMap(false); netShutdown(); $('touch').classList.remove('on'); G.started = false; G.paused = true; document.exitPointerLock?.();
   for (const id of ['pause', 'hud', 'over', 'buy', 'board']) $(id).classList.add('hidden');
   closeChat(); showMenu('main');
 }
@@ -101,7 +102,7 @@ const SCHEMA = {
     ['preset', 'select', [['low', 'pLow'], ['medium', 'pMed'], ['high', 'pHigh'], ['ultra', 'pUltra'], ['custom', 'pCustom']]],
     ['renderScale', 'range', 0.5, 2, 0.05, pct], ['shadows', 'select', [[0, 'off'], [1, 'low'], [2, 'med'], [3, 'high'], [4, 'ultra']]],
     ['charShadows', 'toggle'], ['reflections', 'toggle'], ['drawDist', 'select', [[0, 'near'], [1, 'mid'], [2, 'far']]],
-    ['effects', 'select', [[0, 'low'], [1, 'high']]], ['antialias', 'toggle', 'restart'],
+    ['effects', 'select', [[0, 'low'], [1, 'high']]], ['antialias', 'toggle', 'restart'], ['grading', 'toggle'], ['bloom', 'toggle'], ['ao', 'toggle'],
     ['fpsLimit', 'select', [[30, '#30'], [60, '#60'], [75, '#75'], [90, '#90'], [120, '#120'], [144, '#144'], [165, '#165'], [240, '#240'], [0, 'unlimited']]],
     ['showFps', 'toggle'], ['brightness', 'range', 0.6, 1.8, 0.05, fx2], ['fov', 'range', 60, 110, 1, v => v + '°'],
     ['vmSide', 'select', [['right', 'right'], ['left', 'left']]], ['bob', 'toggle'],
@@ -126,7 +127,7 @@ $('setclose').onclick = () => { $('settings').classList.add('hidden'); rebinding
 function setVal(k, v) {
   SET[k] = v;
   if (k === 'preset' && PRESETS[v]) Object.assign(SET, PRESETS[v]);
-  else if (['renderScale', 'shadows', 'charShadows', 'reflections', 'drawDist', 'effects'].includes(k)) SET.preset = 'custom';
+  else if (['renderScale', 'shadows', 'charShadows', 'reflections', 'drawDist', 'effects', 'grading', 'bloom', 'ao', 'antialias'].includes(k)) SET.preset = 'custom';
   if (k === 'lang') { LANG = v; }
   saveSettings(); applySettings();
   if (k === 'lang') applyLang();
@@ -211,17 +212,20 @@ function applySettings() {
   sun.castShadow = SET.shadows > 0;
   const sz = [1024, 1024, 2048, 3072, 4096][SET.shadows] || 2048;
   if (sz !== shadowSize) { shadowSize = sz; sun.shadow.mapSize.set(sz, sz); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
-  for (const a of agents) a.model.traverse(o => { if (o.isMesh) o.castShadow = SET.charShadows; });
+  for (const a of agents) if (a.rig) a.rig.lodDirty = true; // тени бойцов выставит LOD с учётом дальности
   scene.environment = SET.reflections ? envTex : null; vmScene.environment = SET.reflections ? envTex : null;
   const dd = [[30, 90, 120], [50, 170, 300], [80, 260, 420]][SET.drawDist] || [50, 170, 300];
   scene.fog.near = dd[0]; scene.fog.far = dd[1]; camera.far = dd[2]; camera.updateProjectionMatrix();
   renderer.toneMappingExposure = SET.brightness;
+  buildPost();
   vmRoot.scale.x = SET.vmSide === 'left' ? -1 : 1;
   applyVolume();
   buildCrosshair();
   for (const id of ['top', 'bl', 'br', 'feed', 'radar', 'chat']) $(id).style.zoom = SET.hudScale;
   $('fps').classList.toggle('hidden', !SET.showFps);
   document.body.style.setProperty('--ts', SET.touchSize);
+  // автоогонь: кнопка огня не нужна — убираем её целиком (display:none, касания не перехватывает)
+  $('tFire').classList.toggle('hidden', !!SET.autoFire); if (SET.autoFire) { $('tFire').classList.remove('pr'); if (TOUCH) mouseDown = false; }
 }
 applySettings();
 applyLang();

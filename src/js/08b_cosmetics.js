@@ -53,24 +53,25 @@ const PROF = (() => {
   return {
     coins: +p.coins || 300, owned: p.owned || {}, daily: p.daily || { last: '', streak: 0 },
     equip: Object.assign({ o: 'std', h: 'helmet', s: 1, w: {} }, p.equip || {}), stats: p.stats || { kills: 0, wins: 0, matches: 0 },
+    gear: p.gear && typeof p.gear === 'object' ? p.gear : {},
   };
 })();
 function saveProfile() { try { localStorage.setItem('perehvat-profile', JSON.stringify(PROF)); } catch (e) {} }
 const isOwned = (kind, id) => { const cat = kind === 'o' ? OUTFITS : kind === 'h' ? HATS : WSKINS; return cat[id] && (cat[id].price === 0 || !!PROF.owned[kind + ':' + id]); };
-function myCos() { return { o: PROF.equip.o, h: PROF.equip.h, s: PROF.equip.s, w: { ...PROF.equip.w } }; }
+function myCos() { return { o: PROF.equip.o, h: PROF.equip.h, s: PROF.equip.s, w: { ...PROF.equip.w }, g: myGearCfg() }; }
 // проверка чужой косметики из сети: только известные id
 function cleanCos(c) {
   c = c && typeof c === 'object' ? c : {};
   const w = {};
   if (c.w && typeof c.w === 'object') for (const k of Object.keys(c.w).slice(0, 40)) if (WEAPONS[k] && WSKINS[c.w[k]]) w[k] = c.w[k];
-  return { o: OUTFITS[c.o] ? c.o : 'std', h: HATS[c.h] ? c.h : 'helmet', s: clamp(c.s | 0, 0, SKIN_TONES.length - 1), w };
+  return { o: OUTFITS[c.o] ? c.o : 'std', h: HATS[c.h] ? c.h : 'helmet', s: clamp(c.s | 0, 0, SKIN_TONES.length - 1), w, g: cleanGearCfg(c.g) };
 }
 // случайная внешность для ботов — чтобы бойцы отличались друг от друга
 function randomCos() {
   const o = Math.random() < 0.45 ? 'std' : pick(Object.keys(OUTFITS).filter(k => k !== 'gold' && k !== 'neon'));
   const h = Math.random() < 0.35 ? 'helmet' : pick(Object.keys(HATS).filter(k => k !== 'crown'));
   const w = {}; for (const id of WIDS) if (Math.random() < 0.35) w[id] = pick(Object.keys(WSKINS).filter(k => k !== 'gold'));
-  return { o, h, s: randi(0, SKIN_TONES.length - 1), w };
+  return { o, h, s: randi(0, SKIN_TONES.length - 1), w, g: botGearCfg() };
 }
 /* --- монеты --- */
 function earn(n, why) {
@@ -197,6 +198,8 @@ function skinGun(g, skinId) {
 function applyCos(a, cos) {
   const R = a.rig; if (!R) return;
   cos = cleanCos(cos); R.cos = cos;
+  // снаряжение: характеристики для расчёта урона и видимые накладки на теле
+  a.gearCfg = cos.g; if (a.gear) a.gear = a.gear.filter(g => cos.g[g.slot] && cos.g[g.slot][0] === g.id); buildGearLook(a);
   const T = teamMats[a.team], OM = cos.o !== 'std' ? outfitMats(cos.o) : null, skinM = SKIN_MATS[cos.s];
   R.root.traverse(o => {
     if (!o.isMesh || o.userData.isHat) return;
@@ -213,7 +216,7 @@ function applyCos(a, cos) {
   R.hatObj = null;
   if (cos.h !== 'none') {
     const h = buildHat(cos.h, a.team).clone(); h.traverse(o => { if (o.isMesh) { o.userData.isHat = true; o.castShadow = SET.charShadows; } });
-    R.head.add(h); R.hatObj = h;
+    R.head.add(h); R.hatObj = h; R.lodDirty = true;
   }
   for (const id in R.guns) skinGun(R.guns[id].g, cos.w[id]);
 }

@@ -22,7 +22,7 @@ function rayWorld(ox, oy, oz, dx, dy, dz, maxT) {
   let tmz = Math.abs(dz) > 1e-9 ? (dz > 0 ? (cz + 1) * CELL - oz : oz - cz * CELL) / Math.abs(dz) : Infinity;
   for (let i = 0; i < 200; i++) {
     const h = hAt(cx, cz);
-    if (h > 0 && rayBox(ox, oy, oz, dx, dy, dz, cx * CELL, 0, cz * CELL, cx * CELL + CELL, h, cz * CELL + CELL) && RB.t < best) {
+    if (h > 0 && rayBox(ox, oy, oz, dx, dy, dz, cx * CELL, bAt(cx, cz), cz * CELL, cx * CELL + CELL, h, cz * CELL + CELL) && RB.t < best) {
       best = RB.t; nx = ny = nz = 0;
       if (RB.ax === 0) nx = -Math.sign(dx); else if (RB.ax === 1) ny = -Math.sign(dy); else nz = -Math.sign(dz);
       break;

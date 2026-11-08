@@ -5,14 +5,14 @@ const DEF_BINDS = {
   jump: ['Space', ''], crouch: ['ControlLeft', 'KeyC'], walk: ['ShiftLeft', ''], reload: ['KeyR', ''],
   prim: ['Digit1', ''], sec: ['Digit2', ''], knife: ['Digit3', ''], nade: ['Digit4', ''], last: ['KeyQ', ''],
   dash: ['KeyE', ''], throw: ['KeyG', ''], inspect: ['KeyF', ''], buy: ['KeyB', ''], scores: ['Tab', ''],
-  chat: ['KeyY', 'KeyT'], start: ['Enter', ''], team: ['KeyM', ''],
+  chat: ['KeyY', 'KeyT'], start: ['Enter', ''], team: ['KeyM', ''], prone: ['KeyZ', ''], map: ['KeyN', ''],
 };
-const BIND_ORDER = ['fwd', 'back', 'left', 'right', 'jump', 'crouch', 'walk', 'reload', 'prim', 'sec', 'knife', 'nade', 'throw', 'last', 'dash', 'inspect', 'buy', 'scores', 'chat', 'start', 'team'];
+const BIND_ORDER = ['fwd', 'back', 'left', 'right', 'jump', 'crouch', 'walk', 'reload', 'prim', 'sec', 'knife', 'nade', 'throw', 'last', 'dash', 'prone', 'map', 'inspect', 'buy', 'scores', 'chat', 'start', 'team'];
 const PRESETS = {
-  low: { renderScale: 0.75, shadows: 0, charShadows: false, reflections: false, drawDist: 0, effects: 0 },
-  medium: { renderScale: 1, shadows: 1, charShadows: false, reflections: true, drawDist: 1, effects: 1 },
-  high: { renderScale: 1, shadows: 2, charShadows: true, reflections: true, drawDist: 1, effects: 1 },
-  ultra: { renderScale: 1.5, shadows: 4, charShadows: true, reflections: true, drawDist: 2, effects: 1 },
+  low: { renderScale: 0.75, shadows: 0, charShadows: false, reflections: false, drawDist: 0, effects: 0, grading: false, bloom: false, ao: false },
+  medium: { renderScale: 1, shadows: 1, charShadows: false, reflections: true, drawDist: 1, effects: 1, grading: true, bloom: false, ao: false },
+  high: { renderScale: 1, shadows: 2, charShadows: true, reflections: true, drawDist: 1, effects: 1, grading: true, bloom: true, ao: false },
+  ultra: { renderScale: 1.5, shadows: 4, charShadows: true, reflections: true, drawDist: 2, effects: 1, grading: true, bloom: true, ao: true },
 };
 // стартовые деньги в матче и их потолок
 const START_MONEY = 100000, MAX_MONEY = 100000;

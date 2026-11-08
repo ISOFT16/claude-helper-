@@ -2,46 +2,98 @@
 const keys = {};
 let mouseDown = false, locked = false, reScopeT = 0, shake = 0, bobT = 0, lastStep = 0, specTarget = null, crouchToggled = false, wasGround = true;
 let lookDX = 0, lookDY = 0;
+let wantProne = false, postureHintT = 0;
 function updatePlayer(dt) {
-  P.fireCd -= dt; P.switchT -= dt; P.dashCd = Math.max(0, (P.dashCd || 0) - dt);
+  P.fireCd -= dt; P.switchT -= dt; P.dodgeCd = Math.max(0, P.dodgeCd - dt); P.ledgeCd = Math.max(0, (P.ledgeCd || 0) - dt);
   if (P.reloading > 0) { P.reloading -= dt; if (P.reloading <= 0) finishReload(P); }
   P.punchP *= Math.exp(-(mouseDown ? 3 : 7) * dt); P.punchY *= Math.exp(-6 * dt);
   P.spreadAcc *= Math.exp(-(mouseDown ? 2 : 6) * dt);
   if (reScopeT > 0) { reScopeT -= dt; if (reScopeT <= 0 && rmbHeldScope && P.alive && P.w().scope) P.scoped = true; }
+  postureHintT -= dt;
   if (!P.alive) return;
   const W = P.w(), typing = chatOpen;
-  P.crouch = !typing && (SET.toggleCrouch ? crouchToggled : bindDown('crouch')) || touchCrouch;
   const walking = !typing && bindDown('walk');
   let fx = 0, fz = 0;
   if (!typing) { if (bindDown('fwd')) fz -= 1; if (bindDown('back')) fz += 1; if (bindDown('left')) fx -= 1; if (bindDown('right')) fx += 1; }
   if (TOUCH) { fx += joy.x; fz += joy.y; }
   if (G.state === 'freeze') fx = fz = 0;
   const len = Math.hypot(fx, fz); if (len > 1) { fx /= len; fz /= len; }
+  const jumpHeld = !typing && (bindDown('jump') || keys.TouchJump);
+  const crouchHeld = !typing && (SET.toggleCrouch ? crouchToggled : bindDown('crouch')) || touchCrouch;
+  // висим на краю или лезем: управление только «подтянуться» и «отпустить»
+  const jumpPressed = jumpHeld && !prevJump; prevJump = jumpHeld;
+  if (busyMove(P)) {
+    // на краю: новое нажатие прыжка или «вперёд» — подтянуться, присесть или «назад» — отпустить
+    updateLedge(P, dt, { climb: jumpPressed || fz < -0.5, fwd: fz < -0.5, drop: crouchHeld || fz > 0.5 });
+    const et = P.mstate === 'climbing' ? 1.0 : P.mstate === 'climbFinish' ? POSTURE_EYE[0] : 1.72;
+    P.eye += (et - P.eye) * Math.min(1, 10 * dt); P.eyeOff.set(0, 0, 0);
+    wasGround = false; return;
+  }
+  // поза: лёжа (переключатель) важнее приседа
+  const wantP = wantProne ? 2 : crouchHeld ? 1 : 0;
+  if (wantP !== P.posture && P.mstate !== 'dodge') {
+    if (!setPosture(P, wantP)) {
+      // встать не даёт препятствие: пробуем хотя бы присесть
+      if (P.posture === 2 && wantP === 0 && setPosture(P, 1)) {}
+      else if (postureHintT <= 0 && (P.posture === 2 || wantP === 2)) { showHint(t(wantP === 2 ? 'proneBlocked' : 'standBlocked'), 1.2); postureHintT = 1.5; }
+    }
+  }
+  P.proneK = clamp(P.proneK + (P.posture === 2 ? 1 : -1) * dt / MOVE_CFG.proneTime, 0, 1);
+  updateProneBody(P, dt);
+  if (P.posture === 2) { // лёжа обзор ограничен положением тела
+    P.yaw = P.bodyYaw + clamp(angDiff(P.bodyYaw, P.yaw), -1.25, 1.25);
+    P.pitch = clamp(P.pitch, -0.45, 0.9);
+  }
   const s = Math.sin(P.yaw), c = Math.cos(P.yaw);
   const wx = fx * c + fz * s, wz = -fx * s + fz * c;
-  const speed = (P.crouch ? 2.4 : walking ? 2.9 : 6.2) * W.move * (P.scoped ? 0.55 : 1);
-  P.dashT = Math.max(0, (P.dashT || 0) - dt);
-  const acc = P.dashT > 0 ? 0 : P.onGround ? 14 : 2.5;
-  P.vel.x += (wx * speed - P.vel.x) * Math.min(1, acc * dt);
-  P.vel.z += (wz * speed - P.vel.z) * Math.min(1, acc * dt);
-  if (!typing && (bindDown('jump') || keys.TouchJump) && P.onGround && G.state !== 'freeze') { P.vel.y = 7.4; P.onGround = false; }
-  const vy = P.vel.y;
+  const S = MOVE_CFG.speed, trans = P.proneK > 0.02 && P.proneK < 0.98;
+  const base = P.posture === 2 ? S.prone : P.posture === 1 ? S.crouch : walking ? S.walk : S.stand;
+  const speed = base * W.move * (P.scoped ? 0.55 : 1) * (1 - gearMobility(P)) * (trans ? 0.25 : 1);
+  if (P.mstate === 'dodge') updateDodge(P, dt);
+  else {
+    // плавный разгон и торможение; в воздухе управление слабее
+    const acc = P.onGround ? (Math.hypot(wx, wz) > 0.1 ? 12 : 16) : 2.5;
+    P.vel.x += (wx * speed - P.vel.x) * Math.min(1, acc * dt);
+    P.vel.z += (wz * speed - P.vel.z) * Math.min(1, acc * dt);
+  }
+  if (jumpHeld && P.onGround && G.state !== 'freeze' && P.mstate === 'ground') {
+    if (P.posture === 2) { if (!jumpLatch) { wantProne = false; jumpLatch = true; } }
+    else if (!jumpLatch) { P.vel.y = 7.4; P.onGround = false; setMove(P, 'air'); }
+  }
+  if (!jumpHeld) jumpLatch = false;
+  const vy = P.vel.y, ox = P.pos.x, oz = P.pos.z;
   moveBody(P, dt);
-  if (P.onGround && !wasGround && vy < -6) landSound();
+  // лёжа тело длинное: не даём голове и ногам войти в стену
+  if (P.posture === 2 && !proneFits(P, P.bodyYaw)) { P.pos.x = ox; P.pos.z = oz; P.vel.x = P.vel.z = 0; }
+  if (P.mstate === 'ground' && !P.onGround) setMove(P, 'air');
+  else if (P.mstate === 'air' && P.onGround) setMove(P, 'ground');
+  if (P.onGround && !wasGround) { landKick = clamp(-vy / 9, 0, 1); if (vy < -6) { landSound(); dustFx(P.pos, 8, 0.6); } }
   wasGround = P.onGround;
-  P.eye += ((P.crouch ? 1.05 : 1.62) - P.eye) * Math.min(1, 12 * dt);
+  // захват края: в воздухе, если жмём вперёд или держим прыжок
+  if (P.mstate === 'air' && P.ledgeCd <= 0 && (fz < -0.3 || jumpHeld)) {
+    const hx = Math.hypot(P.vel.x, P.vel.z) > 1.5 && fz >= -0.3 ? P.vel.x / Math.hypot(P.vel.x, P.vel.z) : -s, hz = Math.hypot(P.vel.x, P.vel.z) > 1.5 && fz >= -0.3 ? P.vel.z / Math.hypot(P.vel.x, P.vel.z) : -c;
+    const L = findLedge(P, hx, hz); if (L) { L.auto = fz < -0.3; startLedge(P, L); return; }
+  }
+  // камера: высота глаз по позе, лёжа голова впереди центра тела
+  const eyeT = POSTURE_EYE[P.posture === 2 ? 2 : P.posture === 1 ? 1 : 0];
+  P.eye += (eyeT - P.eye) * Math.min(1, (P.posture === 2 || P.proneK > 0 ? 6 : 12) * dt);
+  P.eyeOff.set(-Math.sin(P.bodyYaw) * 0.5 * P.proneK, 0, -Math.cos(P.bodyYaw) * 0.5 * P.proneK);
   const hs = Math.hypot(P.vel.x, P.vel.z);
   if (P.onGround && hs > 1) {
     bobT += dt * hs * 1.6;
-    if (!walking && !P.crouch && hs > 3.5 && bobT - lastStep > Math.PI) { lastStep = bobT; stepSound(null, 1); }
+    if (!walking && P.posture === 0 && hs > 3.5 && bobT - lastStep > Math.PI) { lastStep = bobT; stepSound(null, 1); if (hs > 5) dustFx(P.pos, 2, 0.25); }
+    if (P.posture === 2 && bobT - lastStep > Math.PI) { lastStep = bobT; slideNoise(null, 0.12, 0.25); }
   }
   // стрельба (у оружия с отсечкой очередь дострeливается сама)
-  const autoShot = SET.autoFire && !mouseDown && autoFireTarget(W);
-  if ((mouseDown || autoShot || P.burstLeft > 0) && G.state !== 'freeze' && !G.buyOpen) {
+  const armed = canUseWeapon(P);
+  const autoShot = armed && SET.autoFire && !mouseDown && autoFireTarget(W);
+  if (armed && (mouseDown || autoShot || P.burstLeft > 0) && G.state !== 'freeze' && !G.buyOpen) {
     if (fire(P) && !W.auto && !W.melee && !TOUCH && !(P.burstLeft > 0)) mouseDown = false;
   }
   if (TOUCH && mouseDown && !W.melee && SET.aimAssist) aimAssist(dt);
 }
+let jumpLatch = false, landKick = 0, prevJump = false;
+function toggleProne() { if (!P.alive || busyMove(P)) return; wantProne = !wantProne; if (!wantProne && P.posture === 2) crouchToggled = false; }
 // автострельба: стреляем сами, когда прицел наведён на видимого врага
 let autoSeenT = 0;
 function autoFireTarget(W) {
@@ -74,16 +126,13 @@ function aimAssist(dt) {
   const k = (diff === DIFF[0] ? 0.9 : 0.6) * dt;
   P.yaw = turnTo(P.yaw, Math.atan2(-dx, -dz), k); P.pitch = turnTo(P.pitch, Math.atan2(dy, Math.hypot(dx, dz)), k);
 }
+// уклонение по направлению движения (без ввода — назад)
 function dash() {
-  if (!P.alive || P.dashCd > 0 || G.state === 'freeze') return;
   let fx = 0, fz = 0;
   if (bindDown('fwd')) fz -= 1; if (bindDown('back')) fz += 1; if (bindDown('left')) fx -= 1; if (bindDown('right')) fx += 1;
   if (TOUCH) { fx += joy.x; fz += joy.y; }
-  if (!fx && !fz) fz = -1;
-  const l = Math.hypot(fx, fz); fx /= l; fz /= l;
-  const s = Math.sin(P.yaw), c = Math.cos(P.yaw);
-  P.vel.x = (fx * c + fz * s) * 17; P.vel.z = (-fx * s + fz * c) * 17; P.vel.y = Math.max(P.vel.y, 2);
-  P.dashCd = 5; P.dashT = 0.2; slideNoise(null, 0.4, 0.2); landSound();
+  if (Math.hypot(fx, fz) < 0.3) fx = fz = 0;
+  dodge(P, fx, fz);
 }
 function cycleNade() {
   if (!P.gren) return;
@@ -117,6 +166,7 @@ document.addEventListener('keydown', e => {
   if (['Space', 'Tab', 'ControlLeft'].includes(e.code) || act === 'jump' || act === 'crouch') e.preventDefault();
   if (G.started && act === 'scores') { G.board = true; renderBoard(); return; }
   keys[e.code] = true;
+  if (G.started && WM.open && !e.repeat && (act === 'map' || e.code === 'Escape')) { toggleWorldMap(false); return; }
   if (!G.started || !locked || e.repeat) return;
   if (G.buyOpen && buyKey(e.code)) return;
   switch (act) {
@@ -133,7 +183,9 @@ document.addEventListener('keydown', e => {
     case 'chat': if (NET.mode !== 'off') { e.preventDefault(); openChat(); } break;
     case 'start': if (NET.mode === 'host' && G.state === 'lobby') hostStartMatch(); break;
     case 'team': requestTeamSwitch(); break;
-    case 'crouch': crouchToggled = !crouchToggled; break;
+    case 'crouch': if (P.posture === 2) { wantProne = false; crouchToggled = true; } else crouchToggled = !crouchToggled; break;
+    case 'prone': toggleProne(); break;
+    case 'map': toggleWorldMap(); break;
     case 'jump': if (!P.alive) nextSpec(); break;
   }
 });
@@ -156,7 +208,7 @@ document.addEventListener('pointerlockchange', () => {
   if (!locked) {
     mouseDown = false; for (const k in keys) keys[k] = false;
     if (G.buyOpen) toggleBuy(false);
-    if (chatOpen) return;
+    if (chatOpen || G.mapOpen) return;
     G.paused = true; showPause();
   } else { G.paused = false; $('pause').classList.add('hidden'); }
 });

@@ -49,7 +49,7 @@ function doBuy(a, id) {
   const W = WEAPONS[id], price = W ? W.price : GEAR[id] ? GEAR[id].price : null;
   if (price == null || a.money < price || owns(a, id)) return false;
   if (W) { a.inv[W.slot] = newGun(id); a.slot = W.slot; a.reloading = 0; a.switchT = 0.3; }
-  else if (id === 'armor') a.armor = 100;
+  else if (id === 'armor') restoreGear(a);
   else { a.gren = a.gren || freshGren(); a.gren[id]++; a.nadeSel = id; }
   a.money -= price; return true;
 }

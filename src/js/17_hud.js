@@ -9,6 +9,13 @@ function hitMarker(head, killed) {
   if (killed) tone(600, 0.12, 'triangle', 0.12, 0.05);
 }
 let dmgT = 0;
+let hudGearT = 0, whizT = 0;
+// пули рядом: стрелка направления обстрела (жёлтая), даже если не попали
+function flashWhiz(from) {
+  const dx = from.x - P.pos.x, dz = from.z - P.pos.z;
+  const ang = angDiff(P.yaw, Math.atan2(-dx, -dz));
+  $('whizarrow').style.transform = `rotate(${-ang}rad)`; $('whizi').style.opacity = 1; whizT = 0.6;
+}
 function flashDamage(from) {
   $('dmg').style.opacity = 1; dmgT = 0.25;
   if (from) {
@@ -79,7 +86,16 @@ function updateHUD(dt) {
   $('money').textContent = '$' + P.money;
   $('hp').textContent = Math.max(0, Math.ceil(P.hp)); $('hp').style.color = P.hp < G.maxHp * 0.3 ? '#ff6b6b' : '';
   $('ar').textContent = Math.ceil(P.armor);
-  $('dashv').textContent = P.dashCd > 0 ? P.dashCd.toFixed(1) + ' ' + t('sec') : t('ready');
+  $('dashv').textContent = P.dodgeCd > 0 ? P.dodgeCd.toFixed(1) + ' ' + t('sec') : t('ready');
+  const dcd = MOVE_CFG.dodge.cd * (1 + gearMobility(P) * 2);
+  $('dashbar').firstChild.style.width = (100 * (1 - clamp(P.dodgeCd / dcd, 0, 1))) + '%';
+  // прочность надетой брони
+  hudGearT -= dt;
+  if (hudGearT <= 0) {
+    hudGearT = 0.25;
+    const list = P.gearHud || (P.gear || []).map(g => [g.slot, g.dur / g.max]);
+    $('gearhud').innerHTML = list.map(([s, f]) => `<span>${esc(t('gearSlot_' + s))}<b><i style="width:${Math.round(f * 100)}%;background:${f > 0.5 ? '#7dffb0' : f > 0.2 ? '#ffd85a' : '#ff6b6b'}"></i></b></span>`).join('');
+  }
   const g = P.gun(), W = WEAPONS[g.id];
   $('wname').textContent = wName(g.id) + (P.reloading > 0 ? ' — ' + t('reloading') : '');
   $('ammo').innerHTML = W.melee ? '—' : `${g.mag} <small>/ ${g.res}</small>`;
@@ -87,7 +103,7 @@ function updateHUD(dt) {
   $('nades').innerHTML = NADES.filter(k => gr[k] > 0).map(k => `<span class="${k === sel ? 'nsel' : ''}">${esc(t(k))} ×${gr[k]}</span>`).join(' ');
   // прицел
   const moving = Math.hypot(P.vel.x, P.vel.z) > 1.5 || !P.onGround;
-  const sp = W.melee ? 0.01 : (W.scope && !P.scoped && W.cat === 'sniper' ? W.spread : W.spread + P.spreadAcc + (moving ? W.moveSpread : 0)) * (P.crouch ? 0.7 : 1);
+  const sp = W.melee ? 0.01 : (W.scope && !P.scoped && W.cat === 'sniper' ? W.spread : W.spread + P.spreadAcc + (moving ? W.moveSpread : 0)) * POSTURE_SPREAD[P.posture || 0];
   placeCrosshair(SET.xGap + (SET.xDynamic ? sp * 450 : 0));
   $('cross').style.display = P.scoped || !P.alive ? 'none' : '';
   $('scope').classList.toggle('hidden', !P.scoped);
@@ -97,6 +113,7 @@ function updateHUD(dt) {
   else if (!P.alive && G.state === 'live') $('hint').textContent = t('spectate', specTarget?.name ?? '—', TOUCH ? t('tapNext') : t('clickNext'));
   else if (G.state === 'freeze' && !G.buyOpen) $('hint').textContent = TOUCH ? t('buyTouch') : t('buyKey', keyOf('buy'));
   else if (!hintT) $('hint').textContent = '';
+  if (whizT > 0) { whizT -= dt; if (whizT <= 0) $('whizi').style.opacity = 0; }
   if (hitT > 0) { hitT -= dt; if (hitT <= 0) $('hit').style.opacity = 0; }
   if (dmgT > 0) { dmgT -= dt; if (dmgT <= 0) { $('dmg').style.opacity = 0; $('dmgi').style.opacity = 0; } }
   if (G.buyOpen && !canBuy()) toggleBuy(false);
@@ -104,10 +121,14 @@ function updateHUD(dt) {
   if (G.board) renderBoard();
   $('radar').style.display = SET.radar ? '' : 'none';
   if (SET.radar) drawRadar();
+  if (WM.open) drawWorldMap();
   $('feed').style.display = SET.killfeed ? '' : 'none';
   if (TOUCH) {
-    $('tDash').textContent = P.dashCd > 0 ? Math.ceil(P.dashCd) + ' ' + t('sec') : t('tDash');
-    $('tDash').classList.toggle('off', P.dashCd > 0);
+    // кнопка уклонения: кольцо перезарядки
+    const dk = 1 - clamp(P.dodgeCd / (MOVE_CFG.dodge.cd * (1 + gearMobility(P) * 2)), 0, 1);
+    $('tDash').innerHTML = (P.dodgeCd > 0 ? Math.ceil(P.dodgeCd) + ' ' + t('sec') : t('tDash')) + `<span class="cd" style="background:conic-gradient(rgba(125,200,255,.55) ${dk * 360}deg, transparent 0);-webkit-mask:radial-gradient(circle,transparent 60%,#000 62%);mask:radial-gradient(circle,transparent 60%,#000 62%)"></span>`;
+    $('tDash').classList.toggle('off', P.dodgeCd > 0);
+    $('tProne').classList.toggle('on', P.posture === 2);
     const nt = nadeTotal(P); $('tNade').textContent = (sel ? t(sel) : t('tNade')) + (nt ? ' ' + nt : ''); $('tNade').classList.toggle('off', !nt);
     $('tScope').style.display = P.alive && P.w().scope ? '' : 'none'; $('tScope').classList.toggle('on', !!P.scoped);
     $('tCrouch').classList.toggle('on', touchCrouch);
@@ -136,7 +157,7 @@ const radarBg = document.createElement('canvas'); radarBg.width = MW * RS; radar
   const g = radarBg.getContext('2d');
   for (let z = 0; z < MH; z++) for (let x = 0; x < MW; x++) {
     const h = heights[z * MW + x];
-    if (h) { g.fillStyle = h > 3 ? '#56607a' : h > 2 ? '#3d6a7a' : '#7a5a3a'; g.fillRect(x * RS, z * RS, RS, RS); }
+    if (h) { g.fillStyle = MAP[z][x] === 'u' ? '#4b5a6e' : h > 3 ? '#56607a' : h > 2 ? '#3d6a7a' : '#7a5a3a'; g.fillRect(x * RS, z * RS, RS, RS); }
   }
   g.strokeStyle = '#c7a6ff'; g.lineWidth = 1.5; g.strokeRect(zone.x0 / CELL * RS, zone.z0 / CELL * RS, (zone.x1 - zone.x0) / CELL * RS, (zone.z1 - zone.z0) / CELL * RS);
 }
@@ -153,4 +174,7 @@ function drawRadar() {
     rctx.beginPath(); rctx.arc(a.pos.x * sx, a.pos.z * sz, a === P ? 4 : 3.5, 0, 7); rctx.fill(); rctx.stroke();
     if (a === P) { rctx.strokeStyle = '#fff'; rctx.beginPath(); rctx.moveTo(a.pos.x * sx, a.pos.z * sz); rctx.lineTo(a.pos.x * sx - Math.sin(a.yaw) * 9, a.pos.z * sz - Math.cos(a.yaw) * 9); rctx.stroke(); }
   }
+  // свои метки с большой карты
+  rctx.fillStyle = '#ffd85a';
+  for (const p of WM.pins) { rctx.beginPath(); rctx.moveTo(p.x * sx, p.z * sz); rctx.lineTo(p.x * sx - 3, p.z * sz - 7); rctx.lineTo(p.x * sx + 3, p.z * sz - 7); rctx.fill(); }
 }

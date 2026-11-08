@@ -54,6 +54,8 @@ if (TOUCH) {
   tbtn('tReload', () => { if (P.alive) startReload(P); });
   tbtn('tSwap', () => { if (!P.alive) return; const order = [1, 2, 3]; let i = order.indexOf(P.slot); for (let k = 1; k <= 3; k++) { const s = order[(i + k) % 3]; if (P.inv[s]) { switchSlot(P, s); break; } } });
   tbtn('tDash', () => dash());
+  tbtn('tProne', () => toggleProne());
+  tbtn('tMap', () => toggleWorldMap());
   tbtn('tNade', () => { if (P.alive) throwNade(P); });
   tbtn('tScope', () => toggleScope());
   tbtn('tNadeSel', () => cycleNade());
@@ -77,4 +79,4 @@ window.__onBack = () => {
   return false;
 };
 
-window.__game = { G, agents, SET, toggleBuy, buyKey, chat: sendChat, uiBufs, applySettings, hostStartMatch, startLobby, throwNade, WEAPONS, get P() { return P; }, NET, renderer, fire, damage, buy: buyItem, animateSoldier, vm, vmGuns, get now() { return now; }, findPath, spawnCells, zoneCells, walk, step: (n, dt = 1 / 60) => { for (let i = 0; i < n && G.state !== "over"; i++) { now += dt; updateGame(dt); } } };
+window.__game = { keys, moveStateName, toggleProne, setWantProne: v => { wantProne = v; }, canUseWeapon, dash, dodge, dodgeTry: (x, z) => dodge(P, x, z), setPosture, setMove, WM, toggleWorldMap, gearAction, absorbDamage, PROF, GEAR_ITEMS, restoreGear, myGearCfg, gearProf, MOVE_CFG, POST, buildPost, G, agents, SET, toggleBuy, buyKey, chat: sendChat, uiBufs, applySettings, hostStartMatch, startLobby, throwNade, WEAPONS, get P() { return P; }, NET, renderer, fire, damage, buy: buyItem, animateSoldier, vm, vmGuns, get now() { return now; }, findPath, spawnCells, zoneCells, walk, step: (n, dt = 1 / 60) => { for (let i = 0; i < n && G.state !== "over"; i++) { now += dt; updateGame(dt); } } };

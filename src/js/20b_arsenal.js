@@ -1,10 +1,11 @@
 /* ================= arsenal & daily ================= */
 // Арсенал: покупка и примерка одежды, головных уборов, скинов оружия и тона кожи с 3D-превью.
 let arTab = 'o', arSel = null, arWeapon = 'buran', prevR = null, prevScene = null, prevCam = null, prevAgent = null, prevGun = null, prevLast = 0;
-const AR_TABS = [['o', 'arOutfit', OUTFITS], ['h', 'arHat', HATS], ['w', 'arSkin', WSKINS], ['s', 'arLook', null]];
+const AR_TABS = [['o', 'arOutfit', OUTFITS], ['h', 'arHat', HATS], ['w', 'arSkin', WSKINS], ['g', 'arGear', null], ['s', 'arLook', null]];
 function arCurrent(kind) { return kind === 'w' ? (PROF.equip.w[arWeapon] || 'std') : kind === 's' ? PROF.equip.s : PROF.equip[kind]; }
 function previewCos() {
   const c = myCos();
+  if (arTab === 'g' && arSel && GEAR_ITEMS[arSel]) { const g = gearProf(); c.g = { ...c.g, [GEAR_ITEMS[arSel].slot]: [arSel, g.lvl[arSel] || 1] }; return c; }
   if (arSel != null) { if (arTab === 'w') c.w[arWeapon] = arSel; else c[arTab] = arSel; }
   return c;
 }
@@ -30,7 +31,8 @@ function refreshPreview() {
   const showGun = arTab === 'w';
   prevAgent.rig.root.visible = !showGun;
   // головные уборы и лицо — крупный план головы, одежда — во весь рост
-  if (arTab === 'h' || arTab === 's') { prevCam.position.set(0, 1.6, 1.75); prevCam.lookAt(0, 1.5, 0); }
+  if (arTab === 'g') { prevCam.position.set(0, 1.2, 2.3); prevCam.lookAt(0, 1.05, 0); }
+  else if (arTab === 'h' || arTab === 's') { prevCam.position.set(0, 1.6, 1.75); prevCam.lookAt(0, 1.5, 0); }
   else { prevCam.position.set(0, 1.05, 3.1); prevCam.lookAt(0, 0.92, 0); }
   if (showGun) {
     prevGun = GUNS[arWeapon].clone(); skinGun(prevGun, arSel ?? arCurrent('w'));
@@ -68,6 +70,8 @@ function renderArsenal() {
     ws.onchange = () => { arWeapon = ws.value; arSel = null; renderArsenal(); };
   }
   const g = $('argrid');
+  $('argear').classList.toggle('hidden', arTab !== 'g'); $('arbuy2').classList.add('hidden');
+  if (arTab === 'g') { renderGearTab(g); refreshPreview(); return; }
   if (arTab === 's') {
     g.innerHTML = SKIN_TONES.map((c, i) => `<div class="arcard ${PROF.equip.s === i ? 'eq' : ''} ${arSel === i ? 'sel' : ''}" data-id="${i}"><span class="tone" style="background:${c}"></span><b>${esc(t('skinTone'))} ${i + 1}</b><small>${esc(t('free'))}</small></div>`).join('');
   } else {
@@ -103,6 +107,63 @@ function arAction(sel) {
     if (arTab === 'w') PROF.equip.w[arWeapon] = sel; else PROF.equip[arTab] = sel;
   }
   arSel = null; saveProfile(); applyLocalLook(); renderArsenal();
+}
+/* --- броня: покупка, улучшение, надеть и снять --- */
+const fmtStat = (k, v) => k === 'absorb' || k === 'mob' ? Math.round(v * 100) + '%' : k === 'weight' ? v.toFixed(1) + ' ' + t('kg') : k === 'cls' ? Math.floor(v) : Math.round(v);
+function gearRows(id, lvl, cmp) {
+  // cmp: [id, lvl] для сравнения (надетое или следующий уровень); для массы и подвижности лучше меньше
+  const it = GEAR_ITEMS[id], rows = [['cls', 'gCls'], ['absorb', 'gAbs'], ['dur', 'gDur'], ['weight', 'gWeight'], ['mob', 'gMob']];
+  return rows.map(([k, lab]) => {
+    const v = gStat(it, k, lvl); let d = '';
+    if (cmp && GEAR_ITEMS[cmp[0]]) {
+      const c = gStat(GEAR_ITEMS[cmp[0]], k, cmp[1]), diff = v - c, better = (k === 'weight' || k === 'mob') ? diff < 0 : diff > 0;
+      if (Math.abs(diff) > 1e-6) d = ` <span class="${better ? 'up' : 'down'}">(${diff > 0 ? '+' : '−'}${fmtStat(k, Math.abs(diff))})</span>`;
+    }
+    return `<div class="row"><span>${esc(t(lab))}</span><span>${fmtStat(k, v)}${d}</span></div>`;
+  }).join('') + `<div class="row"><span>${esc(t('gZones'))}</span><span>${it.zones.map(z => esc(t('z_' + z))).join(', ')}</span></div>`;
+}
+function renderGearTab(grid) {
+  const G_ = gearProf();
+  let html = '';
+  for (const slot of GEAR_SLOTS) {
+    html += `<div class="argroup">${esc(t('gearSlot_' + slot))}</div>`;
+    for (const [id, it] of Object.entries(GEAR_ITEMS).filter(([, it]) => it.slot === slot)) {
+      const lvl = G_.lvl[id] || 0, eq = G_.eq[slot] === id;
+      const tag = eq ? t('equipped') : lvl ? t('gLvl', lvl) : `${COIN} ${it.price}`;
+      html += `<div class="arcard ${eq ? 'eq' : ''} ${lvl ? 'own' : ''} ${arSel === id ? 'sel' : ''}" data-id="${id}"><span class="ic emo">${{ helmet: '⛑️', vest: '🦺', plates: '🛡️', arms: '💪', legs: '🦵', collar: '🧣' }[slot]}</span><b>${esc(gearItemName(id))}</b><span class="lv">${[1, 2, 3, 4, 5].map(n => `<i class="${n <= lvl ? 'on' : ''}"></i>`).join('')}</span><small>${esc(tag)}</small></div>`;
+    }
+  }
+  grid.innerHTML = html;
+  for (const c of grid.querySelectorAll('.arcard')) c.onclick = () => { arSel = c.dataset.id; renderArsenal(); };
+  const id = arSel || G_.eq.vest || Object.keys(GEAR_ITEMS)[0], it = GEAR_ITEMS[id], slot = it.slot, lvl = G_.lvl[id] || 0, eqId = G_.eq[slot];
+  arSel = id;
+  const cfg = myGearCfg();
+  $('arsel').textContent = gearItemName(id) + (lvl ? ' · ' + t('gLvl', lvl) : '');
+  // сравнение: с надетым в этом слоте, а для надетого предмета — со следующим уровнем
+  let body = '';
+  if (eqId === id && lvl < GEAR_MAX_LVL) body = `<b>${esc(t('gNext'))}</b>` + gearRows(id, lvl + 1, [id, lvl]);
+  else body = (eqId && eqId !== id ? `<b>${esc(t('gCompare'))}</b>` : '') + gearRows(id, Math.max(1, lvl), eqId && eqId !== id ? [eqId, G_.lvl[eqId]] : null);
+  body += `<div class="note">${esc(t('gTotal', gearWeight(cfg).toFixed(1), Math.round(gearMobility({ gearCfg: cfg }) * 100)))}</div><div class="note">${esc(t('gHint'))}</div>`;
+  $('argear').innerHTML = body;
+  const btn = $('arbuy'), b2 = $('arbuy2');
+  if (!lvl) { btn.textContent = t('buyFor', `${COIN} ${it.price}`) + (PROF.coins < it.price ? ' — ' + t('notEnough') : ''); btn.disabled = PROF.coins < it.price; btn.onclick = () => gearAction('buy', id); }
+  else if (eqId !== id) { btn.textContent = t('equip'); btn.disabled = false; btn.onclick = () => gearAction('equip', id); }
+  else if (lvl < GEAR_MAX_LVL) { const cost = GEAR_UP_COST[lvl + 1]; btn.textContent = t('gUpgrade', lvl + 1, `${COIN} ${cost}`) + (PROF.coins < cost ? ' — ' + t('notEnough') : ''); btn.disabled = PROF.coins < cost; btn.onclick = () => gearAction('up', id); }
+  else { btn.textContent = t('gMax'); btn.disabled = true; }
+  b2.classList.toggle('hidden', !lvl);
+  if (lvl) {
+    if (eqId === id) { b2.textContent = t('gRemove'); b2.disabled = false; b2.onclick = () => gearAction('off', id); }
+    else if (lvl < GEAR_MAX_LVL) { const cost = GEAR_UP_COST[lvl + 1]; b2.textContent = t('gUpgrade', lvl + 1, `${COIN} ${cost}`); b2.disabled = PROF.coins < cost; b2.onclick = () => gearAction('up', id); }
+    else b2.classList.add('hidden');
+  }
+}
+function gearAction(act, id) {
+  const G_ = gearProf(), it = GEAR_ITEMS[id];
+  if (act === 'buy') { if (PROF.coins < it.price || G_.lvl[id]) return; PROF.coins -= it.price; G_.lvl[id] = 1; G_.eq[it.slot] = id; uiSound('button3'); }
+  else if (act === 'equip') { if (!G_.lvl[id]) return; G_.eq[it.slot] = id; }
+  else if (act === 'off') G_.eq[it.slot] = null;
+  else if (act === 'up') { const L = G_.lvl[id], cost = GEAR_UP_COST[L + 1]; if (!L || L >= GEAR_MAX_LVL || PROF.coins < cost) return; PROF.coins -= cost; G_.lvl[id] = L + 1; uiSound('button3'); }
+  saveProfile(); applyLocalLook(); renderArsenal();
 }
 /* --- ежедневные подарки --- */
 function renderDaily() {

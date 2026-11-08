@@ -18,6 +18,7 @@
   <div id="hit"></div>
   <div id="dmg"></div>
   <div id="dmgarrow"><i id="dmgi"></i></div>
+  <div id="whizarrow"><i id="whizi"></i></div>
   <div id="dnums"></div>
   <div id="scope" class="hidden"></div>
   <div id="flashw"></div>
@@ -28,7 +29,8 @@
   <div id="bl">
     <div id="money">$100000</div>
     <div id="vitals"><span><small data-i18n="health"></small><span id="hp">100</span></span><span><small data-i18n="armor"></small><span id="ar">0</span></span></div>
-    <div id="dash"><span data-i18n="dash"></span>: <b id="dashv"></b></div>
+    <div id="gearhud"></div>
+    <div id="dash"><span data-i18n="dash"></span>: <b id="dashv"></b><i id="dashbar"><i></i></i></div>
   </div>
   <div id="br">
     <div id="nades"></div>
@@ -45,6 +47,8 @@
   <div class="tb" id="tReload" data-i18n-html="tReload"></div>
   <div class="tb" id="tSwap" data-i18n-html="tWeapon"></div>
   <div class="tb" id="tDash" data-i18n-html="tDash"></div>
+  <div class="tb" id="tProne" data-i18n-html="tProne"></div>
+  <div class="tb tsm" id="tMap">🗺</div>
   <div class="tb" id="tNade" data-i18n-html="tNade"></div>
   <div class="tb tsm" id="tNadeSel">↻</div>
   <div class="tb" id="tScope" data-i18n-html="tScope"></div>
@@ -53,6 +57,11 @@
   <div class="tb tsm" id="tChat">💬</div>
   <div class="tb" id="tBuy" data-i18n-html="tShop"></div>
   <div class="tb" id="tStart" data-i18n-html="tStart"></div>
+</div>
+<div id="wmap" class="hidden">
+  <canvas id="wmapc"></canvas>
+  <div class="wmbar"><b data-i18n="mapTitle"></b><small data-i18n="mapHint"></small>
+    <span class="wmbtns"><button id="wmzout">−</button><button id="wmzin">+</button><button id="wmcenter" data-i18n="mapCenter"></button><button id="wmclose" data-i18n="mapClose"></button></span></div>
 </div>
 <div id="rotate" data-i18n="rotate"></div>
 <div id="coinpops"></div>
@@ -69,7 +78,7 @@
       <button class="nb" data-screen="daily"><span data-i18n="mDaily"></span><i class="badge hidden" id="dailybadge">!</i></button>
       <button class="nb" data-open="settings" data-i18n="mSettings"></button>
       <button class="nb" data-screen="help" data-i18n="mHelp"></button>
-      <div class="ver">v7</div>
+      <div class="ver">v8</div>
     </div>
     <div class="panel" id="scr-sp">
       <button class="backbtn" data-i18n="back"></button>
@@ -117,7 +126,9 @@
           <canvas id="prevc" width="300" height="380"></canvas>
           <select id="arweapon" class="hidden"></select>
           <div id="arsel" class="sub"></div>
+          <div id="argear" class="hidden"></div>
           <button class="go" id="arbuy"></button>
+          <button class="ghost hidden" id="arbuy2"></button>
         </div>
       </div>
     </div>
@@ -135,6 +146,7 @@
       <p class="sub" data-i18n="h_rules"></p>
       <p class="sub notouch" data-i18n="h_mouse"></p>
       <p class="sub touchhelp" data-i18n="h_touch"></p>
+      <p class="sub" data-i18n="h_moves"></p>
       <div class="keys notouch" id="helpkeys"></div>
     </div>
   </div>
