@@ -20,7 +20,7 @@ function spawnAgent(a, cell) {
 function hideEmpty(a) { a.alive = false; a.model.visible = false; a.hp = 0; }
 function startMatch() {
   G.score = [0, 0]; G.round = 0; G.over = false; G.lobbyT = -1;
-  for (const a of agents) { a.money = 800; a.kills = a.deaths = 0; a.inv = freshInv(); a.armor = 0; a.gren = freshGren(); a.alive = false; }
+  for (const a of agents) { a.money = 800; a.kills = a.deaths = 0; a.inv = freshInv(); a.armor = 0; a.gren = freshGren(); a.alive = false; if (a.net === 'bot') applyCos(a, randomCos()); }
   $('feed').innerHTML = '';
   clearSmokes();
   startRound();
@@ -84,6 +84,7 @@ function roundEndFx(winner, reason) {
   const txt = winner < 0 ? t('draw') : t(winner ? 'win1' : 'win0');
   showCenter(`<span class="${winner < 0 ? '' : 'c' + winner}">${esc(txt)}</span>`, t(reason), 4.5);
   radio(winner === P.team ? 'win' : 'lose');
+  if (winner === P.team && G.round > 0) earn(25, t('rwRound'));
   if (winner >= 0) announce(winner ? 'say_win1' : 'say_win0');
 }
 function goFx() { showCenter(t('go'), '', 1.2); radio('go'); announce('say_go'); }
@@ -95,6 +96,8 @@ function showOver() {
   $('overs').textContent = t('overStats', G.score[0], G.score[1], P.kills, P.deaths) + (NET.mode === 'client' ? ' · ' + t('overHost') : '');
   $('again').style.display = NET.mode === 'client' ? 'none' : '';
   $('over').classList.remove('hidden'); $('pause').classList.add('hidden');
+  PROF.stats.matches++; if (win) PROF.stats.wins++;
+  earn(30 + (win ? 150 : 0), t(win ? 'rwWin' : 'rwMatch'));
 }
 function newAI(a) {
   const enemyTeam = 1 - a.team, mid = MW / 2;

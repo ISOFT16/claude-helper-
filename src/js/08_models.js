@@ -42,6 +42,7 @@ const MT = {
   glove: std({ color: 0x2c3138, roughness: 0.85 }),
   gloveDark: std({ color: 0x17191c, roughness: 0.75 }),
   skin: std({ color: 0xc79a76, roughness: 0.65 }),
+  hair: std({ color: 0x2a1f17, roughness: 0.9 }),
   boot: std({ color: 0x1e1b18, roughness: 0.7 }),
   sole: std({ color: 0x0b0b0b, roughness: 0.95 }),
 };
@@ -533,11 +534,10 @@ const SOLDIER_PARTS = [0, 1].map(team => {
   hd.add(mesh(new THREE.SphereGeometry(0.109, 18, 12, 0, Math.PI * 2, Math.PI * 0.52, Math.PI * 0.42), MT.black, 0, 0.02, 0));
   hd.add(mesh(new THREE.TorusGeometry(0.104, 0.011, 6, 24), MT.black, 0, 0.045, 0, Math.PI / 2));
   for (const s of [-1, 1]) hd.add(sc(ball(0.03, T.lens, s * 0.04, 0.045, -0.093), 1, 0.8, 0.5));
-  hd.add(sc(mesh(new THREE.SphereGeometry(0.135, 22, 14, 0, Math.PI * 2, 0, Math.PI * 0.5), T.helmet, 0, 0.05, 0.005), 1, 0.92, 1.08));
-  hd.add(mesh(new THREE.TorusGeometry(0.133, 0.011, 6, 28), T.helmet, 0, 0.052, 0.005, Math.PI / 2));
-  for (const s of [-1, 1]) { hd.add(rbox(0.012, 0.025, 0.1, 0.004, MT.black, s * 0.132, 0.08, 0.0)); hd.add(vcyl(0.036, 0.03, MT.black, s * 0.11, -0.0, 0.0).rotateZ(Math.PI / 2)); }
-  hd.add(rbox(0.045, 0.035, 0.025, 0.006, MT.black, 0, 0.14, -0.12));
-  hd.add(rbox(0.05, 0.012, 0.006, 0.003, T.glow, 0, 0.115, -0.142));
+  // волосы под головным убором (видны у кепки, банданы и т. п.)
+  hd.add(sc(mesh(new THREE.SphereGeometry(0.108, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.45), MT.hair, 0, 0.03, 0.004), 1, 0.95, 1.04));
+  // гарнитура (шлем и прочие головные уборы — отдельно, см. cosmetics)
+  for (const s of [-1, 1]) hd.add(vcyl(0.036, 0.03, MT.black, s * 0.11, -0.0, 0.0).rotateZ(Math.PI / 2));
   hd.add(vcyl(0.0035, 0.08, MT.black, 0.1, -0.04, -0.06).rotateX(1.2));
   const boot = new THREE.Group();
   boot.add(rbox(0.105, 0.1, 0.24, 0.035, MT.boot, 0, 0.055, -0.045));
@@ -575,7 +575,7 @@ function makeSoldier(team) {
 function setRigGun(R, id) {
   if (R.gunId === id) return;
   if (R.gun) R.gun.visible = false;
-  if (!R.guns[id]) { const g = GUNS[id].clone(); g.traverse(o => { if (o.isMesh) o.castShadow = SET.charShadows; }); R.gunHolder.add(g); R.guns[id] = { g, p: gunParts(g) }; }
+  if (!R.guns[id]) { const g = GUNS[id].clone(); g.traverse(o => { if (o.isMesh) o.castShadow = SET.charShadows; }); skinGun(g, R.cos && R.cos.w && R.cos.w[id]); R.gunHolder.add(g); R.guns[id] = { g, p: gunParts(g) }; }
   R.gun = R.guns[id].g; R.parts = R.guns[id].p; R.gun.visible = true; R.gunId = id;
   R.gun.position.set(...gunPose(id));
 }
@@ -604,7 +604,7 @@ function animateSoldier(a, dt) {
   let fall = 0, slump = 0;
   if (!a.alive) {
     if (!R.dropped && R.deadT > 0.25) {
-      R.dropped = GUNS[id].clone(); scene.add(R.dropped); R.gun.visible = false;
+      R.dropped = GUNS[id].clone(); skinGun(R.dropped, R.cos && R.cos.w && R.cos.w[id]); R.root.parent.add(R.dropped); R.gun.visible = false;
       const side = rand(0.5, 0.9) * (Math.random() < 0.5 ? 1 : -1);
       R.dropped.position.set(a.pos.x + Math.cos(yaw) * side, 0.035, a.pos.z - Math.sin(yaw) * side);
       R.dropped.rotation.set(0, yaw + rand(-1, 1), Math.PI / 2);

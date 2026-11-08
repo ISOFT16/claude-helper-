@@ -20,7 +20,7 @@ const DEF_SET = {
   sens: 1, scopeSens: 0.45, invertY: false, toggleCrouch: false, keyLayout: 'en', touchSize: 1, touchSens: 1, aimAssist: true,
   xStyle: 'cross', xColor: '#7dffb0', xSize: 8, xThick: 2, xGap: 4, xCenter: false, xDynamic: true, xOutline: true,
   radar: true, killfeed: true, hitmarkers: true, dmgNumbers: true, hudScale: 1,
-  diff: 1, hp: 210, rounds: 8, mpHp: 210, mpRounds: 8, mpAuto: 4, name: '',
+  diff: 1, hp: 210, rounds: 8, mpHp: 210, mpRounds: 8, mpAuto: 4, name: '', srvName: '', mpPublic: true,
   binds: DEF_BINDS,
 };
 const SET = (() => {

@@ -56,6 +56,13 @@ STR.ru = {
   chatPh: 'Сообщение… (Enter — отправить)', fps: 'FPS',
   say_go: 'Вперёд, вперёд!', say_win0: 'Отряд Вектор победил', say_win1: 'Отряд Ржавчина победил', say_zone: 'Узел связи открыт',
   you: 'Вы', playerDef: 'Игрок', nadeShort: 'граната', k_Space: 'Пробел',
+  mArsenal: 'АРСЕНАЛ', mDaily: 'ПОДАРКИ', arOutfit: 'Одежда', arHat: 'Головные уборы', arSkin: 'Скины оружия', arLook: 'Внешность', skinTone: 'Тон кожи',
+  buyFor: 'Купить за {0}', equip: 'Надеть', equipped: 'Надето', notEnough: 'не хватает монет', free: 'Бесплатно', coinsName: 'Лисьи монеты',
+  dailyTitle: 'Ежедневные подарки', dailyNote: 'Заходите каждый день подряд — награда растёт. На 7-й день ещё и случайный предмет из арсенала!',
+  day: 'День {0}', claim: 'ЗАБРАТЬ ПОДАРОК', comeBack: 'Следующий подарок — завтра', gotItem: 'новый предмет: {0}',
+  rwKill: 'убийство', rwRound: 'победа в раунде', rwWin: 'победа в матче', rwMatch: 'матч сыгран', rwDaily: 'подарок',
+  srvTitle: 'Список серверов', srvRefresh: 'Обновить', srvEmpty: 'Открытых серверов пока нет — создайте свой!', srvSearching: 'Ищу серверы…',
+  srvWarmup: 'Разминка', srvMatch: 'Матч, раунд {0}', srvName: 'Название сервера', srvPublic: 'Показывать в списке серверов',
 };
 STR.en = {
   title: 'INTERCEPT', tagline: 'Tactical 3D shooter. Wipe out the enemy squad or hold the uplink in the centre of the map.',
@@ -111,6 +118,13 @@ STR.en = {
   chatPh: 'Message… (Enter to send)', fps: 'FPS',
   say_go: 'Go, go, go!', say_win0: 'Squad Vector wins', say_win1: 'Squad Rust wins', say_zone: 'Uplink is open',
   you: 'You', playerDef: 'Player', nadeShort: 'grenade', k_Space: 'Space',
+  mArsenal: 'ARSENAL', mDaily: 'DAILY GIFTS', arOutfit: 'Outfits', arHat: 'Hats', arSkin: 'Weapon skins', arLook: 'Look', skinTone: 'Skin tone',
+  buyFor: 'Buy for {0}', equip: 'Equip', equipped: 'Equipped', notEnough: 'not enough coins', free: 'Free', coinsName: 'Fox coins',
+  dailyTitle: 'Daily gifts', dailyNote: 'Come back every day in a row and the reward grows. On day 7 you also get a random arsenal item!',
+  day: 'Day {0}', claim: 'CLAIM GIFT', comeBack: 'Next gift tomorrow', gotItem: 'new item: {0}',
+  rwKill: 'kill', rwRound: 'round won', rwWin: 'match won', rwMatch: 'match played', rwDaily: 'gift',
+  srvTitle: 'Server list', srvRefresh: 'Refresh', srvEmpty: 'No open servers yet — create your own!', srvSearching: 'Searching for servers…',
+  srvWarmup: 'Warm-up', srvMatch: 'Match, round {0}', srvName: 'Server name', srvPublic: 'Show in the server list',
 };
 STR.uk = {
   title: 'ПЕРЕХОПЛЕННЯ', tagline: 'Тактичний 3D-шутер. Знищіть ворожий загін або утримайте вузол зв’язку в центрі мапи.',

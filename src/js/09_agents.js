@@ -14,6 +14,7 @@ class Agent {
     this.fireCd = 0; this.reloading = 0; this.spreadAcc = 0; this.punchP = 0; this.punchY = 0; this.switchT = 0;
     this.spot = [0, 0]; this.lastHitBy = null; this.tp = 0; this.net = isPlayer ? 'local' : 'bot';
     this.rig = makeSoldier(team); this.model = this.rig.root; this.ai = {};
+    applyCos(this, isPlayer ? myCos() : randomCos());
   }
   height() { return this.crouch ? 1.2 : 1.8; }
   gun() { return this.inv[this.slot]; }

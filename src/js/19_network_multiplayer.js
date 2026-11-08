@@ -6,7 +6,7 @@ const NET = { mode: 'off', peer: null, conns: [], host: null, events: [], sendT:
 const NET_TIMEOUT = 15000;
 const PEERJS_URL = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
 // префикс с версией протокола: разные версии игры не смогут случайно подключиться друг к другу
-const PEER_PREFIX = 'perehvat-v3-';
+const PEER_PREFIX = 'perehvat-v4-';
 // сервера для пробивания NAT: STUN Google и Cloudflare, TURN PeerJS и OpenRelay (на случай мобильных сетей)
 const ICE = { iceServers: [
   { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302', 'stun:stun.cloudflare.com:3478'] },
@@ -53,13 +53,21 @@ function startGameUI() {
 }
 function defaultName(a, i) { return i === 0 ? (SET.name || t('you')) : NAMES[LANG === 'ru' || LANG === 'uk' ? 0 : 1][i]; }
 function netReset() {
+  if (NET.mode === 'host') dirUnregister();
   if (NET.peer) { try { NET.peer.destroy(); } catch (e) {} }
   NET.mode = 'off'; NET.peer = null; NET.host = null; NET.conns = []; NET.events = []; NET.nades = [];
   G.mode = 'sp';
   P.isPlayer = false; P = agents[0]; P.isPlayer = true;
   agents.forEach((a, i) => { a.net = a === P ? 'local' : 'bot'; a.human = false; a.conn = null; a.name = defaultName(a, i); a.ai = {}; a.netState = null; a.model.visible = true; });
-  vmSleeveMat.map = teamMats[0].fabric.map; vmSleeveMat.needsUpdate = true;
+  applyLocalLook();
   updateRoomBadge();
+}
+function applyAllCos(list) { if (Array.isArray(list)) list.forEach((c, i) => { if (agents[i] && agents[i] !== P && c) applyCos(agents[i], c); }); }
+// внешность своего бойца и оружия в руках — из профиля
+function applyLocalLook() {
+  applyCos(P, myCos());
+  for (const id in vmGuns) skinGun(vmGuns[id].g, PROF.equip.w[id]);
+  vmSleeveMat.map = PROF.equip.o !== 'std' ? outfitMats(PROF.equip.o).fabric.map : teamMats[P.team].fabric.map; vmSleeveMat.needsUpdate = true;
 }
 function netShutdown() { if (NET.mode !== 'off') netReset(); }
 // перевод игрока на другое место (смена команды / балансировка)
@@ -67,12 +75,13 @@ function moveHuman(from, to) {
   if (from === to || to.net !== 'empty') return;
   to.name = from.name; to.money = from.money; to.kills = from.kills; to.deaths = from.deaths;
   to.inv = freshInv(); to.gren = freshGren(); to.armor = 0; to.tp = from.tp + 1;
-  if (from === P) { P.isPlayer = false; P = to; P.isPlayer = true; to.net = 'local'; vmSleeveMat.map = teamMats[P.team].fabric.map; vmSleeveMat.needsUpdate = true; }
+  applyCos(to, from.rig.cos);
+  if (from === P) { P.isPlayer = false; P = to; P.isPlayer = true; to.net = 'local'; applyLocalLook(); }
   else { to.net = 'remote'; to.conn = from.conn; to.netState = null; if (to.conn) to.conn.agent = to; }
   from.net = 'empty'; from.conn = null; from.name = ''; hideEmpty(from);
   if (G.state === 'lobby') { to.money = 16000; spawnAgent(to); } else hideEmpty(to);
-  if (to.conn && to.conn.open) to.conn.send({ t: 'welcome', i: idxOf(to), code: NET.code, names: agents.map(x => x.name) });
-  netEvent({ k: 'nm', n: agents.map(x => x.name) });
+  if (to.conn && to.conn.open) to.conn.send({ t: 'welcome', i: idxOf(to), code: NET.code, names: agents.map(x => x.name), cos: agents.map(x => x.rig.cos) });
+  netEvent({ k: 'nm', n: agents.map(x => x.name) }); netEvent({ k: 'cos', c: agents.map(x => x.rig.cos) });
 }
 function requestTeamSwitch() {
   if (G.mode !== 'mp' || G.state !== 'lobby') return;
@@ -128,10 +137,12 @@ function hostAccept(conn) {
     slot.net = 'remote'; slot.conn = conn; slot.netState = null;
     slot.name = String((conn.metadata && conn.metadata.name) || t('playerDef')).slice(0, 14);
     slot.kills = slot.deaths = 0; slot.inv = freshInv(); slot.gren = freshGren(); slot.armor = 0; slot.tp++;
+    applyCos(slot, conn.metadata && conn.metadata.cos);
     if (G.state === 'lobby') { slot.money = 16000; spawnAgent(slot); }
     else { slot.money = 800; hideEmpty(slot); }
     conn.agent = slot; conn.lastSeen = performance.now(); NET.conns.push(conn);
-    conn.send({ t: 'welcome', i: idxOf(slot), code: NET.code, names: agents.map(a => a.name) });
+    conn.send({ t: 'welcome', i: idxOf(slot), code: NET.code, names: agents.map(a => a.name), cos: agents.map(a => a.rig.cos) });
+    netEvent({ k: 'cos', c: agents.map(a => a.rig.cos) });
     if (G.state !== 'lobby') conn.send({ t: 'msg', k: 'specNext' });
     netEvent({ k: 'nm', n: agents.map(a => a.name) });
     showHint(t('joinedTeam', slot.name, teamName(slot.team)), 3); updateRoomBadge();
@@ -244,7 +255,7 @@ async function joinGame() {
   const timeout = setTimeout(() => { if (NET.mode !== 'client' && NET.peer === peer) setStatus(t('st_timeout')); }, 25000);
   const connect = () => {
     if (NET.peer !== peer || done) return;
-    const conn = peer.connect(PEER_PREFIX + code, { metadata: { name: myName() }, serialization: 'json', reliable: true });
+    const conn = peer.connect(PEER_PREFIX + code, { metadata: { name: myName(), cos: myCos() }, serialization: 'json', reliable: true });
     NET.host = conn;
     conn.on('data', m => { if (m && m.t === 'welcome') { done = true; clearTimeout(timeout); } clientMsg(m); });
     conn.on('close', () => netLost()); conn.on('error', () => netLost());
@@ -274,7 +285,8 @@ function clientMsg(m) {
     P.isPlayer = false; P = agents[m.i]; P.isPlayer = true; P.eye = 1.62; P.tp = -1;
     agents.forEach(a => { a.net = a === P ? 'local' : 'proxy'; a.netState = null; });
     applyNames(m.names);
-    vmSleeveMat.map = teamMats[P.team].fabric.map; vmSleeveMat.needsUpdate = true;
+    applyAllCos(m.cos);
+    applyLocalLook();
     if (first) { $('feed').innerHTML = ''; setStatus(''); G.over = false; startGameUI(); }
     updateRoomBadge();
     showHint(t('youTeam', teamName(P.team)), 4);
@@ -337,6 +349,7 @@ function clientEvent(e) {
     case 'f': {
       const k = agents[e.ki], v = agents[e.vi]; if (!v) break;
       addFeed(k, v, e.w, e.h);
+      if (e.ki === NET.myIdx && v !== P && G.state !== 'lobby') { PROF.stats.kills++; earn(10, t('rwKill')); }
       if (k && k !== v && v.rig) v.rig.fallDir = ((k.pos.x - v.pos.x) * -Math.sin(v.yaw) + (k.pos.z - v.pos.z) * -Math.cos(v.yaw)) > 0 ? 1 : -1;
       break;
     }
@@ -356,6 +369,7 @@ function clientEvent(e) {
     case 'go': goFx(); break;
     case 'zo': zoneOpenFx(); break;
     case 'nm': applyNames(e.n); updateRoomBadge(); break;
+    case 'cos': applyAllCos(e.c); break;
     case 'ms': showCenter(t('matchStart'), '', 2); radio('go'); break;
     case 'bl': showHint(t('backLobby'), 3); break;
     case 'chat': addChat(String(e.n || '?').slice(0, 14), e.tm ? 1 : 0, String(e.m || '').slice(0, 120)); break;
@@ -390,7 +404,7 @@ function clientUpdate(dt) {
     const w = new Worker(URL.createObjectURL(new Blob(['setInterval(() => postMessage(0), 40)'], { type: 'text/javascript' })));
     w.onmessage = () => {
       const tt = performance.now(), dt = Math.min(0.1, (tt - lastBg) / 1000); lastBg = tt;
-      if (NET.mode === 'host' && document.hidden && G.started) { now += dt; if (G.state !== 'over') updateGame(dt); hostTick(dt); }
+      if (NET.mode === 'host' && document.hidden && G.started) { now += dt; if (G.state !== 'over') updateGame(dt); hostTick(dt); if (typeof dirTick === 'function') dirTick(); }
       // в фоне браузер замедляет таймеры PeerJS — сами шлём серверу «я жив», чтобы комната не пропала
       if (NET.peer && document.hidden && tt - lastBeat > 5000) {
         lastBeat = tt;

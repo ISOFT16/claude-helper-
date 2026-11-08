@@ -171,3 +171,31 @@
     .backbtn{margin-bottom:4px}
     .setcard{height:calc(100% - 16px);padding:12px 14px}
   }
+  /* ===== v4: арсенал, подарки, монеты, список серверов ===== */
+  .navcoins{font-size:20px;font-weight:800;color:#ffb35a;margin:-4px 0 4px}
+  .nb{position:relative}
+  .badge{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:#ff4d3d;color:#fff;font-style:normal;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:14px;animation:pulse 1.2s infinite}
+  @keyframes pulse{50%{transform:translateY(-50%) scale(1.18)}}
+  .srvbox{margin-bottom:14px}
+  #srvlist{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow:auto}
+  .srv{display:flex;align-items:center;gap:12px;background:rgba(27,36,56,.7);border:1px solid #2b3550;border-radius:10px;padding:8px 12px}
+  .srv>div{flex:1;display:flex;flex-direction:column} .srv small{color:var(--dim)} .srvn{font-weight:800;color:#7dffb0}
+  .chk{display:flex;align-items:center;gap:8px;cursor:pointer} .chk input{width:18px;height:18px}
+  .arwrap{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
+  .argrid{flex:1;min-width:260px;display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;max-height:430px;overflow:auto;padding:2px}
+  .arcard{background:rgba(27,36,56,.75);border:2px solid #2b3550;border-radius:12px;padding:10px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;text-align:center}
+  .arcard:hover{background:#25314d} .arcard.sel{border-color:#ffb35a} .arcard.eq{border-color:#7dffb0}
+  .arcard b{font-size:13px} .arcard small{color:var(--dim);font-size:12px} .arcard.own small{color:#7dffb0}
+  .arcard .ic{width:52px;height:52px;border-radius:50%;border:2px solid rgba(255,255,255,.15)} .arcard .emo{display:flex;align-items:center;justify-content:center;font-size:30px;background:#141a28}
+  .arcard .tone{width:52px;height:52px;border-radius:50%}
+  .arprev{width:300px;display:flex;flex-direction:column;gap:8px;align-items:stretch}
+  #prevc{width:300px;height:380px;background:radial-gradient(circle at 50% 40%,#2a3550,#0f1420);border-radius:14px}
+  .days{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin:12px 0}
+  .day{position:relative;background:rgba(27,36,56,.75);border:2px solid #2b3550;border-radius:12px;padding:12px 4px;display:flex;flex-direction:column;align-items:center;gap:4px}
+  .day small{color:var(--dim)} .day b{font-size:15px;color:#ffb35a} .day em{font-style:normal;font-size:20px}
+  .day.done{opacity:.55} .day.done i{position:absolute;top:4px;right:6px;color:#7dffb0;font-style:normal}
+  .day.cur{border-color:#ffb35a;box-shadow:0 0 18px rgba(255,179,90,.35)}
+  #coinpops{position:fixed;right:18px;top:120px;z-index:60;display:flex;flex-direction:column;gap:6px;align-items:flex-end;pointer-events:none}
+  .coinpop{background:rgba(20,14,8,.85);border:1px solid #ffb35a;color:#ffd38a;font-weight:800;padding:6px 14px;border-radius:10px;animation:cp 2.6s ease-out forwards}
+  @keyframes cp{0%{opacity:0;transform:translateY(10px)}10%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0;transform:translateY(-14px)}}
+  @media (max-width:820px),(max-height:520px){ .arprev{width:200px} #prevc{width:200px;height:250px} .days{grid-template-columns:repeat(4,1fr)} .argrid{max-height:250px} #srvlist{max-height:140px} }

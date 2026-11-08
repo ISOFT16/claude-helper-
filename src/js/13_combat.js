@@ -28,6 +28,7 @@ function kill(v, k, wid, head) {
   v.alive = false; v.hp = 0; v.deaths++; v.vel.set(0, 0, 0);
   if (v === P) { $('scope').classList.add('hidden'); P.scoped = false; }
   if (k && k !== v) { k.kills++; k.money = Math.min(16000, k.money + (WEAPONS[wid]?.kill ?? 300)); }
+  if (k === P && v !== P && G.state !== 'lobby') { PROF.stats.kills++; earn(10, t('rwKill')); }
   if (v.rig) {
     v.rig.deadT = 0; v.rig.fallDir = 1;
     if (k && k !== v) v.rig.fallDir = ((k.pos.x - v.pos.x) * -Math.sin(v.yaw) + (k.pos.z - v.pos.z) * -Math.cos(v.yaw)) > 0 ? 1 : -1;
