@@ -18,10 +18,9 @@ addEventListener('resize', () => {
   camera.aspect = vmCam.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); vmCam.updateProjectionMatrix();
 });
 
-scene.add(new THREE.HemisphereLight(0xb8c6ff, 0x4a3a2a, 1.0), new THREE.AmbientLight(0x404a66, 0.25));
+const hemi = new THREE.HemisphereLight(0xb8c6ff, 0x4a3a2a, 1.0), amb = new THREE.AmbientLight(0x404a66, 0.25);
+scene.add(hemi, amb);
 const sun = new THREE.DirectionalLight(0xffd9b0, 2.1);
-sun.position.set(MW * CELL / 2 + 30, 60, MH * CELL / 2 - 25);
-sun.target.position.set(MW * CELL / 2, 0, MH * CELL / 2);
 sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
 Object.assign(sun.shadow.camera, { left: -55, right: 55, top: 55, bottom: -55, near: 1, far: 160 });
 sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.035;
@@ -122,89 +121,207 @@ const ductSet = pbrSet(256, 256, (g, w, h) => {
   for (let x = -40; x < w; x += 40) { g.fillStyle = '#e0b030'; g.beginPath(); g.moveTo(x, h - 30); g.lineTo(x + 20, h - 30); g.lineTo(x + 40, h); g.lineTo(x + 20, h); g.fill(); g.fillStyle = '#1a1a1a'; g.beginPath(); g.moveTo(x + 20, h - 30); g.lineTo(x + 40, h - 30); g.lineTo(x + 60, h); g.lineTo(x + 40, h); g.fill(); }
 }, (g, w, h) => { for (let x = 0; x < w; x += 32) { g.fillStyle = '#d0d0d0'; g.fillRect(x, 0, 6, h); } }, (g, w, h) => { g.fillStyle = '#5a5a5a'; g.fillRect(0, 0, w, h); speckle(g, w, h, 4000, 0.3); }, 2);
 
-// небо: градиент заката и звёзды
+// кирпич: кладка со швами и разными оттенками
+const brickSet = pbrSet(512, 512, (g, w, h) => {
+  g.fillStyle = '#7a3f2c'; g.fillRect(0, 0, w, h);
+  for (let y = 0, r = 0; y < h; y += 32, r++) for (let x = (r % 2) * -32; x < w; x += 64) { const k = 0.75 + rnd01() * 0.4; g.fillStyle = `rgb(${130 * k | 0},${62 * k | 0},${44 * k | 0})`; g.fillRect(x + 2, y + 2, 60, 28); }
+  g.fillStyle = 'rgba(200,190,170,.35)'; for (let y = 0; y < h; y += 32) g.fillRect(0, y, w, 3);
+  speckle(g, w, h, 6000, 0.15);
+}, (g, w, h) => { g.fillStyle = '#c0c0c0'; g.fillRect(0, 0, w, h); g.fillStyle = '#404040'; for (let y = 0, r = 0; y < h; y += 32, r++) { g.fillRect(0, y, w, 3); for (let x = (r % 2) * -32; x < w; x += 64) g.fillRect(x, y, 3, 32); } }, null, 3);
+// камень: бутовая кладка
+const stoneSet = pbrSet(512, 512, (g, w, h) => {
+  g.fillStyle = '#6d6a63'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 70; i++) { const k = 0.7 + rnd01() * 0.5; g.fillStyle = `rgb(${120 * k | 0},${116 * k | 0},${106 * k | 0})`; g.beginPath(); g.ellipse(rnd01() * w, rnd01() * h, 24 + rnd01() * 40, 16 + rnd01() * 24, rnd01() * 3, 0, 7); g.fill(); }
+  speckle(g, w, h, 8000, 0.2);
+}, (g, w, h) => { g.fillStyle = '#404040'; g.fillRect(0, 0, w, h); for (let i = 0; i < 70; i++) { g.fillStyle = `rgba(230,230,230,${0.5 + rnd01() * 0.5})`; g.beginPath(); g.ellipse(rnd01() * w, rnd01() * h, 22 + rnd01() * 38, 14 + rnd01() * 22, rnd01() * 3, 0, 7); g.fill(); } }, null, 3);
+// штукатурка: светлая с потёками
+const plasterSet = pbrSet(256, 256, (g, w, h) => {
+  g.fillStyle = '#b9b2a2'; g.fillRect(0, 0, w, h); speckle(g, w, h, 6000, 0.1);
+  for (let i = 0; i < 8; i++) { const x = rnd01() * w; const gg = g.createLinearGradient(0, 0, 0, h); gg.addColorStop(0, 'rgba(60,55,45,.25)'); gg.addColorStop(1, 'rgba(60,55,45,0)'); g.fillStyle = gg; g.fillRect(x, 0, 5 + rnd01() * 12, h); }
+}, (g, w, h) => { for (let i = 0; i < 3000; i++) { g.fillStyle = `rgba(${rnd01() < 0.5 ? '0,0,0' : '255,255,255'},${rnd01() * 0.25})`; g.fillRect(rnd01() * w, rnd01() * h, 2, 2); } }, null, 1.5);
+// асфальт и грунт
+const asphaltSet = pbrSet(512, 512, (g, w, h) => { g.fillStyle = '#2d3036'; g.fillRect(0, 0, w, h); speckle(g, w, h, 16000, 0.18); g.strokeStyle = 'rgba(15,15,18,.7)'; g.lineWidth = 1.5; for (let i = 0; i < 6; i++) { let x = rnd01() * w, y = rnd01() * h; g.beginPath(); g.moveTo(x, y); for (let k = 0; k < 8; k++) { x += (rnd01() - 0.5) * 50; y += (rnd01() - 0.5) * 50; g.lineTo(x, y); } g.stroke(); } },
+  (g, w, h) => { for (let i = 0; i < 9000; i++) { g.fillStyle = `rgba(${rnd01() < 0.5 ? '0,0,0' : '255,255,255'},${rnd01() * 0.3})`; g.fillRect(rnd01() * w, rnd01() * h, 2, 2); } }, null, 1.2);
+const dirtSet = pbrSet(512, 512, (g, w, h) => { g.fillStyle = '#5b4e3c'; g.fillRect(0, 0, w, h); for (let i = 0; i < 60; i++) { g.fillStyle = `rgba(${rnd01() < 0.5 ? '70,60,45' : '110,95,70'},${0.2 + rnd01() * 0.3})`; g.beginPath(); g.ellipse(rnd01() * w, rnd01() * h, 20 + rnd01() * 60, 10 + rnd01() * 30, rnd01() * 3, 0, 7); g.fill(); } speckle(g, w, h, 14000, 0.2); },
+  (g, w, h) => { for (let i = 0; i < 12000; i++) { g.fillStyle = `rgba(${rnd01() < 0.5 ? '0,0,0' : '255,255,255'},${rnd01() * 0.35})`; g.fillRect(rnd01() * w, rnd01() * h, 3, 3); } }, null, 1.5);
+const tileSet = floorSet;
+// бетон без разметки: плиты перекрытий, стены цехов, бункеры
+const concreteSet = pbrSet(512, 512, (g, w, h) => {
+  g.fillStyle = '#7d8086'; g.fillRect(0, 0, w, h); speckle(g, w, h, 14000, 0.12);
+  for (let i = 0; i < 20; i++) { g.fillStyle = `rgba(${rnd01() < 0.5 ? '40,42,48' : '150,152,158'},${rnd01() * 0.14})`; g.beginPath(); g.ellipse(rnd01() * w, rnd01() * h, 30 + rnd01() * 80, 15 + rnd01() * 40, rnd01() * 3, 0, 7); g.fill(); }
+  g.strokeStyle = '#5c5f66'; g.lineWidth = 3; g.strokeRect(2, 2, w - 4, h - 4);
+  g.fillStyle = '#9a9ea6'; for (const [x, y] of [[24, 24], [w - 24, 24], [24, h - 24], [w - 24, h - 24], [w / 2, h / 2]]) { g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill(); }
+}, (g, w, h) => { g.strokeStyle = '#303030'; g.lineWidth = 5; g.strokeRect(2, 2, w - 4, h - 4); for (let i = 0; i < 7000; i++) { g.fillStyle = `rgba(${rnd01() < 0.5 ? '0,0,0' : '255,255,255'},${rnd01() * 0.22})`; g.fillRect(rnd01() * w, rnd01() * h, 2, 2); } }, null, 2.2);
+// листовой металл: гофра с потёртостями (цеха, ангары, заборы)
+const sheetSet = pbrSet(256, 256, (g, w, h) => {
+  g.fillStyle = '#7f8a92'; g.fillRect(0, 0, w, h);
+  for (let x = 0; x < w; x += 16) { const gr = g.createLinearGradient(x, 0, x + 16, 0); gr.addColorStop(0, 'rgba(0,0,0,.25)'); gr.addColorStop(0.5, 'rgba(255,255,255,.12)'); gr.addColorStop(1, 'rgba(0,0,0,.25)'); g.fillStyle = gr; g.fillRect(x, 0, 16, h); }
+  speckle(g, w, h, 4000, 0.15); g.fillStyle = 'rgba(110,70,40,.3)'; for (let i = 0; i < 10; i++) g.fillRect(rnd01() * w, rnd01() * h, 3 + rnd01() * 10, 10 + rnd01() * 40);
+}, (g, w, h) => { for (let x = 0; x < w; x += 16) { const gr = g.createLinearGradient(x, 0, x + 16, 0); gr.addColorStop(0, '#404040'); gr.addColorStop(0.5, '#e0e0e0'); gr.addColorStop(1, '#404040'); g.fillStyle = gr; g.fillRect(x, 0, 16, h); } },
+(g, w, h) => { g.fillStyle = '#6a6a6a'; g.fillRect(0, 0, w, h); speckle(g, w, h, 5000, 0.35); }, 3);
+// материалы мира: тип → PBR-материал и масштаб текстуры (метров на повтор)
+const WMAT = {};
+function worldMat(m) {
+  if (WMAT[m]) return WMAT[m];
+  const T = (set, rep, o = {}) => { const mm = new THREE.MeshStandardMaterial({ map: set.map.clone(), normalMap: set.normalMap.clone(), roughnessMap: set.roughnessMap ? set.roughnessMap.clone() : null, roughness: 1, envMapIntensity: 0.45, ...o }); for (const t of [mm.map, mm.normalMap, mm.roughnessMap]) if (t) { t.repeat.set(1, 1); t.needsUpdate = true; } mm.userData.rep = rep; return mm; };
+  const def = {
+    concrete: () => T(concreteSet, 3.5, { normalScale: new THREE.Vector2(0.6, 0.6) }), panel: () => T(wallSet, 4.5, { normalScale: new THREE.Vector2(0.7, 0.7) }), brick: () => T(brickSet, 2.5), stone: () => T(stoneSet, 3), plaster: () => T(plasterSet, 2.5, { color: 0xf0ece4 }),
+    metal: () => T(sheetSet, 2.5, { metalness: 0.55, envMapIntensity: 0.8 }), roof: () => T(sheetSet, 2.5, { metalness: 0.5, color: 0xb07a5a }), duct: () => T(ductSet, 2, { metalness: 0.7, envMapIntensity: 0.9 }),
+    container: () => T(tallSet, 2.4, { metalness: 0.45, envMapIntensity: 0.6 }), wood: () => T(crateSet, 1.2, { roughness: 0.8, color: 0xc9a27a }), crate: () => T(crateSet, 1.1, { roughness: 0.78 }),
+    asphalt: () => T(asphaltSet, 4), dirt: () => T(dirtSet, 4), tile: () => T(tileSet, 4, { normalScale: new THREE.Vector2(0.6, 0.6) }), sand: () => T(dirtSet, 1.5, { color: 0xd8c9a0 }),
+    car: () => new THREE.MeshStandardMaterial({ color: 0x5a6b7c, metalness: 0.6, roughness: 0.35, envMapIntensity: 1.1 }),
+    snow: () => T(plasterSet, 3, { color: 0xffffff }), grass: () => T(dirtSet, 4, { color: 0x6f8a4a }),
+  };
+  return (WMAT[m] = (def[m] || def.concrete)());
+}
+// грани коробки с UV в мировых метрах (текстура тянется по поверхности без искажений)
+function pushBoxGeo(b, acc, rep) {
+  const { x0, y0, z0, x1, y1, z1 } = b, k = 1 / rep;
+  const F = [
+    [[x1, y0, z1], [x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [1, 0, 0], (p) => [-p[2] * k, p[1] * k]],
+    [[x0, y0, z0], [x0, y0, z1], [x0, y1, z1], [x0, y1, z0], [-1, 0, 0], (p) => [p[2] * k, p[1] * k]],
+    [[x0, y1, z1], [x1, y1, z1], [x1, y1, z0], [x0, y1, z0], [0, 1, 0], (p) => [p[0] * k, -p[2] * k]],
+    [[x0, y0, z0], [x1, y0, z0], [x1, y0, z1], [x0, y0, z1], [0, -1, 0], (p) => [p[0] * k, p[2] * k]],
+    [[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1], [0, 0, 1], (p) => [p[0] * k, p[1] * k]],
+    [[x1, y0, z0], [x0, y0, z0], [x0, y1, z0], [x1, y1, z0], [0, 0, -1], (p) => [-p[0] * k, p[1] * k]],
+  ];
+  for (const [a, b_, c, d, n, uv] of F) {
+    const base = acc.pos.length / 3;
+    for (const p of [a, b_, c, d]) { acc.pos.push(p[0], p[1], p[2]); acc.nrm.push(n[0], n[1], n[2]); const u = uv(p); acc.uv.push(u[0], u[1]); }
+    acc.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+  }
+}
+const WR = { group: new THREE.Group(), glass: null, glassBoxes: [], lights: [] };
+scene.add(WR.group);
+const glassMat = new THREE.MeshStandardMaterial({ color: 0x9fc8e0, transparent: true, opacity: 0.32, roughness: 0.05, metalness: 0.2, envMapIntensity: 1.6, depthWrite: false });
+const carColors = [0x5a6b7c, 0x7a2d2a, 0x2f4a3a, 0xb8b0a0, 0x23262d, 0x6b5a3a];
+// небо (цвета задаёт окружение карты) и звёзды
 const sky = new THREE.Mesh(new THREE.SphereGeometry(250, 32, 16), new THREE.ShaderMaterial({
   side: THREE.BackSide, depthWrite: false, fog: false,
   uniforms: { top: { value: new THREE.Color(0x0b1026) }, mid: { value: new THREE.Color(0x2a2f45) }, low: { value: new THREE.Color(0xc0603a) } },
   vertexShader: 'varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
   fragmentShader: 'uniform vec3 top; uniform vec3 mid; uniform vec3 low; varying vec3 vP; void main(){ float h = vP.y; vec3 c = mix(mid, top, smoothstep(0.05, 0.6, h)); c = mix(c, low, smoothstep(0.18, -0.02, h) * 0.55); gl_FragColor = vec4(c, 1.0); }',
 }));
-sky.position.set(MW * CELL / 2, 0, MH * CELL / 2); sky.renderOrder = -1; scene.add(sky);
-{
+sky.renderOrder = -1; scene.add(sky);
+const stars = (() => {
   const n = 600, pos = new Float32Array(n * 3);
   for (let i = 0; i < n; i++) { const th = Math.random() * Math.PI * 2, y = rand(0.25, 1), r = Math.sqrt(1 - y * y); pos.set([Math.cos(th) * r * 240, y * 240, Math.sin(th) * r * 240], i * 3); }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  const st = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: 1.2, sizeAttenuation: false, fog: false, transparent: true, opacity: 0.8 }));
-  st.position.copy(sky.position); scene.add(st);
-}
-const floor = new THREE.Mesh(new THREE.PlaneGeometry(MW * CELL, MH * CELL), new THREE.MeshStandardMaterial({ ...floorSet, roughness: 1, metalness: 0.05, envMapIntensity: 0.45, normalScale: new THREE.Vector2(0.6, 0.6) }));
-floor.rotation.x = -Math.PI / 2; floor.position.set(MW * CELL / 2, 0, MH * CELL / 2); floor.receiveShadow = true;
-scene.add(floor);
-// земля за пределами локации и городские силуэты вдали — глубина и атмосферная перспектива (уходят в туман)
-{
-  const outer = new THREE.Mesh(new THREE.RingGeometry(Math.hypot(MW, MH) * CELL * 0.5 + 2, 260, 48, 1), new THREE.MeshStandardMaterial({ color: 0x232838, roughness: 1, metalness: 0 }));
-  outer.rotation.x = -Math.PI / 2; outer.position.set(MW * CELL / 2, -0.02, MH * CELL / 2); scene.add(outer);
-  const under = new THREE.Mesh(new THREE.PlaneGeometry(MW * CELL + 40, MH * CELL + 40), new THREE.MeshStandardMaterial({ color: 0x232838, roughness: 1 }));
-  under.rotation.x = -Math.PI / 2; under.position.set(MW * CELL / 2, -0.03, MH * CELL / 2); scene.add(under);
-  const winTex = canvasTex(64, 128, (g, w, h) => { g.fillStyle = '#141824'; g.fillRect(0, 0, w, h); for (let y = 6; y < h; y += 12) for (let x = 5; x < w; x += 12) { g.fillStyle = rnd01() < 0.22 ? `rgba(255,${190 + rnd01() * 50 | 0},120,${0.5 + rnd01() * 0.5})` : 'rgba(40,48,66,.8)'; g.fillRect(x, y, 6, 7); } });
-  const bm = new THREE.MeshStandardMaterial({ color: 0x1a1f2c, roughness: 0.9, emissive: 0xffffff, emissiveMap: winTex, emissiveIntensity: 0.55, map: winTex });
-  const n = 70, sk = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), bm, n), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), ps = new THREE.Vector3();
-  for (let i = 0; i < n; i++) {
-    const a = i / n * Math.PI * 2 + rnd01() * 0.05, r = 95 + rnd01() * 60, hgt = 14 + rnd01() * 46;
-    ps.set(MW * CELL / 2 + Math.cos(a) * r * 1.2, hgt / 2, MH * CELL / 2 + Math.sin(a) * r); sc.set(8 + rnd01() * 14, hgt, 8 + rnd01() * 14); q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), rnd01() * 3);
-    sk.setMatrixAt(i, m4.compose(ps, q, sc));
+  const st = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: 1.2, sizeAttenuation: false, fog: false, transparent: true, opacity: 0.8 })); scene.add(st); return st;
+})();
+// время суток: небо, туман, солнце, рассеянный свет
+const ENV_TIME = {
+  dusk: { sky: [0x0b1026, 0x2a2f45, 0xc0603a], fog: [0x2a2f45, 50, 170], sun: [0xffd9b0, 2.1, [30, 60, -25]], hemi: [0xb8c6ff, 0x4a3a2a, 1.0], amb: 0.25, stars: 0.8, exp: 1 },
+  overcast: { sky: [0x3a4250, 0x6a7280, 0x8a8a88], fog: [0x6a7280, 25, 120], sun: [0xd8dde6, 1.1, [-20, 70, 30]], hemi: [0xc8d0dc, 0x4a4640, 1.35], amb: 0.35, stars: 0, exp: 1 },
+  night: { sky: [0x03050c, 0x0c1222, 0x1e2436], fog: [0x0c1222, 24, 120], sun: [0x9fb4ff, 0.7, [-40, 60, 20]], hemi: [0x5a6a90, 0x221c16, 0.8], amb: 0.28, stars: 1, exp: 1.2 },
+  day: { sky: [0x3f7fd6, 0x9cc4ec, 0xdfe8ef], fog: [0xb8cde0, 60, 230], sun: [0xfff2dc, 3.0, [40, 80, 30]], hemi: [0xcfe2ff, 0x6a5a40, 1.2], amb: 0.3, stars: 0, exp: 0.95 },
+  morning: { sky: [0x6c8fb8, 0xb9c6d2, 0xe8d8c0], fog: [0xc4ccd4, 18, 95], sun: [0xffe6c4, 2.0, [60, 35, -30]], hemi: [0xd8e2ee, 0x5a5048, 1.25], amb: 0.32, stars: 0, exp: 1 },
+};
+let skyline = null, outerGround = null, groundMesh = null, zoneObj = null;
+function buildWorldRender() {
+  // очистка прошлой карты
+  for (const o of [...WR.group.children]) { WR.group.remove(o); o.traverse(c => { if (c.geometry) c.geometry.dispose(); }); }
+  for (const L of WR.lights) { scene.remove(L); L.dispose(); } WR.lights = []; WR.glassBoxes = [];
+  const W = WORLD, env = ENV_TIME[W.env.time] || ENV_TIME.dusk;
+  // геометрия: все коробки одного материала — один меш (статическое объединение = мало вызовов отрисовки)
+  const acc = {};
+  for (const b of W.boxes) {
+    if (b.hidden || b.glass) continue;
+    const key = b.car ? 'car' + (Math.abs(Math.floor(b.x0 * 7 + b.z0 * 13)) % carColors.length) : b.m;
+    const a = acc[key] || (acc[key] = { pos: [], nrm: [], uv: [], idx: [], m: b.m, car: b.car });
+    pushBoxGeo(b, a, worldMat(b.m).userData.rep || 2);
   }
-  scene.add(sk);
-}
-function buildInstanced(ch, h, mat, geo = new THREE.BoxGeometry(CELL, h, CELL), y0 = 0) {
-  const cells = []; for (let z = 0; z < MH; z++) for (let x = 0; x < MW; x++) if (MAP[z][x] === ch) cells.push([x, z]);
-  const m = new THREE.InstancedMesh(geo, mat, cells.length);
-  const mat4 = new THREE.Matrix4();
-  cells.forEach(([x, z], i) => { mat4.makeTranslation(x * CELL + CELL / 2, y0 + h / 2, z * CELL + CELL / 2); m.setMatrixAt(i, mat4); });
-  m.castShadow = m.receiveShadow = true; scene.add(m); return m;
-}
-buildInstanced('#', WALL_H, new THREE.MeshStandardMaterial({ ...wallSet, roughness: 1, envMapIntensity: 0.4, normalScale: new THREE.Vector2(0.8, 0.8) }));
-buildInstanced('b', CRATE_H, new THREE.MeshStandardMaterial({ map: crateSet.map, normalMap: crateSet.normalMap, roughness: 0.78, envMapIntensity: 0.35 }), new RoundedBoxGeometry(CELL - 0.02, CRATE_H, CELL - 0.02, 2, 0.07));
-buildInstanced('B', TALL_H, new THREE.MeshStandardMaterial({ ...tallSet, roughness: 1, metalness: 0.5, envMapIntensity: 0.7 }), new RoundedBoxGeometry(CELL - 0.02, TALL_H, CELL - 0.02, 2, 0.06));
-buildInstanced('u', DUCT_T - DUCT_B, new THREE.MeshStandardMaterial({ ...ductSet, roughness: 1, metalness: 0.7, envMapIntensity: 0.9 }), new RoundedBoxGeometry(CELL, DUCT_T - DUCT_B, CELL - 0.04, 2, 0.05), DUCT_B);
-// карнизы стен и неоновые полосы в цветах команд на сторонах карты
-{
-  const walls = []; for (let z = 0; z < MH; z++) for (let x = 0; x < MW; x++) if (MAP[z][x] === '#') walls.push([x, z]);
-  const cap = new THREE.InstancedMesh(new THREE.BoxGeometry(CELL + 0.12, 0.22, CELL + 0.12), new THREE.MeshStandardMaterial({ color: 0x3a4152, roughness: 0.5, metalness: 0.6, envMapIntensity: 0.6 }), walls.length);
-  const m4 = new THREE.Matrix4();
-  walls.forEach(([x, z], i) => { m4.makeTranslation(x * CELL + 1, WALL_H + 0.05, z * CELL + 1); cap.setMatrixAt(i, m4); });
-  cap.castShadow = cap.receiveShadow = true; scene.add(cap);
-  const strips = [[], []];
-  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  for (const [x, z] of walls) for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-    if (!walk(x + dx, z + dz) || rnd() > 0.22) continue;
-    strips[x < MW / 2 ? 0 : 1].push([x * CELL + 1 + dx * 1.005, z * CELL + 1 + dz * 1.005, dx !== 0]);
+  for (const [key, a] of Object.entries(acc)) {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(a.pos, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(a.nrm, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(a.uv, 2));
+    g.setIndex(a.idx); g.computeBoundingSphere();
+    let mat = worldMat(a.m);
+    if (a.car) { mat = worldMat('car').clone(); mat.color.setHex(carColors[+key.slice(3)]); }
+    const mesh = new THREE.Mesh(g, mat); mesh.castShadow = mesh.receiveShadow = true; mesh.layers.enable(1); WR.group.add(mesh);
   }
-  const sg = new THREE.BoxGeometry(1.5, 0.07, 0.05);
-  strips.forEach((list, t) => {
-    const im = new THREE.InstancedMesh(sg, new THREE.MeshBasicMaterial({ color: t ? 0xff9a50 : 0x5fc0ff }), list.length);
-    list.forEach(([x, z, rot], i) => { m4.makeRotationY(rot ? Math.PI / 2 : 0).setPosition(x, 2.9, z); im.setMatrixAt(i, m4); });
-    scene.add(im);
-  });
+  // стекло — отдельные стёкла (можно разбить)
+  const gl = W.boxes.filter(b => b.glass);
+  if (gl.length) {
+    const im = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), glassMat, gl.length), m4 = new THREE.Matrix4();
+    gl.forEach((b, i) => { b.gi = i; m4.compose(new THREE.Vector3((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, (b.z0 + b.z1) / 2), new THREE.Quaternion(), new THREE.Vector3(b.x1 - b.x0, b.y1 - b.y0, b.z1 - b.z0)); im.setMatrixAt(i, m4); });
+    im.renderOrder = 1; WR.group.add(im); WR.glass = im; WR.glassBoxes = gl;
+  } else WR.glass = null;
+  // деревья (крона) и колёса машин — только вид
+  const treeGeo = new THREE.ConeGeometry(1.6, 4.2, 9), treeMat = new THREE.MeshStandardMaterial({ color: 0x2f4a32, roughness: 0.9 });
+  const trees = W.props.filter(p => p.kind === 'tree');
+  if (trees.length) { const im = new THREE.InstancedMesh(treeGeo, treeMat, trees.length), m4 = new THREE.Matrix4(); trees.forEach((t, i) => im.setMatrixAt(i, m4.compose(new THREE.Vector3(t.x, 2.6 * t.s + 1.4, t.z), new THREE.Quaternion(), new THREE.Vector3(t.s, t.s, t.s)))); im.castShadow = true; WR.group.add(im); WR.trees = im; }
+  const wheels = W.props.filter(p => p.kind === 'wheels');
+  if (wheels.length) {
+    const im = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.34, 0.34, 0.24, 14), new THREE.MeshStandardMaterial({ color: 0x151515, roughness: 0.8 }), wheels.length * 4), m4 = new THREE.Matrix4(), q = new THREE.Quaternion();
+    wheels.forEach((w, i) => { const ax = w.alongX; q.setFromEuler(new THREE.Euler(ax ? Math.PI / 2 : 0, 0, ax ? 0 : Math.PI / 2)); [[-1.4, -0.85], [1.4, -0.85], [-1.4, 0.85], [1.4, 0.85]].forEach(([a, c], k) => im.setMatrixAt(i * 4 + k, m4.compose(new THREE.Vector3(w.x + (ax ? a : c), 0.34, w.z + (ax ? c : a)), q, new THREE.Vector3(1, 1, 1)))); });
+    WR.group.add(im);
+  }
+  // земля
+  if (groundMesh) { scene.remove(groundMesh); groundMesh.geometry.dispose(); groundMesh = null; }
+  if (W.groundPlane) {
+    const gm = worldMat(W.env.ground || 'tile'), g = new THREE.PlaneGeometry(W.W, W.D), rep = gm.userData.rep || 4;
+    const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * W.W / rep, uv.getY(i) * W.D / rep);
+    groundMesh = new THREE.Mesh(g, gm); groundMesh.rotation.x = -Math.PI / 2; groundMesh.position.set(W.W / 2, 0, W.D / 2); groundMesh.receiveShadow = true; groundMesh.layers.enable(1); scene.add(groundMesh);
+  }
+  // окрестности: земля вокруг и силуэты вдали
+  if (outerGround) scene.remove(outerGround);
+  const R0 = Math.hypot(W.W, W.D) * 0.5 + 2;
+  outerGround = new THREE.Mesh(new THREE.RingGeometry(R0 - 6, 300, 48, 1), new THREE.MeshStandardMaterial({ color: env === ENV_TIME.day ? 0x6a6048 : 0x232838, roughness: 1 }));
+  outerGround.rotation.x = -Math.PI / 2; outerGround.position.set(W.W / 2, -0.05, W.D / 2); scene.add(outerGround);
+  if (skyline) { scene.remove(skyline); skyline = null; }
+  {
+    const mountain = W.id === 'village' || W.id === 'base';
+    const winTex = canvasTex(64, 128, (g, w, h) => { g.fillStyle = '#141824'; g.fillRect(0, 0, w, h); for (let y = 6; y < h; y += 12) for (let x = 5; x < w; x += 12) { g.fillStyle = rnd01() < 0.22 ? `rgba(255,${190 + rnd01() * 50 | 0},120,${0.5 + rnd01() * 0.5})` : 'rgba(40,48,66,.8)'; g.fillRect(x, y, 6, 7); } });
+    const bm = mountain ? new THREE.MeshStandardMaterial({ color: W.id === 'village' ? 0x5a6470 : 0x6b6a5a, roughness: 1, flatShading: true }) : new THREE.MeshStandardMaterial({ color: 0x1a1f2c, roughness: 0.9, emissive: 0xffffff, emissiveMap: winTex, emissiveIntensity: env.stars ? 0.55 : 0.08, map: winTex });
+    const n = mountain ? 40 : 70, geo = mountain ? new THREE.ConeGeometry(1, 1, 6) : new THREE.BoxGeometry(1, 1, 1), sk = new THREE.InstancedMesh(geo, bm, n), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), ps = new THREE.Vector3();
+    for (let i = 0; i < n; i++) {
+      const a = i / n * Math.PI * 2 + rnd01() * 0.05, r = R0 + 45 + rnd01() * 70, hgt = mountain ? 40 + rnd01() * 70 : 14 + rnd01() * 46;
+      ps.set(W.W / 2 + Math.cos(a) * r, hgt / 2, W.D / 2 + Math.sin(a) * r); sc.set(mountain ? 40 + rnd01() * 40 : 8 + rnd01() * 14, hgt, mountain ? 40 + rnd01() * 40 : 8 + rnd01() * 14); q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), rnd01() * 3);
+      sk.setMatrixAt(i, m4.compose(ps, q, sc));
+    }
+    scene.add(sk); skyline = sk;
+  }
+  // небо, туман, солнце
+  sky.position.set(W.W / 2, 0, W.D / 2); stars.position.copy(sky.position); stars.material.opacity = env.stars; stars.visible = env.stars > 0;
+  sky.material.uniforms.top.value.setHex(env.sky[0]); sky.material.uniforms.mid.value.setHex(env.sky[1]); sky.material.uniforms.low.value.setHex(env.sky[2]);
+  scene.background = new THREE.Color(env.fog[0]); scene.fog.color.setHex(env.fog[0]); WORLD.fogBase = [env.fog[1], env.fog[2]];
+  sun.color.setHex(env.sun[0]); sun.intensity = env.sun[1]; sun.position.set(W.W / 2 + env.sun[2][0], env.sun[2][1], W.D / 2 + env.sun[2][2]); sun.target.position.set(W.W / 2, 0, W.D / 2);
+  const ext = Math.max(W.W, W.D) * 0.62; Object.assign(sun.shadow.camera, { left: -ext, right: ext, top: ext, bottom: -ext, near: 1, far: 260 }); sun.shadow.camera.updateProjectionMatrix();
+  hemi.color.setHex(env.hemi[0]); hemi.groundColor.setHex(env.hemi[1]); hemi.intensity = env.hemi[2]; amb.intensity = env.amb;
+  WORLD.exposure = env.exp;
+  // локальные источники света карты (не больше 8 — ограничение по производительности)
+  for (const l of W.lights.slice(0, 8)) { const L = new THREE.PointLight(l.color, l.intensity, l.dist); L.position.set(l.x, l.y, l.z); scene.add(L); WR.lights.push(L); }
+  for (const t of [0, 1]) { const s = W.spawns[t][Math.floor(W.spawns[t].length / 2)]; if (!s) continue; const L = new THREE.PointLight(t ? 0xff8a3d : 0x4fb3ff, 20, 12); L.position.set(s[0], (s[2] || 0) + 3, s[1]); scene.add(L); WR.lights.push(L); }
+  // узел связи
+  zoneObj.place();
+  if (typeof applySettings === 'function' && typeof buildPost === 'function') { try { applySettings(); } catch (e) {} }
 }
-
-// узел связи
+// разбить стекло: стекло исчезает, летят осколки
+function breakGlass(b, p) {
+  if (!b || !b.glass || !b.alive) return;
+  b.alive = false;
+  if (WR.glass && b.gi !== undefined) { const m4 = new THREE.Matrix4().makeScale(0, 0, 0); WR.glass.setMatrixAt(b.gi, m4); WR.glass.instanceMatrix.needsUpdate = true; }
+  if (typeof glassFx === 'function') glassFx(b, p);
+  netEvent && NET && NET.mode === 'host' && netEvent({ k: 'gl', i: b.i });
+}
+function restoreGlass() {
+  if (!WR.glass) return; const m4 = new THREE.Matrix4();
+  for (const b of WR.glassBoxes) { if (b.alive) continue; b.alive = true; m4.compose(new THREE.Vector3((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, (b.z0 + b.z1) / 2), new THREE.Quaternion(), new THREE.Vector3(b.x1 - b.x0, b.y1 - b.y0, b.z1 - b.z0)); WR.glass.setMatrixAt(b.gi, m4); }
+  WR.glass.instanceMatrix.needsUpdate = true;
+}
+// узел связи: площадка, луч и кольцо (переставляются при смене карты)
 const zoneMat = new THREE.MeshBasicMaterial({ color: 0xc7a6ff, transparent: true, opacity: 0.18, depthWrite: false });
-const zonePlane = new THREE.Mesh(new THREE.PlaneGeometry(zone.x1 - zone.x0, zone.z1 - zone.z0), zoneMat);
-zonePlane.rotation.x = -Math.PI / 2; zonePlane.position.set(zone.cx, 0.02, zone.cz); scene.add(zonePlane);
-const zoneEdge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(zone.x1 - zone.x0, 0.05, zone.z1 - zone.z0)), new THREE.LineBasicMaterial({ color: 0xc7a6ff }));
-zoneEdge.position.set(zone.cx, 0.05, zone.cz); scene.add(zoneEdge);
+const zonePlane = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), zoneMat); zonePlane.rotation.x = -Math.PI / 2; scene.add(zonePlane);
+const zoneEdge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 0.05, 1)), new THREE.LineBasicMaterial({ color: 0xc7a6ff })); scene.add(zoneEdge);
 const beamMat = new THREE.MeshBasicMaterial({ color: 0xc7a6ff, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
-const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.6, 40, 16, 1, true), beamMat);
-beam.position.set(zone.cx, 20, zone.cz); scene.add(beam);
-const ring = new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.06, 8, 48), new THREE.MeshBasicMaterial({ color: 0xc7a6ff }));
-ring.rotation.x = Math.PI / 2; ring.position.set(zone.cx, 1.5, zone.cz); scene.add(ring);
-const zoneLight = new THREE.PointLight(0xc7a6ff, 30, 16); zoneLight.position.set(zone.cx, 3, zone.cz); scene.add(zoneLight);
-for (const t of [0, 1]) {
-  const c = spawnCells[t][7]; const L = new THREE.PointLight(t ? 0xff8a3d : 0x4fb3ff, 25, 14);
-  L.position.set(c[0] * CELL + 1, 3, c[1] * CELL + 1); scene.add(L);
-}
-
-// статичная геометрия мира — слой 1 (для AO и будущего отсечения невидимого)
-for (const o of scene.children) if ((o.isMesh || o.isInstancedMesh) && o !== sky && !(o.material && o.material.transparent)) o.layers.enable(1);
+const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.6, 40, 16, 1, true), beamMat); scene.add(beam);
+const ring = new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.06, 8, 48), new THREE.MeshBasicMaterial({ color: 0xc7a6ff })); ring.rotation.x = Math.PI / 2; scene.add(ring);
+const zoneLight = new THREE.PointLight(0xc7a6ff, 30, 16); scene.add(zoneLight);
+zoneObj = { place() {
+  const w = zone.x1 - zone.x0, d = zone.z1 - zone.z0, y = zone.y;
+  zonePlane.scale.set(w, d, 1); zonePlane.position.set(zone.cx, y + 0.03, zone.cz);
+  zoneEdge.scale.set(w, 1, d); zoneEdge.position.set(zone.cx, y + 0.05, zone.cz);
+  beam.position.set(zone.cx, y + 20, zone.cz); ring.position.set(zone.cx, y + 1.5, zone.cz); zoneLight.position.set(zone.cx, y + 3, zone.cz);
+} };
+onWorld(buildWorldRender);
 bootMark('06_renderer_scene');

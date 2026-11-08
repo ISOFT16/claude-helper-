@@ -152,19 +152,31 @@ function renderBoard() {
     <tr><th class="c1">${esc(t('team1n'))}</th><th>${t('kills')}</th><th>${t('deaths')}</th><th></th><th></th></tr>${rows(1)}</table>`;
 }
 const radar = $('radar'), rctx = radar.getContext('2d'), RS = 5;
-const radarBg = document.createElement('canvas'); radarBg.width = MW * RS; radarBg.height = MH * RS;
-{
-  const g = radarBg.getContext('2d');
-  for (let z = 0; z < MH; z++) for (let x = 0; x < MW; x++) {
-    const h = heights[z * MW + x];
-    if (h) { g.fillStyle = MAP[z][x] === 'u' ? '#4b5a6e' : h > 3 ? '#56607a' : h > 2 ? '#3d6a7a' : '#7a5a3a'; g.fillRect(x * RS, z * RS, RS, RS); }
+// вид сверху по коробкам мира: от низких к высоким, цвет — по материалу, светлее — выше
+const TOPC = { concrete: [110, 118, 134], brick: [150, 86, 64], plaster: [176, 168, 150], stone: [130, 126, 116], metal: [96, 120, 136], roof: [120, 92, 80], wood: [140, 106, 70], crate: [138, 104, 66],
+  container: [70, 120, 136], duct: [90, 106, 126], car: [160, 70, 70], sand: [190, 170, 120], tile: [90, 96, 110], asphalt: [60, 64, 72], dirt: [104, 90, 66] };
+function drawTopDown(g, s, opts = {}) {
+  const W = WORLD, gr = TOPC[W.env.ground] || [40, 46, 60];
+  g.fillStyle = W.groundPlane ? `rgb(${gr[0] * 0.55 | 0},${gr[1] * 0.55 | 0},${gr[2] * 0.6 | 0})` : '#20242e'; g.fillRect(0, 0, W.W * s, W.D * s);
+  const list = W.boxes.filter(b => !b.hidden && b.alive && b.y1 > -0.5 && !(b.y1 <= 0.01 && b.y1 - b.y0 < 1)).sort((a, b) => a.y1 - b.y1);
+  for (const b of list) {
+    const c = TOPC[b.m] || [120, 120, 130], k = clamp(0.62 + b.y1 * 0.05, 0.55, 1.15);
+    g.fillStyle = b.glass ? 'rgba(160,210,240,.5)' : `rgb(${Math.min(255, c[0] * k) | 0},${Math.min(255, c[1] * k) | 0},${Math.min(255, c[2] * k) | 0})`;
+    g.fillRect(b.x0 * s, b.z0 * s, Math.max(1, (b.x1 - b.x0) * s), Math.max(1, (b.z1 - b.z0) * s));
+    if (opts.edges && b.y1 - b.y0 > 1.5 && (b.x1 - b.x0) * s > 3 && (b.z1 - b.z0) * s > 3) { g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 1; g.strokeRect(b.x0 * s + 0.5, b.z0 * s + 0.5, (b.x1 - b.x0) * s - 1, (b.z1 - b.z0) * s - 1); }
   }
-  g.strokeStyle = '#c7a6ff'; g.lineWidth = 1.5; g.strokeRect(zone.x0 / CELL * RS, zone.z0 / CELL * RS, (zone.x1 - zone.x0) / CELL * RS, (zone.z1 - zone.z0) / CELL * RS);
+  g.strokeStyle = '#c7a6ff'; g.lineWidth = Math.max(1.5, s * 0.3); g.strokeRect(zone.x0 * s, zone.z0 * s, (zone.x1 - zone.x0) * s, (zone.z1 - zone.z0) * s);
 }
+const radarBg = document.createElement('canvas');
+onWorld(() => {
+  const RSM = 2.5; radarBg.width = WORLD.W * RSM; radarBg.height = WORLD.D * RSM;
+  radar.width = 200; radar.height = Math.round(200 * WORLD.D / WORLD.W);
+  drawTopDown(radarBg.getContext('2d'), RSM);
+});
 function drawRadar() {
   rctx.clearRect(0, 0, radar.width, radar.height);
   rctx.drawImage(radarBg, 0, 0, radar.width, radar.height);
-  const sx = radar.width / (MW * CELL), sz = radar.height / (MH * CELL);
+  const sx = radar.width / WORLD.W, sz = radar.height / WORLD.D;
   for (const a of agents) {
     if (!a.alive || !active(a)) continue;
     // «все игроки на радаре»: видны обе команды по всей карте, иначе враги — только замеченные

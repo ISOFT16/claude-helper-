@@ -26,7 +26,7 @@ function dirBecome() {
 }
 function cleanRoom(r) {
   return { code: String(r.code || '').replace(/\D/g, '').slice(0, 8), name: String(r.name || '').slice(0, 24), n: clamp(r.n | 0, 0, 10),
-    st: ['lobby', 'freeze', 'live', 'end', 'over'].includes(r.st) ? r.st : 'lobby', r: clamp(r.r | 0, 0, 99), hp: clamp(r.hp | 0, 0, 999), t: Date.now() };
+    st: ['lobby', 'freeze', 'live', 'end', 'over'].includes(r.st) ? r.st : 'lobby', r: clamp(r.r | 0, 0, 99), hp: clamp(r.hp | 0, 0, 999), map: MAPS[r.map] ? r.map : '', t: Date.now() };
 }
 function dirHandle(c, m) {
   if (!m || typeof m !== 'object') return;
@@ -39,7 +39,7 @@ function dirList() {
   for (const [k, r] of DIR.rooms) if (nowMs - r.t > ROOM_TTL) DIR.rooms.delete(k);
   return [...DIR.rooms.values()].sort((a, b) => b.n - a.n).slice(0, 50);
 }
-function myRoomInfo() { return { t: 'reg', code: NET.code, name: SET.srvName || (P.name + ' — ' + t('mpTitle')), n: humansCount(), st: G.state, r: G.round, hp: G.maxHp }; }
+function myRoomInfo() { return { t: 'reg', code: NET.code, name: SET.srvName || (P.name + ' — ' + t('mpTitle')), n: humansCount(), st: G.state, r: G.round, hp: G.maxHp, map: WORLD.id }; }
 // хост: регистрация комнаты в справочной
 function dirRegister() {
   if (NET.mode !== 'host' || !SET.mpPublic) return;
@@ -84,7 +84,7 @@ function renderServers(list) {
   if (list === null) { el.innerHTML = `<p class="sub">${esc(t('st_nointernet'))}</p>`; return; }
   DIR.list = list;
   if (!list.length) { el.innerHTML = `<p class="sub">${esc(t('srvEmpty'))}</p>`; return; }
-  el.innerHTML = list.map(r => `<div class="srv"><div><b>${esc(r.name || r.code)}</b><small>${esc(r.st === 'lobby' ? t('srvWarmup') : t('srvMatch', r.r))} · ${r.hp} HP</small></div>
+  el.innerHTML = list.map(r => `<div class="srv"><div><b>${esc(r.name || r.code)}</b><small>${esc(r.st === 'lobby' ? t('srvWarmup') : t('srvMatch', r.r))} · ${r.hp} HP${MAPS[r.map] ? ' · ' + esc(mapName(r.map)) : ''}</small></div>
     <span class="srvn">${r.n}/10</span><button data-code="${esc(r.code)}" ${r.n >= 10 ? 'disabled' : ''}>${esc(t('join'))}</button></div>`).join('');
   for (const b of el.querySelectorAll('button[data-code]')) b.onclick = () => { $('mpcode').value = b.dataset.code; joinGame(); };
 }

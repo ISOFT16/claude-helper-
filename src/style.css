@@ -225,3 +225,9 @@
   #argear .up{color:#7dffb0} #argear .down{color:#ff8a8a} #argear .note{color:var(--dim);font-size:11px;margin-top:4px}
   #arbuy2{margin-top:6px;width:100%;padding:8px;border-radius:9px;border:1px solid #33405e;background:#1d2538;color:#fff;font-weight:700}
   #arbuy2:disabled{opacity:.45}
+
+  /* v10: выбор карты */
+  .maps{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;width:100%}
+  .maps button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:8px 10px;border-radius:10px;border:2px solid #2b3550;background:rgba(27,36,56,.75);color:#fff;cursor:pointer}
+  .maps button b{font-size:13px} .maps button small{font-size:11px;color:var(--dim);line-height:1.25}
+  .maps button.sel{border-color:#7dffb0;background:rgba(40,90,70,.45)}

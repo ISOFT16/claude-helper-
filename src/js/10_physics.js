@@ -1,40 +1,48 @@
 /* ================= physics ================= */
+// столкновения бойца (цилиндр радиуса r, высота по позе) с коробками мира, по осям отдельно.
+// Ступени и пороги до STEP — перешагиваем, если над ними хватает места.
 function resolveAxis(a, axis, d) {
   const r = 0.32, H = a.height(), p = a.pos;
-  const x0 = Math.floor((p.x - r) / CELL), x1 = Math.floor((p.x + r) / CELL), z0 = Math.floor((p.z - r) / CELL), z1 = Math.floor((p.z + r) / CELL);
-  for (let cz = z0; cz <= z1; cz++) for (let cx = x0; cx <= x1; cx++) {
-    const h = hAt(cx, cz); if (!solidSpan(cx, cz, p.y, p.y + H)) continue;
-    if (a.onGround && h - p.y <= STEP && h < 90 && bAt(cx, cz) === 0) { p.y = h; continue; }
-    if (axis === 0) p.x = d > 0 ? cx * CELL - r - 1e-4 : (cx + 1) * CELL + r + 1e-4;
-    else p.z = d > 0 ? cz * CELL - r - 1e-4 : (cz + 1) * CELL + r + 1e-4;
+  let blocked = false;
+  eachBox(p.x - r, p.z - r, p.x + r, p.z + r, b => {
+    if (b.pass || b.y1 <= p.y + 0.001 || b.y0 >= p.y + H - 0.001) return;
+    if (a.onGround && b.y1 - p.y <= STEP && !solidRect(p.x, p.z, r, b.y1 + 0.01, b.y1 + H)) { p.y = b.y1; return; }
+    if (axis === 0) p.x = d > 0 ? b.x0 - r - 1e-4 : b.x1 + r + 1e-4;
+    else p.z = d > 0 ? b.z0 - r - 1e-4 : b.z1 + r + 1e-4;
     if (axis === 0) a.vel.x = 0; else a.vel.z = 0;
-    return true;
-  }
-  return false;
+    blocked = true;
+  });
+  return blocked;
 }
 function moveBody(a, dt) {
   const p = a.pos, dx = a.vel.x * dt, dz = a.vel.z * dt;
   let blocked = false;
-  if (dx) { p.x += dx; blocked = resolveAxis(a, 0, dx) || blocked; }
-  if (dz) { p.z += dz; blocked = resolveAxis(a, 1, dz) || blocked; }
-  const prevY = p.y; a.vel.y -= GRAV * dt; p.y += a.vel.y * dt; a.onGround = false;
-  if (p.y <= 0) { p.y = 0; a.vel.y = 0; a.onGround = true; }
-  const r = 0.28, x0 = Math.floor((p.x - r) / CELL), x1 = Math.floor((p.x + r) / CELL), z0 = Math.floor((p.z - r) / CELL), z1 = Math.floor((p.z + r) / CELL);
-  const H = a.height();
-  for (let cz = z0; cz <= z1; cz++) for (let cx = x0; cx <= x1; cx++) {
-    const h = hAt(cx, cz); if (h <= 0 || h > 90) continue;
-    if (p.y < h && prevY >= h - 0.001 && a.vel.y <= 0) { p.y = h; a.vel.y = 0; a.onGround = true; }
-    // удар головой о низ воздуховода при прыжке
-    const b = bAt(cx, cz);
-    if (b > 0 && a.vel.y > 0 && p.y + H > b && prevY + H <= b + 0.001) { p.y = b - H; a.vel.y = 0; }
+  // большие смещения дробим, чтобы не проскочить тонкую стену
+  const n = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dz)) / 0.25));
+  for (let i = 0; i < n; i++) {
+    if (dx) { p.x += dx / n; blocked = resolveAxis(a, 0, dx) || blocked; }
+    if (dz) { p.z += dz / n; blocked = resolveAxis(a, 1, dz) || blocked; }
+  }
+  // страховка: боец никогда не выходит за пределы карты
+  p.x = clamp(p.x, 0.34, WORLD.W - 0.34); p.z = clamp(p.z, 0.34, WORLD.D - 0.34);
+  const wasGround = a.onGround, prevY = p.y, H = a.height();
+  a.vel.y -= GRAV * dt; p.y += a.vel.y * dt; a.onGround = false;
+  const fy = WORLD.groundPlane ? 0 : WORLD.floorY;
+  if (p.y <= fy) { p.y = fy; a.vel.y = 0; a.onGround = true; }
+  const r = 0.28;
+  eachBox(p.x - r, p.z - r, p.x + r, p.z + r, b => {
+    if (b.pass) return;
+    if (a.vel.y <= 0 && p.y < b.y1 && prevY >= b.y1 - 0.001) { p.y = b.y1; a.vel.y = 0; a.onGround = true; }
+    else if (a.vel.y > 0 && p.y + H > b.y0 && prevY + H <= b.y0 + 0.001) { p.y = b.y0 - H; a.vel.y = 0; }
+  });
+  // спуск по ступеням: прилипаем к опоре, если она чуть ниже (без «подпрыгивания» на лестнице)
+  if (!a.onGround && wasGround && a.vel.y <= 0 && a.mstate !== 'dodge') {
+    const f = floorAt(p.x, p.z, prevY + 0.01, 0.25);
+    if (prevY - f <= 0.45 && prevY - f >= 0) { p.y = f; a.vel.y = 0; a.onGround = true; }
   }
   return blocked;
 }
-function freeAt(a, x, z, y = a.pos.y, H = a.height()) {
-  const r = 0.33;
-  for (const [ox, oz] of [[-r, -r], [r, -r], [-r, r], [r, r]]) if (solidSpan(Math.floor((x + ox) / CELL), Math.floor((z + oz) / CELL), y + 0.01, y + H)) return false;
-  return true;
-}
+function freeAt(a, x, z, y = a.pos.y, H = a.height()) { return !solidRect(x, z, 0.33, y + 0.01, y + H); }
 function separate() {
   for (let i = 0; i < agents.length; i++) for (let j = i + 1; j < agents.length; j++) {
     const a = agents[i], b = agents[j]; if (!a.alive || !b.alive || a.net === 'remote' || b.net === 'remote' || a.net === 'proxy' || b.net === 'proxy') continue;

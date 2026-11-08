@@ -41,7 +41,7 @@ function updateGame(dt) {
   updateFx(dt);
 }
 function zoneVisual(dt) {
-  ring.rotation.z += dt * 0.8; ring.position.y = 1.5 + Math.sin(now * 2) * 0.2;
+  ring.rotation.z += dt * 0.8; ring.position.y = zone.y + 1.5 + Math.sin(now * 2) * 0.2;
   if ((G.state === 'live' || G.state === 'end') && G.liveT >= ZONE_OPEN) {
     const n = [0, 0]; for (const a of agents) if (a.alive && inZone(a.pos)) n[a.team]++;
     const col = n[0] && n[1] ? 0xffffff : n[0] ? 0x4fb3ff : n[1] ? 0xff8a3d : 0xc7a6ff;

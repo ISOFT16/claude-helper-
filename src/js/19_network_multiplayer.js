@@ -80,7 +80,7 @@ function moveHuman(from, to) {
   else { to.net = 'remote'; to.conn = from.conn; to.netState = null; if (to.conn) to.conn.agent = to; }
   from.net = 'empty'; from.conn = null; from.name = ''; hideEmpty(from);
   if (G.state === 'lobby') { to.money = START_MONEY; spawnAgent(to); } else hideEmpty(to);
-  if (to.conn && to.conn.open) to.conn.send({ t: 'welcome', i: idxOf(to), code: NET.code, names: agents.map(x => x.name), cos: agents.map(x => x.rig.cos) });
+  if (to.conn && to.conn.open) to.conn.send({ t: 'welcome', i: idxOf(to), code: NET.code, map: WORLD.id, glass: WORLD.boxes.filter(b => b.glass && !b.alive).map(b => b.i), names: agents.map(x => x.name), cos: agents.map(x => x.rig.cos) });
   netEvent({ k: 'nm', n: agents.map(x => x.name) }); netEvent({ k: 'cos', c: agents.map(x => x.rig.cos) });
 }
 function requestTeamSwitch() {
@@ -106,6 +106,7 @@ async function hostGame() {
     peer.on('open', () => {
       NET.mode = 'host'; NET.code = code; G.mode = 'mp';
       G.maxHp = +SET.mpHp; G.winRounds = +SET.mpRounds; G.autoN = +SET.mpAuto;
+      if (WORLD.id !== (SET.mpMap || 'node')) loadWorld(SET.mpMap || 'node');
       P.name = myName();
       for (const a of agents) if (a !== P) { a.net = 'empty'; a.name = ''; }
       setStatus(''); startGameUI(); startLobby(); updateRoomBadge();
@@ -141,7 +142,7 @@ function hostAccept(conn) {
     if (G.state === 'lobby') { slot.money = START_MONEY; spawnAgent(slot); }
     else { slot.money = START_MONEY; hideEmpty(slot); }
     conn.agent = slot; conn.lastSeen = performance.now(); NET.conns.push(conn);
-    conn.send({ t: 'welcome', i: idxOf(slot), code: NET.code, names: agents.map(a => a.name), cos: agents.map(a => a.rig.cos) });
+    conn.send({ t: 'welcome', i: idxOf(slot), code: NET.code, map: WORLD.id, glass: WORLD.boxes.filter(b => b.glass && !b.alive).map(b => b.i), names: agents.map(a => a.name), cos: agents.map(a => a.rig.cos) });
     netEvent({ k: 'cos', c: agents.map(a => a.rig.cos) });
     if (G.state !== 'lobby') conn.send({ t: 'msg', k: 'specNext' });
     netEvent({ k: 'nm', n: agents.map(a => a.name) });
@@ -283,6 +284,9 @@ function clientMsg(m) {
   if (m.t === 'msg') { showHint(t(m.k), 3); return; }
   if (m.t === 'welcome') {
     const first = NET.mode !== 'client';
+    // карта хоста
+    if (MAPS[m.map] && WORLD.id !== m.map) loadWorld(m.map);
+    if (Array.isArray(m.glass)) for (const gi of m.glass.slice(0, 400)) breakGlass(WORLD.boxes[gi]);
     NET.mode = 'client'; G.mode = 'mp'; NET.myIdx = m.i; NET.code = String(m.code || '').slice(0, 8); NET.lastSnap = performance.now();
     P.isPlayer = false; P = agents[m.i]; P.isPlayer = true; P.eye = 1.62; P.tp = -1;
     agents.forEach(a => { a.net = a === P ? 'local' : 'proxy'; a.netState = null; });
@@ -375,6 +379,7 @@ function clientEvent(e) {
     case 'cos': applyAllCos(e.c); break;
     case 'ms': showCenter(t('matchStart'), '', 2); radio('go'); break;
     case 'bl': showHint(t('backLobby'), 3); break;
+    case 'gl': { const bx = WORLD.boxes[e.i | 0]; if (bx) breakGlass(bx); break; }
     case 'chat': addChat(String(e.n || '?').slice(0, 14), e.tm ? 1 : 0, String(e.m || '').slice(0, 120)); break;
   }
 }

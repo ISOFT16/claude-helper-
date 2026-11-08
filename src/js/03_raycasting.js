@@ -11,27 +11,33 @@ function rayBox(ox, oy, oz, dx, dy, dz, x0, y0, z0, x1, y1, z1) {
   if (tmax < tmin || tmin < 0) return false;
   RB.t = tmin; RB.ax = ax; return true;
 }
-const RW = { t: 0, nx: 0, ny: 0, nz: 0, hit: false };
-function rayWorld(ox, oy, oz, dx, dy, dz, maxT) {
-  let best = maxT, nx = 0, ny = 0, nz = 0;
-  if (dy < 0) { const t = -oy / dy; if (t < best) { best = t; ny = 1; } }
+const RW = { t: 0, nx: 0, ny: 0, nz: 0, hit: false, box: null };
+// луч по миру: проход по клеткам сетки (DDA) и проверка коробок в каждой; skip — коробки, которые пропустить
+function rayWorld(ox, oy, oz, dx, dy, dz, maxT, skip) {
+  let best = maxT, nx = 0, ny = 0, nz = 0, hb = null;
+  const fy = WORLD.groundPlane ? 0 : WORLD.floorY;
+  if (dy < 0) { const t = (fy - oy) / dy; if (t >= 0 && t < best) { best = t; ny = 1; } }
+  const W = WORLD, st = ++W.stamp;
   let cx = Math.floor(ox / CELL), cz = Math.floor(oz / CELL);
   const sx = dx > 0 ? 1 : -1, sz = dz > 0 ? 1 : -1;
   const tdx = Math.abs(dx) > 1e-9 ? Math.abs(CELL / dx) : Infinity, tdz = Math.abs(dz) > 1e-9 ? Math.abs(CELL / dz) : Infinity;
   let tmx = Math.abs(dx) > 1e-9 ? (dx > 0 ? (cx + 1) * CELL - ox : ox - cx * CELL) / Math.abs(dx) : Infinity;
   let tmz = Math.abs(dz) > 1e-9 ? (dz > 0 ? (cz + 1) * CELL - oz : oz - cz * CELL) / Math.abs(dz) : Infinity;
-  for (let i = 0; i < 200; i++) {
-    const h = hAt(cx, cz);
-    if (h > 0 && rayBox(ox, oy, oz, dx, dy, dz, cx * CELL, bAt(cx, cz), cz * CELL, cx * CELL + CELL, h, cz * CELL + CELL) && RB.t < best) {
-      best = RB.t; nx = ny = nz = 0;
-      if (RB.ax === 0) nx = -Math.sign(dx); else if (RB.ax === 1) ny = -Math.sign(dy); else nz = -Math.sign(dz);
-      break;
+  for (let i = 0; i < 400; i++) {
+    if (cx < 0 || cz < 0 || cx >= W.gw || cz >= W.gd) { if (i === 0) { /* луч из-за границы */ } break; }
+    for (const b of W.grid[cz * W.gw + cx]) {
+      if (b.st === st || !b.alive || b.pass) continue; b.st = st;
+      if (skip && skip.has(b)) continue;
+      if (rayBox(ox, oy, oz, dx, dy, dz, b.x0, b.y0, b.z0, b.x1, b.y1, b.z1) && RB.t < best) {
+        best = RB.t; hb = b; nx = ny = nz = 0;
+        if (RB.ax === 0) nx = -Math.sign(dx); else if (RB.ax === 1) ny = -Math.sign(dy); else nz = -Math.sign(dz);
+      }
     }
     const tn = Math.min(tmx, tmz);
-    if (tn > best || h === 99) break;
+    if (tn > best) break;
     if (tmx < tmz) { cx += sx; tmx += tdx; } else { cz += sz; tmz += tdz; }
   }
-  RW.t = best; RW.nx = nx; RW.ny = ny; RW.nz = nz; RW.hit = best < maxT; return RW;
+  RW.t = best; RW.nx = nx; RW.ny = ny; RW.nz = nz; RW.hit = best < maxT; RW.box = RW.hit ? hb : null; return RW;
 }
 const RA = { t: 0, head: false };
 function rayAgent(ox, oy, oz, dx, dy, dz, a) {

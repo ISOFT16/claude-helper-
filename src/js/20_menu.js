@@ -43,7 +43,13 @@ function segBtns(id, values, key, fmt) {
     el.appendChild(b);
   }
 }
+const MAP_ICON = { node: '📡', city: '🏚️', factory: '🏭', base: '🪖', village: '🏔️' };
+function mapCards(id, key) {
+  const el = $(id); el.innerHTML = MAP_ORDER.map(m => `<button data-m="${m}" class="${(SET[key] || 'node') === m ? 'sel' : ''}"><b>${MAP_ICON[m] || ''} ${esc(mapName(m))}</b><small>${esc(mapDesc(m))}</small></button>`).join('');
+  for (const b of el.children) b.onclick = () => { SET[key] = b.dataset.m; saveSettings(); mapCards(id, key); };
+}
 function buildOptions() {
+  mapCards('optMap', 'map'); mapCards('optMpMap', 'mpMap');
   segBtns('optDiff', [0, 1, 2], 'diff', v => t('d' + v));
   segBtns('optHp', [100, 150, 210, 250], 'hp', v => v + ' HP');
   segBtns('optRounds', [5, 8, 12, 16], 'rounds', v => String(v));
@@ -59,6 +65,7 @@ function renderHelp() {
 $('play').onclick = () => {
   netReset(); setStatus('');
   G.mode = 'sp'; G.maxHp = +SET.hp; G.winRounds = +SET.rounds; diff = DIFF[SET.diff] || DIFF[1];
+  if (WORLD.id !== (SET.map || 'node')) loadWorld(SET.map || 'node');
   startGameUI(); startMatch();
 };
 $('mphost').onclick = () => hostGame();
@@ -221,8 +228,10 @@ function applySettings() {
   for (const a of agents) if (a.rig) a.rig.lodDirty = true; // тени бойцов выставит LOD с учётом дальности
   scene.environment = SET.reflections ? envTex : null; vmScene.environment = SET.reflections ? envTex : null;
   const dd = [[30, 90, 120], [50, 170, 300], [80, 260, 420]][SET.drawDist] || [50, 170, 300];
-  scene.fog.near = dd[0]; scene.fog.far = dd[1]; camera.far = dd[2]; camera.updateProjectionMatrix();
-  renderer.toneMappingExposure = SET.brightness;
+  // туман: дальность из настроек, но не дальше, чем требует погода карты
+  const fb = WORLD.fogBase || [dd[0], dd[1]];
+  scene.fog.near = Math.min(dd[0], fb[0]); scene.fog.far = Math.min(dd[1], fb[1]); camera.far = dd[2]; camera.updateProjectionMatrix();
+  renderer.toneMappingExposure = SET.brightness * (WORLD.exposure || 1);
   buildPost();
   vmRoot.scale.x = SET.vmSide === 'left' ? -1 : 1;
   applyVolume();

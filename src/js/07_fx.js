@@ -39,6 +39,8 @@ function makeParticles(n, additive) {
   P_.pts = pts; P_.geo = geo; P_.mat = mat; return P_;
 }
 const PSMOKE = makeParticles(700, false), PGLOW = makeParticles(500, true);
+PSMOKE.floor = PGLOW.floor = 0.02;
+onWorld(() => { PSMOKE.floor = PGLOW.floor = (WORLD.groundPlane ? 0 : WORLD.floorY) + 0.02; });
 addEventListener('resize', () => { PSMOKE.mat.uniforms.scale.value = PGLOW.mat.uniforms.scale.value = innerHeight * 0.5; });
 const fxScale = () => SET.effects ? 1 : 0.5; // при низких эффектах частиц вдвое меньше
 // emit: позиция, скорость, размер и рост, время жизни, цвет, прозрачность, гравитация, сопротивление воздуха
@@ -58,7 +60,7 @@ function updateParticles(S, dt) {
     const dr = Math.exp(-S.drag[i] * dt);
     S.vel[k] *= dr; S.vel[k + 1] = S.vel[k + 1] * dr - S.grav[i] * dt; S.vel[k + 2] *= dr;
     S.pos[k] += S.vel[k] * dt; S.pos[k + 1] += S.vel[k + 1] * dt; S.pos[k + 2] += S.vel[k + 2] * dt;
-    if (S.pos[k + 1] < 0.02 && S.grav[i] > 0) { S.pos[k + 1] = 0.02; S.vel[k + 1] *= -0.3; S.vel[k] *= 0.6; S.vel[k + 2] *= 0.6; }
+    if (S.pos[k + 1] < S.floor && S.grav[i] > 0) { S.pos[k + 1] = 0.02; S.vel[k + 1] *= -0.3; S.vel[k] *= 0.6; S.vel[k + 2] *= 0.6; }
     S.size[i] += S.grow[i] * dt;
     const f = S.life[i] / S.max[i]; S.alpha[i] = S.a0[i] * Math.min(1, f * 1.6) * Math.min(1, (1 - f) * 12 + 0.25);
     any = true;
@@ -76,13 +78,24 @@ function sparks(pos, n, blood = false) {
 }
 // материал поверхности по клетке карты: бетон, дерево, металл или земля
 function surfaceAt(p, nx, ny, nz) {
-  if (ny > 0.5 && p.y < 0.05) return 'ground';
-  const c = cellCh(Math.floor((p.x - nx * 0.05) / CELL), Math.floor((p.z - nz * 0.05) / CELL));
-  return c === 'b' ? 'wood' : c === 'B' || c === 'u' ? 'metal' : 'concrete';
+  if (WORLD.groundPlane && ny > 0.5 && p.y < 0.05) return MAT_INFO[WORLD.env.ground]?.fx || 'ground';
+  const m = materialAt(p.x - nx * 0.05, p.y - ny * 0.05, p.z - nz * 0.05);
+  return (MAT_INFO[m] && MAT_INFO[m].fx) || 'concrete';
+}
+// осколки стекла: блестящие частицы и звон
+function glassFx(b, p) {
+  const cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2, cz = (b.z0 + b.z1) / 2, q = fxScale();
+  for (let i = 0; i < 40 * q; i++) {
+    const x = rand(b.x0, b.x1), y = rand(b.y0, b.y1), z = rand(b.z0, b.z1);
+    emit(PGLOW, x, y, z, rand(-1.5, 1.5), rand(-0.5, 1.5), rand(-1.5, 1.5), rand(0.03, 0.06), 0, rand(0.6, 1.2), 0.75, 0.9, 1, 0.8, 9, 0.6);
+  }
+  const d = camera.position.distanceTo(new THREE.Vector3(cx, cy, cz));
+  if (d < 40) { const v = Math.max(0.05, 0.35 * (1 - d / 40)); for (let i = 0; i < 4; i++) setTimeout(() => tone(rand(2600, 5200), 0.12, 'triangle', v), i * 35); }
 }
 // попадание по миру: реакция зависит от материала
 function impactFx(p, nx, ny, nz) {
   const m = surfaceAt(p, nx, ny, nz), q = fxScale();
+  if (m === 'glass') { emit(PGLOW, p.x, p.y, p.z, 0, 0, 0, 0.15, -0.4, 0.1, 0.8, 0.95, 1, 1); return; }
   if (m === 'metal') { sparks(p, 7); emit(PGLOW, p.x, p.y, p.z, 0, 0, 0, 0.22, -0.6, 0.06, 1, 0.85, 0.5, 1); }
   else {
     const col = m === 'wood' ? [0.45, 0.33, 0.2] : m === 'ground' ? [0.38, 0.36, 0.33] : [0.55, 0.56, 0.6];

@@ -2,44 +2,19 @@
 // Полноэкранная карта: масштаб (колёсико, щипок, кнопки), сдвиг перетаскиванием, свои метки.
 // Статичные объекты описаны в WORLD_MARKERS — новые точки интереса и локации добавляются данными.
 // Противники видны по тем же правилам, что и на радаре (настройка «Все игроки на радаре» или замечены союзниками).
-const WORLD_MARKERS = [
-  { kind: 'zone', x: zone.cx, z: zone.cz, label: 'mkZone', color: '#c7a6ff' },
-  ...[0, 1].map(tm => {
-    const c = spawnCells[tm]; const x = c.reduce((s, v) => s + v[0], 0) / c.length * CELL + 1, z = c.reduce((s, v) => s + v[1], 0) / c.length * CELL + 1;
-    return { kind: 'spawn', team: tm, x, z, label: 'mkSpawn' + tm, color: tm ? '#ff8a3d' : '#4fb3ff' };
-  }),
-];
-// группы клеток-лазов (воздуховодов) — по одной метке на группу
-{
-  const seen = new Set();
-  for (let z = 0; z < MH; z++) for (let x = 0; x < MW; x++) if (MAP[z][x] === 'u' && !seen.has(z * MW + x)) {
-    let n = 0, sx = 0, sz = 0; const st = [[x, z]];
-    while (st.length) { const [a, b] = st.pop(); if (seen.has(b * MW + a) || cellCh(a, b) !== 'u') continue; seen.add(b * MW + a); n++; sx += a; sz += b; st.push([a + 1, b], [a - 1, b], [a, b + 1], [a, b - 1]); }
-    WORLD_MARKERS.push({ kind: 'duct', x: sx / n * CELL + 1, z: sz / n * CELL + 1, label: 'mkDuct', color: '#9fb4c8' });
-  }
-}
-const WM = { open: false, zoom: 0, cx: MW * CELL / 2, cz: MH * CELL / 2, pins: [], ptrs: new Map(), moved: 0, pinch: 0 };
+const WORLD_MARKERS = [];
+onWorld(() => {
+  WORLD_MARKERS.length = 0;
+  WORLD_MARKERS.push({ kind: 'zone', x: zone.cx, z: zone.cz, label: 'mkZone', color: '#c7a6ff' });
+  for (const tm of [0, 1]) { const c = WORLD.spawns[tm]; if (!c.length) continue; WORLD_MARKERS.push({ kind: 'spawn', team: tm, x: c.reduce((s, v) => s + v[0], 0) / c.length, z: c.reduce((s, v) => s + v[1], 0) / c.length, label: 'mkSpawn' + tm, color: tm ? '#ff8a3d' : '#4fb3ff' }); }
+  for (const m of WORLD.markers) if (m.kind === 'bld') WORLD_MARKERS.push({ kind: 'bld', x: m.x, z: m.z, label: '', floors: m.floors, color: '#dfe6f5' });
+});
+const WM = { open: false, zoom: 0, cx: WORLD.W / 2, cz: WORLD.D / 2, pins: [], ptrs: new Map(), moved: 0, pinch: 0 };
 const wmCanvas = $('wmapc'), wmCtx = wmCanvas.getContext('2d');
-// фон карты рисуется один раз в отдельный холст (8 пикселей на метр)
+// фон карты рисуется при загрузке локации (8 пикселей на метр)
 const WM_PX = 8, wmBg = document.createElement('canvas');
-wmBg.width = MW * CELL * WM_PX; wmBg.height = MH * CELL * WM_PX;
-{
-  const g = wmBg.getContext('2d'), s = CELL * WM_PX;
-  g.fillStyle = '#1c2230'; g.fillRect(0, 0, wmBg.width, wmBg.height);
-  g.strokeStyle = 'rgba(255,255,255,.04)'; g.lineWidth = 1;
-  for (let x = 0; x <= MW; x++) { g.beginPath(); g.moveTo(x * s, 0); g.lineTo(x * s, wmBg.height); g.stroke(); }
-  for (let z = 0; z <= MH; z++) { g.beginPath(); g.moveTo(0, z * s); g.lineTo(wmBg.width, z * s); g.stroke(); }
-  for (const t of [0, 1]) { g.fillStyle = t ? 'rgba(255,138,61,.13)' : 'rgba(79,179,255,.13)'; for (const [x, z] of spawnCells[t]) g.fillRect(x * s, z * s, s, s); }
-  for (let z = 0; z < MH; z++) for (let x = 0; x < MW; x++) {
-    const c = MAP[z][x];
-    if (c === '#') { g.fillStyle = '#5a6478'; g.fillRect(x * s, z * s, s, s); g.fillStyle = '#6c778d'; g.fillRect(x * s + 2, z * s + 2, s - 4, s - 4); }
-    else if (c === 'b') { g.fillStyle = '#8a6a44'; g.fillRect(x * s + 2, z * s + 2, s - 4, s - 4); g.strokeStyle = '#5a4128'; g.lineWidth = 2; g.beginPath(); g.moveTo(x * s + 4, z * s + 4); g.lineTo(x * s + s - 4, z * s + s - 4); g.moveTo(x * s + s - 4, z * s + 4); g.lineTo(x * s + 4, z * s + s - 4); g.stroke(); }
-    else if (c === 'B') { g.fillStyle = '#3d7486'; g.fillRect(x * s + 1, z * s + 1, s - 2, s - 2); }
-    else if (c === 'u') { g.fillStyle = '#3a4250'; g.fillRect(x * s, z * s, s, s); g.strokeStyle = '#9fb4c8'; g.lineWidth = 1.5; for (let k = -s; k < s; k += 5) { g.beginPath(); g.moveTo(x * s + k, z * s); g.lineTo(x * s + k + s, z * s + s); g.stroke(); } }
-  }
-  g.strokeStyle = '#c7a6ff'; g.lineWidth = 3; g.setLineDash([8, 6]); g.strokeRect(zone.x0 * WM_PX, zone.z0 * WM_PX, (zone.x1 - zone.x0) * WM_PX, (zone.z1 - zone.z0) * WM_PX); g.setLineDash([]);
-}
-function wmFit() { const r = wmCanvas.getBoundingClientRect(); return Math.min(r.width / (MW * CELL), r.height / (MH * CELL)) * 0.92; }
+onWorld(() => { wmBg.width = WORLD.W * WM_PX; wmBg.height = WORLD.D * WM_PX; drawTopDown(wmBg.getContext('2d'), WM_PX, { edges: true }); WM.zoom = 0; });
+function wmFit() { const r = wmCanvas.getBoundingClientRect(); return Math.min(r.width / (WORLD.W), r.height / (WORLD.D)) * 0.92; }
 function toggleWorldMap(force) {
   const open = force ?? !WM.open;
   if (open === WM.open || (open && !G.started)) return;
@@ -47,7 +22,7 @@ function toggleWorldMap(force) {
   if (open) {
     resizeWorldMap(); if (!WM.zoom) WM.zoom = wmFit();
     // при общем масштабе видна вся локация, при крупном — центр на игроке
-    if (WM.zoom <= wmFit() * 1.05) { WM.cx = MW * CELL / 2; WM.cz = MH * CELL / 2; } else { WM.cx = P.pos.x; WM.cz = P.pos.z; }
+    if (WM.zoom <= wmFit() * 1.05) { WM.cx = WORLD.W / 2; WM.cz = WORLD.D / 2; } else { WM.cx = P.pos.x; WM.cz = P.pos.z; }
     if (!TOUCH && document.pointerLockElement) document.exitPointerLock();
     mouseDown = false;
   } else if (!TOUCH && G.started && !G.paused) lock();
@@ -72,15 +47,17 @@ function drawWorldMap() {
   const g = wmCtx, W = wmCanvas.width, H = wmCanvas.height, k = wmCanvas.width / wmCanvas.getBoundingClientRect().width, z = WM.zoom * k;
   g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = '#0d1018'; g.fillRect(0, 0, W, H);
   const [ox, oy] = wmToScreen(0, 0);
-  g.imageSmoothingEnabled = true; g.drawImage(wmBg, ox, oy, MW * CELL * z, MH * CELL * z);
-  g.strokeStyle = '#8a96b0'; g.lineWidth = 2 * k; g.strokeRect(ox, oy, MW * CELL * z, MH * CELL * z); // граница локации
+  g.imageSmoothingEnabled = true; g.drawImage(wmBg, ox, oy, WORLD.W * z, WORLD.D * z);
+  g.strokeStyle = '#8a96b0'; g.lineWidth = 2 * k; g.strokeRect(ox, oy, WORLD.W * z, WORLD.D * z); // граница локации
   const label = (txt, x, y, col) => { g.font = `600 ${12 * k}px system-ui,sans-serif`; g.textAlign = 'center'; g.fillStyle = 'rgba(0,0,0,.6)'; g.fillText(txt, x + k, y + k); g.fillStyle = col; g.fillText(txt, x, y); };
   for (const m of WORLD_MARKERS) {
     const [x, y] = wmToScreen(m.x, m.z);
     g.fillStyle = m.color; g.beginPath();
     if (m.kind === 'zone') { g.arc(x, y, 7 * k, 0, 7); g.fill(); g.strokeStyle = m.color; g.lineWidth = 2 * k; g.beginPath(); g.arc(x, y, (11 + Math.sin(now * 3) * 2) * k, 0, 7); g.stroke(); }
     else if (m.kind === 'spawn') { g.rect(x - 6 * k, y - 6 * k, 12 * k, 12 * k); g.fill(); }
+    else if (m.kind === 'bld') { /* подпись этажности */ }
     else { g.arc(x, y, 4 * k, 0, 7); g.fill(); }
+    if (m.kind === 'bld') { label(m.floors + (LANG === 'ru' || LANG === 'uk' ? ' эт.' : ' fl.'), x, y + 4 * k, 'rgba(240,244,255,.8)'); continue; }
     label(t(m.label), x, y - 13 * k, m.color);
   }
   for (const a of agents) {
@@ -118,7 +95,7 @@ const wmUp = e => {
   const single = WM.ptrs.size === 1; WM.ptrs.delete(e.pointerId);
   if (single && WM.moved < 6 && e.type === 'pointerup') {
     const [x, z] = wmToWorld(e.clientX, e.clientY);
-    if (x < 0 || z < 0 || x > MW * CELL || z > MH * CELL) return;
+    if (x < 0 || z < 0 || x > WORLD.W || z > WORLD.D) return;
     const near = WM.pins.findIndex(p => Math.hypot(p.x - x, p.z - z) * WM.zoom < 16);
     if (near >= 0) WM.pins.splice(near, 1); else { WM.pins.push({ x, z }); if (WM.pins.length > 6) WM.pins.shift(); }
     uiSound('blip1');

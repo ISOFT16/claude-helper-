@@ -20,8 +20,9 @@ function damage(victim, amount, attacker, head, weaponId, fromPos, zone) {
     netEvent({ k: 'hurt', i: idxOf(victim), f: fromPos ? [r2(fromPos.x), r2(fromPos.z)] : null });
   } else if (victim.net === 'bot' && attacker && attacker.alive) {
     const ai = victim.ai; ai.invest = attacker.pos.clone(); ai.investUntil = now + 4;
-    // боты иногда уходят из-под огня рывком в сторону
+    // боты иногда уходят из-под огня рывком в сторону, а при малом здоровье — отходят в укрытие
     if (victim.hp - d > 0 && Math.random() < 0.25 + 0.1 * (SET.diff | 0)) dodge(victim, Math.random() < 0.5 ? -1 : 1, 0);
+    if (victim.hp - d > 0 && victim.hp - d < G.maxHp * 0.35 && !ai.cover && Math.random() < 0.6) { ai.cover = findCover(victim, attacker.pos); if (ai.cover) ai.coverT = now + 4; }
     if (!ai.target) { ai.target = attacker; ai.seen = Math.max(ai.seen, ai.react * 0.5); }
   }
   if (attacker === P && victim !== P) { hitMarker(head, victim.hp <= 0); hitSound(head, helmet, victim.pos); dmgNumber(victim, d, head); }

@@ -101,26 +101,27 @@ function updateDodge(a, dt) {
 // Ищет край в соседней по оси клетке перед бойцом (fx, fz — куда смотрит или движется).
 // Проверяет высоту края, расстояние до грани, место для зависания и место наверху.
 function findLedge(a, fx, fz) {
-  const C = MOVE_CFG.ledge, p = a.pos, pcx = Math.floor(p.x / CELL), pcz = Math.floor(p.z / CELL);
-  let best = null, bestDot = 0.55;
-  for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-    const dot = dx * fx + dz * fz; if (dot < bestDot) continue;
-    const cx = pcx + dx, cz = pcz + dz;
-    if (!C.types.includes(cellCh(cx, cz))) continue;
-    const h = hAt(cx, cz), rel = h - p.y;
-    if (rel < C.reachMin || rel > C.reachMax) continue;
-    const face = dx ? (dx > 0 ? cx * CELL : (cx + 1) * CELL) : (dz > 0 ? cz * CELL : (cz + 1) * CELL);
-    if (Math.abs(face - (dx ? p.x : p.z)) > 0.62) continue;
-    const lo = (dx ? cz : cx) * CELL + 0.36, hi = lo + CELL - 0.72;
-    const lat = clamp(dx ? p.z : p.x, lo, hi);
-    const top = dx ? new THREE.Vector3(face + dx * C.inset, h, lat) : new THREE.Vector3(lat, h, face + dz * C.inset);
-    const hangY = Math.max(0, h - C.hangDrop);
-    const hang = dx ? new THREE.Vector3(face - dx * 0.34, hangY, lat) : new THREE.Vector3(lat, hangY, face - dz * 0.34);
-    // наверху есть где встать хотя бы пригнувшись, а у стены есть где висеть
-    if (!freeAt(a, top.x, top.z, h, POSTURE_H[1]) || !freeAt(a, hang.x, hang.z, hangY, POSTURE_H[0])) continue;
-    best = { h, nx: -dx, nz: -dz, top, hang, from: p.clone(), auto: false }; bestDot = dot;
-  }
-  return best;
+  const C = MOVE_CFG.ledge, p = a.pos;
+  const ground = floorAt(p.x, p.z, p.y + 0.1, 0.25); // опора под бойцом — от неё считается досягаемость
+  const px = p.x + fx * 0.6, pz = p.z + fz * 0.6;
+  let best = null;
+  eachBox(px - 0.06, pz - 0.06, px + 0.06, pz + 0.06, b => {
+    if (b.pass || b.glass || b.noClimb || b.stair) return;
+    const rel = b.y1 - ground; if (rel < C.reachMin || rel > C.reachMax || b.y1 < p.y + 0.3) return;
+    if (!best || b.y1 > best.y1) best = b;
+  });
+  if (!best) return null;
+  const h = best.y1, alongX = Math.abs(fx) >= Math.abs(fz), dir = alongX ? Math.sign(fx) : Math.sign(fz);
+  const face = alongX ? (dir > 0 ? best.x0 : best.x1) : (dir > 0 ? best.z0 : best.z1);
+  if (Math.abs(face - (alongX ? p.x : p.z)) > 0.62) return null;
+  // точка наверху: за кромкой на inset; поперёк — где боец, но внутри коробки
+  const lat = alongX ? clamp(p.z, best.z0 + 0.3, best.z1 - 0.3) : clamp(p.x, best.x0 + 0.3, best.x1 - 0.3);
+  const top = alongX ? new THREE.Vector3(face + dir * C.inset, h, lat) : new THREE.Vector3(lat, h, face + dir * C.inset);
+  const hangY = Math.max(ground, h - C.hangDrop);
+  const hang = alongX ? new THREE.Vector3(face - dir * 0.34, hangY, lat) : new THREE.Vector3(lat, hangY, face - dir * 0.34);
+  if (!freeAt(a, top.x, top.z, h, POSTURE_H[1]) || !freeAt(a, hang.x, hang.z, hangY, POSTURE_H[0])) return null;
+  // наверху должна быть опора (или это стенка — тогда боец перелезет и спрыгнет дальше)
+  return { h, nx: alongX ? -dir : 0, nz: alongX ? 0 : -dir, top, hang, from: p.clone(), auto: false };
 }
 function startLedge(a, L) {
   if (!L || !setMove(a, 'ledgeGrab')) return false;
@@ -154,7 +155,7 @@ function updateLedge(a, dt, input) {
     a.pos.set(L.hang.x + (L.top.x - L.hang.x) * over, L.hang.y + (L.h - L.hang.y) * up, L.hang.z + (L.top.z - L.hang.z) * over);
     if (k >= 1) { a.pos.copy(L.top); setMove(a, 'climbFinish'); if (a === P) landSound(); }
   } else if (a.mstate === 'climbFinish') {
-    a.pos.copy(L.top); a.onGround = true;
+    a.onGround = true;
     if (a.mT >= C.finishTime) {
       a.posture = fitsHeight(a, POSTURE_H[0]) ? 0 : 1;
       setMove(a, 'ground'); a.ledge = null; a.ledgeCd = 0.3;

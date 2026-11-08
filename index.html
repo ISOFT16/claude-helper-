@@ -233,6 +233,12 @@
   #argear .up{color:#7dffb0} #argear .down{color:#ff8a8a} #argear .note{color:var(--dim);font-size:11px;margin-top:4px}
   #arbuy2{margin-top:6px;width:100%;padding:8px;border-radius:9px;border:1px solid #33405e;background:#1d2538;color:#fff;font-weight:700}
   #arbuy2:disabled{opacity:.45}
+
+  /* v10: выбор карты */
+  .maps{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;width:100%}
+  .maps button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:8px 10px;border-radius:10px;border:2px solid #2b3550;background:rgba(27,36,56,.75);color:#fff;cursor:pointer}
+  .maps button b{font-size:13px} .maps button small{font-size:11px;color:var(--dim);line-height:1.25}
+  .maps button.sel{border-color:#7dffb0;background:rgba(40,90,70,.45)}
 </style>
 </head>
 <body>
@@ -322,6 +328,7 @@
       <button class="backbtn" data-i18n="back"></button>
       <h2 data-i18n="spTitle"></h2>
       <p class="sub" data-i18n="spNote"></p>
+      <div class="field"><label data-i18n="mapSel"></label><div class="maps" id="optMap"></div></div>
       <div class="field"><label data-i18n="difficulty"></label><div class="seg" id="optDiff"></div></div>
       <div class="field"><label data-i18n="hp"></label><div class="seg" id="optHp"></div></div>
       <div class="field"><label data-i18n="rounds"></label><div class="seg" id="optRounds"></div></div>
@@ -339,6 +346,7 @@
       <div class="mpcols">
         <div class="mpcol">
           <h3 data-i18n="createTitle"></h3>
+          <div class="field"><label data-i18n="mapSel"></label><div class="maps" id="optMpMap"></div></div>
           <div class="field"><label data-i18n="hp"></label><div class="seg" id="optMpHp"></div></div>
           <div class="field"><label data-i18n="rounds"></label><div class="seg" id="optMpRounds"></div></div>
           <div class="field"><label data-i18n="autostart"></label><select id="optMpAuto"></select></div>
@@ -483,7 +491,7 @@ STR.ru = {
   setTitle: 'Настройки', tGfx: 'Графика', tSnd: 'Звук', tCtl: 'Управление', tCross: 'Прицел', tUi: 'Интерфейс', tLang: 'Язык',
   preset: 'Качество графики', pLow: 'Низкое', pMed: 'Среднее', pHigh: 'Высокое', pUltra: 'Ультра', pCustom: 'Своё',
   renderScale: 'Разрешение рендера', shadows: 'Тени', off: 'Выкл', low: 'Низкие', med: 'Средние', high: 'Высокие', ultra: 'Ультра',
-  charShadows: 'Тени от бойцов', reflections: 'Отражения', autoQuality: 'Авто-качество (держать FPS)', strongShake: 'Сильная тряска камеры', grading: 'Цветокоррекция', bloom: 'Свечение ярких источников', ao: 'Затенение в углах (AO)', drawDist: 'Дальность прорисовки', near: 'Близко', mid: 'Средне', far: 'Далеко',
+  charShadows: 'Тени от бойцов', reflections: 'Отражения', mapSel: 'Карта', autoQuality: 'Авто-качество (держать FPS)', strongShake: 'Сильная тряска камеры', grading: 'Цветокоррекция', bloom: 'Свечение ярких источников', ao: 'Затенение в углах (AO)', drawDist: 'Дальность прорисовки', near: 'Близко', mid: 'Средне', far: 'Далеко',
   effects: 'Эффекты (гильзы, следы пуль)', antialias: 'Сглаживание', restartNote: 'Применится после перезапуска', restartBtn: 'Перезапустить',
   fpsLimit: 'Ограничение FPS', unlimited: 'Без ограничения', showFps: 'Показывать FPS', brightness: 'Яркость', fov: 'Поле зрения (FOV)',
   vmSide: 'Оружие в руке', right: 'Справа', left: 'Слева', bob: 'Покачивание оружия',
@@ -555,7 +563,7 @@ STR.en = {
   setTitle: 'Settings', tGfx: 'Graphics', tSnd: 'Sound', tCtl: 'Controls', tCross: 'Crosshair', tUi: 'Interface', tLang: 'Language',
   preset: 'Graphics quality', pLow: 'Low', pMed: 'Medium', pHigh: 'High', pUltra: 'Ultra', pCustom: 'Custom',
   renderScale: 'Render resolution', shadows: 'Shadows', off: 'Off', low: 'Low', med: 'Medium', high: 'High', ultra: 'Ultra',
-  charShadows: 'Character shadows', reflections: 'Reflections', autoQuality: 'Auto quality (keep FPS)', strongShake: 'Strong camera shake', grading: 'Color grading', bloom: 'Bloom on bright lights', ao: 'Ambient occlusion (AO)', drawDist: 'Draw distance', near: 'Near', mid: 'Medium', far: 'Far',
+  charShadows: 'Character shadows', reflections: 'Reflections', mapSel: 'Map', autoQuality: 'Auto quality (keep FPS)', strongShake: 'Strong camera shake', grading: 'Color grading', bloom: 'Bloom on bright lights', ao: 'Ambient occlusion (AO)', drawDist: 'Draw distance', near: 'Near', mid: 'Medium', far: 'Far',
   effects: 'Effects (casings, bullet holes)', antialias: 'Anti-aliasing', restartNote: 'Applies after restart', restartBtn: 'Restart',
   fpsLimit: 'FPS limit', unlimited: 'Unlimited', showFps: 'Show FPS', brightness: 'Brightness', fov: 'Field of view (FOV)',
   vmSide: 'Weapon hand', right: 'Right', left: 'Left', bob: 'Weapon bob',
@@ -627,7 +635,7 @@ STR.uk = {
   setTitle: 'Налаштування', tGfx: 'Графіка', tSnd: 'Звук', tCtl: 'Керування', tCross: 'Приціл', tUi: 'Інтерфейс', tLang: 'Мова',
   preset: 'Якість графіки', pLow: 'Низька', pMed: 'Середня', pHigh: 'Висока', pUltra: 'Ультра', pCustom: 'Своя',
   renderScale: 'Роздільність рендеру', shadows: 'Тіні', off: 'Вимк', low: 'Низькі', med: 'Середні', high: 'Високі', ultra: 'Ультра',
-  charShadows: 'Тіні бійців', reflections: 'Відблиски', autoQuality: 'Авто-якість (тримати FPS)', strongShake: 'Сильне трясіння камери', grading: 'Кольорокорекція', bloom: 'Світіння яскравих джерел', ao: 'Затінення в кутах (AO)', drawDist: 'Дальність промальовки', near: 'Близько', mid: 'Середньо', far: 'Далеко',
+  charShadows: 'Тіні бійців', reflections: 'Відблиски', mapSel: 'Мапа', autoQuality: 'Авто-якість (тримати FPS)', strongShake: 'Сильне трясіння камери', grading: 'Кольорокорекція', bloom: 'Світіння яскравих джерел', ao: 'Затінення в кутах (AO)', drawDist: 'Дальність промальовки', near: 'Близько', mid: 'Середньо', far: 'Далеко',
   effects: 'Ефекти (гільзи, сліди куль)', antialias: 'Згладжування', restartNote: 'Застосується після перезапуску', restartBtn: 'Перезапустити',
   fpsLimit: 'Обмеження FPS', unlimited: 'Без обмеження', showFps: 'Показувати FPS', brightness: 'Яскравість', fov: 'Поле зору (FOV)',
   vmSide: 'Зброя в руці', right: 'Праворуч', left: 'Ліворуч', bob: 'Похитування зброї',
@@ -681,7 +689,7 @@ STR.de = {
   setTitle: 'Einstellungen', tGfx: 'Grafik', tSnd: 'Ton', tCtl: 'Steuerung', tCross: 'Fadenkreuz', tUi: 'Oberfläche', tLang: 'Sprache',
   preset: 'Grafikqualität', pLow: 'Niedrig', pMed: 'Mittel', pHigh: 'Hoch', pUltra: 'Ultra', pCustom: 'Eigene',
   renderScale: 'Renderauflösung', shadows: 'Schatten', off: 'Aus', low: 'Niedrig', med: 'Mittel', high: 'Hoch', ultra: 'Ultra',
-  charShadows: 'Figurenschatten', reflections: 'Reflexionen', autoQuality: 'Auto-Qualität (FPS halten)', strongShake: 'Starkes Kamerawackeln', grading: 'Farbkorrektur', bloom: 'Bloom bei hellen Lichtern', ao: 'Umgebungsverdeckung (AO)', drawDist: 'Sichtweite', near: 'Nah', mid: 'Mittel', far: 'Weit',
+  charShadows: 'Figurenschatten', reflections: 'Reflexionen', mapSel: 'Karte', autoQuality: 'Auto-Qualität (FPS halten)', strongShake: 'Starkes Kamerawackeln', grading: 'Farbkorrektur', bloom: 'Bloom bei hellen Lichtern', ao: 'Umgebungsverdeckung (AO)', drawDist: 'Sichtweite', near: 'Nah', mid: 'Mittel', far: 'Weit',
   effects: 'Effekte (Hülsen, Einschüsse)', antialias: 'Kantenglättung', restartNote: 'Gilt nach Neustart', restartBtn: 'Neu starten',
   fpsLimit: 'FPS-Limit', unlimited: 'Unbegrenzt', showFps: 'FPS anzeigen', brightness: 'Helligkeit', fov: 'Sichtfeld (FOV)',
   vmSide: 'Waffenhand', right: 'Rechts', left: 'Links', bob: 'Waffenwippen',
@@ -735,7 +743,7 @@ STR.fr = {
   setTitle: 'Paramètres', tGfx: 'Graphismes', tSnd: 'Son', tCtl: 'Commandes', tCross: 'Viseur', tUi: 'Interface', tLang: 'Langue',
   preset: 'Qualité graphique', pLow: 'Basse', pMed: 'Moyenne', pHigh: 'Haute', pUltra: 'Ultra', pCustom: 'Perso',
   renderScale: 'Résolution du rendu', shadows: 'Ombres', off: 'Non', low: 'Basses', med: 'Moyennes', high: 'Hautes', ultra: 'Ultra',
-  charShadows: 'Ombres des personnages', reflections: 'Reflets', autoQuality: 'Qualité auto (maintenir les FPS)', strongShake: 'Fortes secousses de caméra', grading: 'Étalonnage des couleurs', bloom: 'Halo des lumières vives', ao: 'Occlusion ambiante (AO)', drawDist: 'Distance d’affichage', near: 'Proche', mid: 'Moyenne', far: 'Loin',
+  charShadows: 'Ombres des personnages', reflections: 'Reflets', mapSel: 'Carte', autoQuality: 'Qualité auto (maintenir les FPS)', strongShake: 'Fortes secousses de caméra', grading: 'Étalonnage des couleurs', bloom: 'Halo des lumières vives', ao: 'Occlusion ambiante (AO)', drawDist: 'Distance d’affichage', near: 'Proche', mid: 'Moyenne', far: 'Loin',
   effects: 'Effets (douilles, impacts)', antialias: 'Anticrénelage', restartNote: 'Appliqué après redémarrage', restartBtn: 'Redémarrer',
   fpsLimit: 'Limite FPS', unlimited: 'Illimité', showFps: 'Afficher les FPS', brightness: 'Luminosité', fov: 'Champ de vision (FOV)',
   vmSide: 'Main de l’arme', right: 'Droite', left: 'Gauche', bob: 'Balancement de l’arme',
@@ -789,7 +797,7 @@ STR.es = {
   setTitle: 'Ajustes', tGfx: 'Gráficos', tSnd: 'Sonido', tCtl: 'Controles', tCross: 'Mira', tUi: 'Interfaz', tLang: 'Idioma',
   preset: 'Calidad gráfica', pLow: 'Baja', pMed: 'Media', pHigh: 'Alta', pUltra: 'Ultra', pCustom: 'Personal',
   renderScale: 'Resolución de render', shadows: 'Sombras', off: 'No', low: 'Bajas', med: 'Medias', high: 'Altas', ultra: 'Ultra',
-  charShadows: 'Sombras de personajes', reflections: 'Reflejos', autoQuality: 'Calidad automática (mantener FPS)', strongShake: 'Sacudida fuerte de cámara', grading: 'Corrección de color', bloom: 'Resplandor de luces', ao: 'Oclusión ambiental (AO)', drawDist: 'Distancia de dibujado', near: 'Cerca', mid: 'Media', far: 'Lejos',
+  charShadows: 'Sombras de personajes', reflections: 'Reflejos', mapSel: 'Mapa', autoQuality: 'Calidad automática (mantener FPS)', strongShake: 'Sacudida fuerte de cámara', grading: 'Corrección de color', bloom: 'Resplandor de luces', ao: 'Oclusión ambiental (AO)', drawDist: 'Distancia de dibujado', near: 'Cerca', mid: 'Media', far: 'Lejos',
   effects: 'Efectos (casquillos, impactos)', antialias: 'Antialiasing', restartNote: 'Se aplica al reiniciar', restartBtn: 'Reiniciar',
   fpsLimit: 'Límite de FPS', unlimited: 'Sin límite', showFps: 'Mostrar FPS', brightness: 'Brillo', fov: 'Campo de visión (FOV)',
   vmSide: 'Mano del arma', right: 'Derecha', left: 'Izquierda', bob: 'Balanceo del arma',
@@ -843,7 +851,7 @@ STR.pt = {
   setTitle: 'Configurações', tGfx: 'Gráficos', tSnd: 'Som', tCtl: 'Controles', tCross: 'Mira', tUi: 'Interface', tLang: 'Idioma',
   preset: 'Qualidade gráfica', pLow: 'Baixa', pMed: 'Média', pHigh: 'Alta', pUltra: 'Ultra', pCustom: 'Personalizada',
   renderScale: 'Resolução de renderização', shadows: 'Sombras', off: 'Desl.', low: 'Baixas', med: 'Médias', high: 'Altas', ultra: 'Ultra',
-  charShadows: 'Sombras dos personagens', reflections: 'Reflexos', autoQuality: 'Qualidade automática (manter FPS)', strongShake: 'Tremor forte da câmera', grading: 'Correção de cor', bloom: 'Brilho das luzes', ao: 'Oclusão de ambiente (AO)', drawDist: 'Distância de visão', near: 'Perto', mid: 'Média', far: 'Longe',
+  charShadows: 'Sombras dos personagens', reflections: 'Reflexos', mapSel: 'Mapa', autoQuality: 'Qualidade automática (manter FPS)', strongShake: 'Tremor forte da câmera', grading: 'Correção de cor', bloom: 'Brilho das luzes', ao: 'Oclusão de ambiente (AO)', drawDist: 'Distância de visão', near: 'Perto', mid: 'Média', far: 'Longe',
   effects: 'Efeitos (cápsulas, marcas de tiro)', antialias: 'Antisserrilhado', restartNote: 'Aplicado após reiniciar', restartBtn: 'Reiniciar',
   fpsLimit: 'Limite de FPS', unlimited: 'Sem limite', showFps: 'Mostrar FPS', brightness: 'Brilho', fov: 'Campo de visão (FOV)',
   vmSide: 'Mão da arma', right: 'Direita', left: 'Esquerda', bob: 'Balanço da arma',
@@ -897,7 +905,7 @@ STR.pl = {
   setTitle: 'Ustawienia', tGfx: 'Grafika', tSnd: 'Dźwięk', tCtl: 'Sterowanie', tCross: 'Celownik', tUi: 'Interfejs', tLang: 'Język',
   preset: 'Jakość grafiki', pLow: 'Niska', pMed: 'Średnia', pHigh: 'Wysoka', pUltra: 'Ultra', pCustom: 'Własna',
   renderScale: 'Rozdzielczość renderowania', shadows: 'Cienie', off: 'Wył.', low: 'Niskie', med: 'Średnie', high: 'Wysokie', ultra: 'Ultra',
-  charShadows: 'Cienie postaci', reflections: 'Odbicia', autoQuality: 'Auto jakość (utrzymuj FPS)', strongShake: 'Silne wstrząsy kamery', grading: 'Korekcja kolorów', bloom: 'Poświata jasnych świateł', ao: 'Okluzja otoczenia (AO)', drawDist: 'Zasięg widzenia', near: 'Blisko', mid: 'Średnio', far: 'Daleko',
+  charShadows: 'Cienie postaci', reflections: 'Odbicia', mapSel: 'Mapa', autoQuality: 'Auto jakość (utrzymuj FPS)', strongShake: 'Silne wstrząsy kamery', grading: 'Korekcja kolorów', bloom: 'Poświata jasnych świateł', ao: 'Okluzja otoczenia (AO)', drawDist: 'Zasięg widzenia', near: 'Blisko', mid: 'Średnio', far: 'Daleko',
   effects: 'Efekty (łuski, ślady kul)', antialias: 'Wygładzanie', restartNote: 'Zadziała po restarcie', restartBtn: 'Uruchom ponownie',
   fpsLimit: 'Limit FPS', unlimited: 'Bez limitu', showFps: 'Pokaż FPS', brightness: 'Jasność', fov: 'Pole widzenia (FOV)',
   vmSide: 'Ręka z bronią', right: 'Prawa', left: 'Lewa', bob: 'Kołysanie broni',
@@ -951,7 +959,7 @@ STR.tr = {
   setTitle: 'Ayarlar', tGfx: 'Grafik', tSnd: 'Ses', tCtl: 'Kontroller', tCross: 'Nişangâh', tUi: 'Arayüz', tLang: 'Dil',
   preset: 'Grafik kalitesi', pLow: 'Düşük', pMed: 'Orta', pHigh: 'Yüksek', pUltra: 'Ultra', pCustom: 'Özel',
   renderScale: 'Görüntü çözünürlüğü', shadows: 'Gölgeler', off: 'Kapalı', low: 'Düşük', med: 'Orta', high: 'Yüksek', ultra: 'Ultra',
-  charShadows: 'Karakter gölgeleri', reflections: 'Yansımalar', autoQuality: 'Otomatik kalite (FPS\'i koru)', strongShake: 'Güçlü kamera sarsıntısı', grading: 'Renk düzeltme', bloom: 'Parlak ışık parlaması', ao: 'Ortam kapatma (AO)', drawDist: 'Görüş mesafesi', near: 'Yakın', mid: 'Orta', far: 'Uzak',
+  charShadows: 'Karakter gölgeleri', reflections: 'Yansımalar', mapSel: 'Harita', autoQuality: 'Otomatik kalite (FPS\'i koru)', strongShake: 'Güçlü kamera sarsıntısı', grading: 'Renk düzeltme', bloom: 'Parlak ışık parlaması', ao: 'Ortam kapatma (AO)', drawDist: 'Görüş mesafesi', near: 'Yakın', mid: 'Orta', far: 'Uzak',
   effects: 'Efektler (kovanlar, mermi izleri)', antialias: 'Kenar yumuşatma', restartNote: 'Yeniden başlatınca uygulanır', restartBtn: 'Yeniden başlat',
   fpsLimit: 'FPS sınırı', unlimited: 'Sınırsız', showFps: 'FPS göster', brightness: 'Parlaklık', fov: 'Görüş alanı (FOV)',
   vmSide: 'Silah eli', right: 'Sağ', left: 'Sol', bob: 'Silah sallanması',
@@ -1005,7 +1013,7 @@ STR.zh = {
   setTitle: '设置', tGfx: '画面', tSnd: '声音', tCtl: '操作', tCross: '准星', tUi: '界面', tLang: '语言',
   preset: '画质', pLow: '低', pMed: '中', pHigh: '高', pUltra: '极高', pCustom: '自定义',
   renderScale: '渲染分辨率', shadows: '阴影', off: '关', low: '低', med: '中', high: '高', ultra: '极高',
-  charShadows: '角色阴影', reflections: '反射', autoQuality: '自动画质（保持帧率）', strongShake: '强烈镜头抖动', grading: '调色', bloom: '亮光泛光', ao: '环境光遮蔽 (AO)', drawDist: '视距', near: '近', mid: '中', far: '远',
+  charShadows: '角色阴影', reflections: '反射', mapSel: '地图', autoQuality: '自动画质（保持帧率）', strongShake: '强烈镜头抖动', grading: '调色', bloom: '亮光泛光', ao: '环境光遮蔽 (AO)', drawDist: '视距', near: '近', mid: '中', far: '远',
   effects: '特效（弹壳、弹孔）', antialias: '抗锯齿', restartNote: '重启后生效', restartBtn: '重启',
   fpsLimit: '帧率上限', unlimited: '不限制', showFps: '显示帧率', brightness: '亮度', fov: '视野 (FOV)',
   vmSide: '持枪手', right: '右手', left: '左手', bob: '武器晃动',
@@ -1113,61 +1121,207 @@ function saveSettings() { try { localStorage.setItem('perehvat-settings', JSON.s
 function actionOf(code) { for (const a in SET.binds) if (SET.binds[a][0] === code || SET.binds[a][1] === code) return a; return null; }
 function bindDown(a) { const b = SET.binds[a]; return !!(b && (keys[b[0]] || (b[1] && keys[b[1]]))); }
 const keyOf = a => keyLabel(SET.binds[a] && SET.binds[a][0]);
-/* ================= map ================= */
-// Левая верхняя четверть карты; остальное зеркалится. # стена, b ящик (можно запрыгнуть), B высокий ящик,
-// u низкий воздуховод (под ним можно проползти лёжа, наверх — забраться), A/Z спавны, C узел связи
-const QUAD = [
-  '####################',
-  '#.........#.........',
-  '#..b......#...b.....',
-  '#.........#.........',
-  '#...###uuu###..#####',
-  '#....b..........#...',
-  '#.......b.......#...',
-  '###...###...B...#...',
-  '#.....#.........b...',
-  '#.....#....b........',
-  '#AAA..#.......###...',
-  '#AAA........B.....CC',
-  '#AAA..b.......#...CC',
-];
-const CELL = 2, WALL_H = 4.5, CRATE_H = 1.1, TALL_H = 2.2, STEP = 0.4, GRAV = 21;
-// воздуховод: твёрдый от DUCT_B до DUCT_T, снизу свободный проход высотой DUCT_B
-const DUCT_B = 0.72, DUCT_T = 1.45;
-const MAP = (() => {
-  const top = QUAD.map(r => r + r.split('').reverse().map(c => c === 'A' ? 'Z' : c).join(''));
-  return [...top, ...top.slice(0, -1).reverse()];
-})();
-const MW = MAP[0].length, MH = MAP.length;
-const heights = new Float32Array(MW * MH), bottoms = new Float32Array(MW * MH);
-const spawnCells = [[], []], zoneCells = [];
-for (let z = 0; z < MH; z++) for (let x = 0; x < MW; x++) {
-  const c = MAP[z][x];
-  heights[z * MW + x] = c === '#' ? WALL_H : c === 'b' ? CRATE_H : c === 'B' ? TALL_H : c === 'u' ? DUCT_T : 0;
-  if (c === 'u') bottoms[z * MW + x] = DUCT_B;
-  if (c === 'A') spawnCells[0].push([x, z]);
-  if (c === 'Z') spawnCells[1].push([x, z]);
-  if (c === 'C') zoneCells.push([x, z]);
+/* ================= мир: 3D-коллайдеры, пространственная сетка, навигация ================= */
+// Мир — набор твёрдых коробок (AABB) с материалами: стены, перекрытия, ступени, ящики, машины, стекло.
+// Это позволяет строить здания в несколько этажей, лестницы, окна, двери, балконы, подземные переходы.
+// Коробки разложены по пространственной сетке с шагом CELL — запросы и лучи проверяют только ближние.
+// Навигация ботов — граф узлов на сетке 1 м по всем уровням (земля, этажи, крыши), связи по шагу и лестницам.
+const CELL = 2, STEP = 0.42, GRAV = 21, WALL_H = 4.5, CRATE_H = 1.1, TALL_H = 2.2;
+const DUCT_B = 0.72, DUCT_T = 1.45; // воздуховод «Узла»: твёрдый от DUCT_B до DUCT_T
+const WORLD = { id: '', boxes: [], grid: [], gw: 0, gd: 0, W: 0, D: 0, floorY: 0, groundPlane: true, spawns: [[], []], stairZones: [], nav: null, env: {}, markers: [], stamp: 0, mapDef: null };
+let MW = 0, MH = 0; // размер в клетках CELL (для радара и карты)
+const zone = { x0: 0, x1: 0, z0: 0, z1: 0, cx: 0, cz: 0, y: 0 };
+const WORLD_HOOKS = [];
+// подписка систем на загрузку карты: вызывается сразу (если мир есть) и при каждой новой карте
+function onWorld(fn) { WORLD_HOOKS.push(fn); if (WORLD.id) fn(); }
+
+/* --- коробки и сетка --- */
+function addBox(x0, y0, z0, x1, y1, z1, m = 'concrete', f = {}) {
+  const b = { x0: Math.min(x0, x1), y0: Math.min(y0, y1), z0: Math.min(z0, z1), x1: Math.max(x0, x1), y1: Math.max(y0, y1), z1: Math.max(z0, z1), m, alive: true, st: 0, i: WORLD.boxes.length, ...f };
+  WORLD.boxes.push(b); return b;
 }
-const hAt = (cx, cz) => (cx < 0 || cz < 0 || cx >= MW || cz >= MH) ? 99 : heights[cz * MW + cx];
-const bAt = (cx, cz) => (cx < 0 || cz < 0 || cx >= MW || cz >= MH) ? 0 : bottoms[cz * MW + cx];
-const cellCh = (cx, cz) => (cx < 0 || cz < 0 || cx >= MW || cz >= MH) ? '#' : MAP[cz][cx];
-// твёрдо ли в клетке на отрезке высот [y0, y1]
-const solidSpan = (cx, cz, y0, y1) => { const h = hAt(cx, cz); if (h <= 0 || y0 >= h - 0.001) return false; const b = bAt(cx, cz); return !(b > 0 && y1 <= b + 0.001); };
-// высота пола для падающих предметов: под воздуховодом — земля
-const floorAt = (cx, cz, y) => { const h = hAt(cx, cz); if (h >= 90) return 0; const b = bAt(cx, cz); return b > 0 && y < b ? 0 : h; };
+function indexBoxes() {
+  const W = WORLD; W.gw = Math.ceil(W.W / CELL); W.gd = Math.ceil(W.D / CELL); MW = W.gw; MH = W.gd;
+  W.grid = Array.from({ length: W.gw * W.gd }, () => []);
+  for (const b of W.boxes) {
+    if (b.visual) continue; // только для вида, без столкновений
+    const cx0 = clamp(Math.floor(b.x0 / CELL), 0, W.gw - 1), cx1 = clamp(Math.floor((b.x1 - 1e-4) / CELL), 0, W.gw - 1);
+    const cz0 = clamp(Math.floor(b.z0 / CELL), 0, W.gd - 1), cz1 = clamp(Math.floor((b.z1 - 1e-4) / CELL), 0, W.gd - 1);
+    for (let z = cz0; z <= cz1; z++) for (let x = cx0; x <= cx1; x++) W.grid[z * W.gw + x].push(b);
+  }
+}
+const inWorld = (x, z) => x >= 0 && z >= 0 && x < WORLD.W && z < WORLD.D;
+// обход коробок, задевающих прямоугольник [x0,x1]×[z0,z1] (каждая — один раз)
+function eachBox(x0, z0, x1, z1, fn) {
+  const W = WORLD, st = ++W.stamp;
+  const cx0 = Math.max(0, Math.floor(x0 / CELL)), cx1 = Math.min(W.gw - 1, Math.floor(x1 / CELL));
+  const cz0 = Math.max(0, Math.floor(z0 / CELL)), cz1 = Math.min(W.gd - 1, Math.floor(z1 / CELL));
+  for (let z = cz0; z <= cz1; z++) for (let x = cx0; x <= cx1; x++) for (const b of W.grid[z * W.gw + x]) {
+    if (b.st === st || !b.alive) continue; b.st = st;
+    if (b.x1 <= x0 || b.x0 >= x1 || b.z1 <= z0 || b.z0 >= z1) continue;
+    if (fn(b) === true) return true;
+  }
+  return false;
+}
+// твёрдо ли в квадрате вокруг точки (x,z) радиуса r на высотах (y0, y1)
+function solidRect(x, z, r, y0, y1) {
+  if (!inWorld(x - r, z - r) || !inWorld(x + r, z + r)) return true;
+  return eachBox(x - r, z - r, x + r, z + r, b => b.y1 > y0 && b.y0 < y1 && !b.pass);
+}
+const solidPt = (x, z, y0, y1) => solidRect(x, z, 0.001, y0, y1);
+// совместимость со старым кодом: проверка клетки CELL
+function solidSpan(cx, cz, y0, y1) { return solidRect(cx * CELL + CELL / 2, cz * CELL + CELL / 2, CELL / 2 - 0.001, y0, y1); }
+// высота опоры под точкой: верх ближайшей коробки ниже y (или пол мира)
+function floorAt(x, z, y = 99, r = 0.001) {
+  let best = WORLD.groundPlane ? 0 : WORLD.floorY;
+  if (!WORLD.groundPlane) best = WORLD.floorY;
+  eachBox(x - r, z - r, x + r, z + r, b => { if (!b.pass && b.y1 <= y + 0.05 && b.y1 > best) best = b.y1; });
+  return best;
+}
+// материал в точке (для эффектов попаданий и шагов)
+function materialAt(x, y, z) {
+  let m = null;
+  eachBox(x - 0.03, z - 0.03, x + 0.03, z + 0.03, b => { if (y >= b.y0 - 0.03 && y <= b.y1 + 0.03) { m = b.m; return true; } });
+  return m || WORLD.env.ground || 'asphalt';
+}
+const MAT_INFO = {
+  concrete: { pen: 0.1, fx: 'concrete', step: 'hard' }, plaster: { pen: 0.45, fx: 'concrete', step: 'hard' }, brick: { pen: 0.15, fx: 'concrete', step: 'hard' },
+  stone: { pen: 0.05, fx: 'concrete', step: 'hard' }, metal: { pen: 0.25, fx: 'metal', step: 'metal' }, roof: { pen: 0.35, fx: 'metal', step: 'metal' },
+  wood: { pen: 0.6, fx: 'wood', step: 'wood' }, glass: { pen: 0.95, fx: 'glass', step: 'hard' }, asphalt: { pen: 0, fx: 'ground', step: 'hard' },
+  dirt: { pen: 0, fx: 'ground', step: 'soft' }, grass: { pen: 0, fx: 'ground', step: 'soft' }, tile: { pen: 0.1, fx: 'concrete', step: 'hard' },
+  duct: { pen: 0.4, fx: 'metal', step: 'metal' }, car: { pen: 0.3, fx: 'metal', step: 'metal' }, crate: { pen: 0.6, fx: 'wood', step: 'wood' }, container: { pen: 0.2, fx: 'metal', step: 'metal' },
+  sand: { pen: 0.3, fx: 'ground', step: 'soft' }, snow: { pen: 0, fx: 'ground', step: 'soft' },
+};
+// совместимость: «высота клетки» (максимальный верх препятствий, стоящих на земле) и проход ботов
+function hAt(cx, cz) {
+  if (cx < 0 || cz < 0 || cx >= WORLD.gw || cz >= WORLD.gd) return 99;
+  let h = 0; for (const b of WORLD.grid[cz * WORLD.gw + cx]) if (b.alive && !b.pass && b.y0 < 0.3) h = Math.max(h, b.y1);
+  return h;
+}
+const bAt = () => 0;
+const cellCh = () => '.';
 const walk = (cx, cz) => hAt(cx, cz) === 0;
-const zone = { x0: 1e9, x1: -1e9, z0: 1e9, z1: -1e9 };
-for (const [x, z] of zoneCells) { zone.x0 = Math.min(zone.x0, x * CELL); zone.x1 = Math.max(zone.x1, x * CELL + CELL); zone.z0 = Math.min(zone.z0, z * CELL); zone.z1 = Math.max(zone.z1, z * CELL + CELL); }
-zone.cx = (zone.x0 + zone.x1) / 2; zone.cz = (zone.z0 + zone.z1) / 2;
-const inZone = p => p.x > zone.x0 && p.x < zone.x1 && p.z > zone.z0 && p.z < zone.z1;
-const cellCenter = (cx, cz, out = new THREE.Vector3()) => out.set(cx * CELL + CELL / 2, 0, cz * CELL + CELL / 2);
-function randomCellIn(x0, x1, z0, z1) {
-  const c = [];
-  for (let z = z0; z <= z1; z++) for (let x = x0; x <= x1; x++) if (walk(x, z)) c.push([x, z]);
-  return pick(c);
+const inZone = p => p.x > zone.x0 && p.x < zone.x1 && p.z > zone.z0 && p.z < zone.z1 && p.y > zone.y - 0.6 && p.y < zone.y + 2.5;
+
+/* --- навигация: узлы на сетке 1 м на каждом уровне, A* --- */
+const NAV_S = 1;
+function standable(x, z, h) {
+  // в самой точке сверху 1,75 м свободно; вокруг (радиус бойца) допускаются только перешагиваемые ступени
+  if (solidPt(x, z, h + 0.05, h + 1.75)) return false;
+  if (solidRect(x, z, 0.22, h + STEP + 0.03, h + 1.75)) return false;
+  return true;
+}
+function buildNav() {
+  const W = WORLD, nx = Math.floor(W.W / NAV_S), nz = Math.floor(W.D / NAV_S);
+  const nodes = [], col = new Map();
+  for (let iz = 0; iz < nz; iz++) for (let ix = 0; ix < nx; ix++) {
+    const x = ix * NAV_S + NAV_S / 2, z = iz * NAV_S + NAV_S / 2;
+    const cand = new Set(); if (W.groundPlane) cand.add(0);
+    eachBox(x - 0.01, z - 0.01, x + 0.01, z + 0.01, b => { if (!b.pass && !b.glass && !b.noNav) cand.add(+b.y1.toFixed(3)); });
+    const list = [];
+    for (const h of cand) {
+      // точка опоры не внутри другой коробки и есть место для бойца
+      if (!standable(x, z, h)) continue;
+      const n = { i: nodes.length, x, z, y: h, nb: [], ix, iz };
+      nodes.push(n); list.push(n);
+    }
+    if (list.length) col.set(ix + iz * 4096, list);
+  }
+  // на лестнице большой перепад между соседними узлами разрешён только вдоль марша (заходить сбоку нельзя)
+  const inStair = (x, z, dx, dz) => W.stairZones.some(s => x >= s.x0 - 0.6 && x <= s.x1 + 0.6 && z >= s.z0 - 0.05 && z <= s.z1 + 0.05 && s.axis === 'x' && dz === 0 || z >= s.z0 - 0.6 && z <= s.z1 + 0.6 && x >= s.x0 - 0.05 && x <= s.x1 + 0.05 && s.axis === 'z' && dx === 0);
+  for (const n of nodes) {
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+      const lst = col.get(n.ix + dx + (n.iz + dz) * 4096); if (!lst) continue;
+      const lim = inStair(n.x, n.z, dx, dz) && inStair(n.x + dx, n.z + dz, dx, dz) ? 1.0 : STEP;
+      for (const m of lst) {
+        if (Math.abs(m.y - n.y) > lim) continue;
+        const mx = (n.x + m.x) / 2, mz = (n.z + m.z) / 2, hy = Math.max(n.y, m.y);
+        if (solidRect(mx, mz, 0.2, hy + 0.45, hy + 1.6)) continue;
+        if (dx && dz) { // диагональ — только если оба боковых шага проходимы
+          if (solidRect(n.x + dx, n.z, 0.2, hy + 0.45, hy + 1.6) || solidRect(n.x, n.z + dz, 0.2, hy + 0.45, hy + 1.6)) continue;
+        }
+        n.nb.push(m.i);
+      }
+    }
+  }
+  W.nav = { nodes, col, nx, nz };
+}
+// ближайший узел к точке (тот же уровень предпочтительнее)
+function nearestNode(p, maxR = 3) {
+  const N = WORLD.nav; if (!N) return null;
+  const ix = Math.floor(p.x / NAV_S), iz = Math.floor(p.z / NAV_S);
+  let best = null, bd = 1e9;
+  for (let r = 0; r <= maxR; r++) {
+    for (let dz = -r; dz <= r; dz++) for (let dx = -r; dx <= r; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dz)) !== r) continue;
+      const lst = N.col.get(ix + dx + (iz + dz) * 4096); if (!lst) continue;
+      for (const n of lst) { const d = Math.hypot(n.x - p.x, n.z - p.z) + Math.abs(n.y - p.y) * 3 + (n.y > p.y + 0.6 ? 5 : 0); if (d < bd) { bd = d; best = n; } }
+    }
+    if (best && r >= 1) break;
+  }
+  return best;
+}
+// A* по узлам: возвращает список точек {x,y,z}
+const _open = [];
+function navPath(from, to) {
+  const N = WORLD.nav; if (!N || !from || !to) return [];
+  const nodes = N.nodes, g = new Map(), prev = new Map(), closed = new Set();
+  const h = n => Math.hypot(n.x - to.x, n.z - to.z) + Math.abs(n.y - to.y);
+  _open.length = 0; _open.push([h(from), from.i]); g.set(from.i, 0);
+  let it = 0;
+  while (_open.length && it++ < 20000) {
+    // двоичная куча по f
+    let bi = 0; const top = _open[0]; const last = _open.pop();
+    if (_open.length) { _open[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < _open.length && _open[l][0] < _open[m][0]) m = l; if (r < _open.length && _open[r][0] < _open[m][0]) m = r; if (m === i) break; [_open[i], _open[m]] = [_open[m], _open[i]]; i = m; } }
+    const ci = top[1]; if (closed.has(ci)) continue; closed.add(ci);
+    if (ci === to.i) break;
+    const c = nodes[ci], gc = g.get(ci);
+    for (const ni of c.nb) {
+      if (closed.has(ni)) continue;
+      const n = nodes[ni], ng = gc + Math.hypot(n.x - c.x, n.z - c.z) + Math.abs(n.y - c.y) * 1.5;
+      if (ng < (g.get(ni) ?? 1e9)) {
+        g.set(ni, ng); prev.set(ni, ci);
+        _open.push([ng + h(n), ni]); let i = _open.length - 1;
+        while (i > 0) { const p = (i - 1) >> 1; if (_open[p][0] <= _open[i][0]) break; [_open[i], _open[p]] = [_open[p], _open[i]]; i = p; }
+      }
+    }
+    bi++;
+  }
+  if (!prev.has(to.i) && from.i !== to.i) return [];
+  const out = []; for (let c = to.i; c !== undefined && c !== from.i; c = prev.get(c)) out.push(nodes[c]);
+  return out.reverse();
+}
+// случайный узел в прямоугольнике (с фильтром по высоте)
+function randomNodeIn(x0, z0, x1, z1, filt) {
+  const N = WORLD.nav, c = [];
+  for (const n of N.nodes) if (n.x >= x0 && n.x <= x1 && n.z >= z0 && n.z <= z1 && (!filt || filt(n))) c.push(n);
+  return c.length ? pick(c) : null;
+}
+// прямая проходима (для срезания углов пути) на одной высоте
+function lineWalkable(ax, az, bx, bz, y = 0) {
+  const d = Math.hypot(bx - ax, bz - az), n = Math.ceil(d / 0.4);
+  for (let i = 0; i <= n; i++) {
+    const x = ax + (bx - ax) * i / n, z = az + (bz - az) * i / n;
+    if (solidRect(x, z, 0.34, y + 0.3, y + 1.7)) return false;
+    if (Math.abs(floorAt(x, z, y + 0.3, 0.2) - y) > 0.3) return false; // не срезаем над обрывом
+  }
+  return true;
 }
 
+/* --- загрузка карты --- */
+function loadWorld(id) {
+  const def = MAPS[id] || MAPS[MAP_ORDER[0]];
+  Object.assign(WORLD, { id: def.id, boxes: [], spawns: [[], []], stairZones: [], markers: [], env: def.env || {}, groundPlane: def.groundPlane !== false, floorY: def.floorY ?? 0, mapDef: def, W: def.W, D: def.D, lights: [], props: [] });
+  def.build(mapBuilder());
+  // граница мира — невидимые стены
+  const H = 40, T = 1;
+  addBox(-T, -10, -T, 0, H, WORLD.D + T, 'concrete', { visual: false, hidden: true }); addBox(WORLD.W, -10, -T, WORLD.W + T, H, WORLD.D + T, 'concrete', { hidden: true });
+  addBox(0, -10, -T, WORLD.W, H, 0, 'concrete', { hidden: true }); addBox(0, -10, WORLD.D, WORLD.W, H, WORLD.D + T, 'concrete', { hidden: true });
+  indexBoxes();
+  const z = def.zone; Object.assign(zone, { x0: z[0], z0: z[1], x1: z[2], z1: z[3], y: z[4] || 0 }); zone.cx = (zone.x0 + zone.x1) / 2; zone.cz = (zone.z0 + zone.z1) / 2;
+  const t0 = performance.now(); buildNav(); WORLD.navMs = Math.round(performance.now() - t0);
+  for (const fn of WORLD_HOOKS) fn();
+}
 /* ================= настройки передвижения ================= */
 // Все числа механик передвижения в одном месте: позы, уклонение, захват выступов.
 // Поза (agent.posture): 0 — стоя, 1 — присед, 2 — лёжа, 3 — висит на краю или подтягивается.
@@ -1200,6 +1354,375 @@ const MOVE_TR = {
   climbing: ['climbFinish'],
   climbFinish: ['ground'],
 };
+/* ================= карты: конструктор и описания локаций ================= */
+// Карта описывается данными: размер, окружение (время суток, погода), зона захвата и функция build(B),
+// которая расставляет коробки через конструктор B. Новую карту добавить = дописать запись в MAPS.
+const SH = 3.2; // высота этажа
+function rectMinus(x0, z0, x1, z1, holes) {
+  // прямоугольник минус вырезы → набор прямоугольников (по сетке из границ вырезов, строки склеиваются)
+  holes = holes.filter(h => h.x1 > x0 && h.x0 < x1 && h.z1 > z0 && h.z0 < z1);
+  if (!holes.length) return [[x0, z0, x1, z1]];
+  const xs = [...new Set([x0, x1, ...holes.flatMap(h => [clamp(h.x0, x0, x1), clamp(h.x1, x0, x1)])])].sort((a, b) => a - b);
+  const zs = [...new Set([z0, z1, ...holes.flatMap(h => [clamp(h.z0, z0, z1), clamp(h.z1, z0, z1)])])].sort((a, b) => a - b);
+  const out = [];
+  for (let j = 0; j < zs.length - 1; j++) {
+    let run = null;
+    for (let i = 0; i < xs.length - 1; i++) {
+      const cx = (xs[i] + xs[i + 1]) / 2, cz = (zs[j] + zs[j + 1]) / 2;
+      const inHole = holes.some(h => cx > h.x0 && cx < h.x1 && cz > h.z0 && cz < h.z1);
+      if (!inHole) { if (run) run[2] = xs[i + 1]; else run = [xs[i], zs[j], xs[i + 1], zs[j + 1]]; }
+      else if (run) { out.push(run); run = null; }
+    }
+    if (run) out.push(run);
+  }
+  return out;
+}
+function mapBuilder() {
+  const B = {
+    box: (x0, y0, z0, x1, y1, z1, m, f) => addBox(x0, y0, z0, x1, y1, z1, m, f),
+    // перекрытие с вырезами (лестничные проёмы, люки)
+    slab(x0, z0, x1, z1, y, th = 0.25, m = 'concrete', holes = [], f = {}) { for (const r of rectMinus(x0, z0, x1, z1, holes)) addBox(r[0], y - th, r[1], r[2], y, r[3], m, f); },
+    // стена вдоль X от x0 до x1 на линии z (толщина th к +z) с проёмами {a,b,y0,y1,glass}
+    wallX(x0, x1, z, y0, h, th, m, holes = [], f = {}) {
+      holes = holes.filter(o => o.b > x0 && o.a < x1).sort((p, q) => p.a - q.a); let x = x0;
+      for (const o of holes) {
+        if (o.a > x) addBox(x, y0, z, o.a, y0 + h, z + th, m, f);
+        if (o.y0 > 0.01) addBox(o.a, y0, z, o.b, y0 + o.y0, z + th, m, f);
+        if (o.y1 < h - 0.01) addBox(o.a, y0 + o.y1, z, o.b, y0 + h, z + th, m, f);
+        if (o.glass) addBox(o.a, y0 + o.y0, z + th * 0.4, o.b, y0 + o.y1, z + th * 0.6, 'glass', { glass: true, noNav: true });
+        x = Math.max(x, o.b);
+      }
+      if (x < x1) addBox(x, y0, z, x1, y0 + h, z + th, m, f);
+    },
+    wallZ(z0, z1, x, y0, h, th, m, holes = [], f = {}) {
+      holes = holes.filter(o => o.b > z0 && o.a < z1).sort((p, q) => p.a - q.a); let z = z0;
+      for (const o of holes) {
+        if (o.a > z) addBox(x, y0, z, x + th, y0 + h, o.a, m, f);
+        if (o.y0 > 0.01) addBox(x, y0, o.a, x + th, y0 + o.y0, o.b, m, f);
+        if (o.y1 < h - 0.01) addBox(x, y0 + o.y1, o.a, x + th, y0 + h, o.b, m, f);
+        if (o.glass) addBox(x + th * 0.4, y0 + o.y0, o.a, x + th * 0.6, y0 + o.y1, o.b, 'glass', { glass: true, noNav: true });
+        z = Math.max(z, o.b);
+      }
+      if (z < z1) addBox(x, y0, z, x + th, y0 + h, z1, m, f);
+    },
+    // лестница: прямой марш от (x0,z0) шириной w, в направлении dir ('+x','-x','+z','-z'), с высоты y0 до y1
+    stairs(x0, z0, w, dir, y0, y1, m = 'concrete') {
+      const rise = y1 - y0, n = Math.max(2, Math.ceil(rise / 0.2)), dh = rise / n, dd = 0.3, run = n * dd;
+      for (let i = 0; i < n; i++) {
+        const a = i * dd, top = y0 + dh * (i + 1);
+        if (dir === '+x') addBox(x0 + a, y0, z0, x0 + a + dd, top, z0 + w, m, { stair: true });
+        else if (dir === '-x') addBox(x0 - a - dd, y0, z0, x0 - a, top, z0 + w, m, { stair: true });
+        else if (dir === '+z') addBox(x0, y0, z0 + a, x0 + w, top, z0 + a + dd, m, { stair: true });
+        else addBox(x0, y0, z0 - a - dd, x0 + w, top, z0 - a, m, { stair: true });
+      }
+      const r = dir === '+x' ? [x0, z0, x0 + run, z0 + w] : dir === '-x' ? [x0 - run, z0, x0, z0 + w] : dir === '+z' ? [x0, z0, x0 + w, z0 + run] : [x0, z0 - run, x0 + w, z0];
+      WORLD.stairZones.push({ x0: r[0], z0: r[1], x1: r[2], z1: r[3], axis: dir[1] });
+      return { run, rect: r };
+    },
+    // здание: этажи, лестницы с разворотом, окна со стеклом, двери, перегородка, балкон, крыша с парапетом и выходом
+    building(o) {
+      const { x, z, w, d } = o, yb = o.y || 0, fl = o.floors || 2, th = 0.25, m = o.m || 'plaster', sh = o.sh || SH, ruin = o.ruin || 0;
+      const sw = 1.3, run = Math.ceil(sh / 0.2) * 0.3; // ширина и длина марша
+      const sx = x + th + 0.2, sz = z + th + 0.2; // лестничная клетка в углу (две полосы маршей вдоль X)
+      const stairX0 = o.stairRight ? x + w - th - 0.2 - run - 1.2 : sx + 1.2;
+      for (let f = 0; f <= fl; f++) {
+        const y = yb + f * sh, last = f === fl;
+        // перекрытие (на крыше — тоже), вырез над маршем, идущим снизу
+        if (f > 0) {
+          const lane = (f - 1) % 2, lz0 = sz + lane * (sw + 0.1);
+          // проём над маршем — до самой верхней ступени, дальше сразу пол площадки
+          const holes = [lane === 0 ? { x0: stairX0 - 0.2, z0: lz0 - 0.1, x1: stairX0 + run, z1: lz0 + sw + 0.1 } : { x0: stairX0, z0: lz0 - 0.1, x1: stairX0 + run + 0.2, z1: lz0 + sw + 0.1 }];
+          if (last && !o.roofAccess) holes.length = 0;
+          if (!(last && o.noRoof)) B.slab(x, z, x + w, z + d, y, 0.25, last ? (o.roofM || 'concrete') : 'concrete', holes);
+        }
+        if (last) {
+          // парапет крыши
+          const ph = 1.0, pm = o.trim || 'concrete';
+          if (!o.noRoof) { B.wallX(x, x + w, z, y, ph, th, pm); B.wallX(x, x + w, z + d - th, y, ph, th, pm); B.wallZ(z + th, z + d - th, x, y, ph, th, pm); B.wallZ(z + th, z + d - th, x + w - th, y, ph, th, pm); }
+          break;
+        }
+        // стены этажа: окна через ~3 м, двери на первом этаже
+        const win = (len, base) => { const hs = []; const n = Math.floor((len - 2) / 3); for (let i = 0; i < n; i++) { const c = base + 1.5 + (i + 0.5) * ((len - 3) / n); hs.push({ a: c - 0.6, b: c + 0.6, y0: 0.95, y1: 2.25, glass: !ruin || Math.random() > ruin }); } return hs; };
+        const doorsOn = side => (o.doors || []).filter(dd => dd.side === side && (dd.f || 0) === f).map(dd => ({ a: dd.at - (dd.w || 1.6) / 2, b: dd.at + (dd.w || 1.6) / 2, y0: 0, y1: 2.3 }));
+        const holesX = side => { let hs = (f > 0 || o.groundWindows) ? win(w, x) : []; const ds = doorsOn(side); hs = hs.filter(h => !ds.some(q => h.b > q.a - 0.3 && h.a < q.b + 0.3)); return [...hs, ...ds]; };
+        const holesZ = side => { let hs = (f > 0 || o.groundWindows) ? win(d, z) : []; const ds = doorsOn(side); hs = hs.filter(h => !ds.some(q => h.b > q.a - 0.3 && h.a < q.b + 0.3)); return [...hs, ...ds]; };
+        const nc = { noClimb: true };
+        // разрушения: крупные пробоины в стенах верхних этажей
+        const breach = side => (ruin && f > 0 && Math.random() < ruin) ? [{ a: (side === 'n' || side === 's' ? x : z) + 1.5 + Math.random() * ((side === 'n' || side === 's' ? w : d) - 5), b: 0, y0: 0.4, y1: sh - 0.3 }].map(h => ({ ...h, b: h.a + 2.2 })) : [];
+        B.wallX(x, x + w, z, y, sh, th, m, [...holesX('s'), ...breach('s')], nc);
+        B.wallX(x, x + w, z + d - th, y, sh, th, m, [...holesX('n'), ...breach('n')], nc);
+        B.wallZ(z + th, z + d - th, x, y, sh, th, m, [...holesZ('w'), ...breach('w')], nc);
+        B.wallZ(z + th, z + d - th, x + w - th, y, sh, th, m, [...holesZ('e'), ...breach('e')], nc);
+        // марш на следующий этаж (полосы чередуются, направление разворачивается)
+        if (f < fl - 1 || o.roofAccess) {
+          const lane = f % 2, lz0 = sz + lane * (sw + 0.1), up = lane === 0;
+          B.stairs(up ? stairX0 : stairX0 + run, lz0, sw, up ? '+x' : '-x', y, y + sh, 'concrete');
+          // площадка у верхнего конца, чтобы сойти с марша
+        }
+        // перегородка с дверью (не перекрывает лестницу)
+        if (w > 9 && d > 7 && !o.open) {
+          const px = x + w * 0.62;
+          B.wallZ(z + th, z + d - th, px, y, sh - 0.25, 0.15, m, [{ a: z + d * 0.55, b: z + d * 0.55 + 1.2, y0: 0, y1: 2.2 }, { a: sz - 0.2, b: sz + 2 * sw + 0.4, y0: 0, y1: sh }]);
+        }
+        // балкон
+        if (o.balcony && o.balcony.f === f + 1) {
+          const bz = z + d, by = y + sh;
+          B.slab(x + 2, bz, x + w - 2, bz + 1.6, by, 0.2, 'concrete');
+          B.wallX(x + 2, x + w - 2, bz + 1.45, by, 1.0, 0.15, 'metal'); B.wallZ(bz, bz + 1.6, x + 2, by, 1.0, 0.15, 'metal'); B.wallZ(bz, bz + 1.6, x + w - 2.15, by, 1.0, 0.15, 'metal');
+        }
+      }
+      if (o.balcony) {
+        // дверь на балкон: проём в северной стене нужного этажа (стена уже построена — вырез через «невидимую» пустоту не нужен, балкон доступен через окно-дверь)
+      }
+      WORLD.markers.push({ kind: 'bld', x: x + w / 2, z: z + d / 2, floors: fl });
+    },
+    crate(x, z, s = 1.1, y = 0) { addBox(x - s / 2, y, z - s / 2, x + s / 2, y + s, z + s / 2, 'crate'); },
+    container(x, z, len = 6, alongX = true, y = 0, color = 'container') {
+      const w = 2.4, h = 2.6; alongX ? addBox(x - len / 2, y, z - w / 2, x + len / 2, y + h, z + w / 2, color) : addBox(x - w / 2, y, z - len / 2, x + w / 2, y + h, z + len / 2, color);
+    },
+    car(x, z, alongX = true, wreck = false) {
+      const L = 4.3, Wd = 1.8; const a = alongX ? [L, Wd] : [Wd, L];
+      addBox(x - a[0] / 2, 0.25, z - a[1] / 2, x + a[0] / 2, 1.05, z + a[1] / 2, 'car', { car: true });
+      const c = alongX ? [L * 0.5, Wd * 0.9] : [Wd * 0.9, L * 0.5];
+      if (!wreck) addBox(x - c[0] / 2, 1.05, z - c[1] / 2, x + c[0] / 2, 1.5, z + c[1] / 2, 'glass', { glass: true, noNav: true });
+      else addBox(x - c[0] / 2, 1.05, z - c[1] / 2, x + c[0] / 2, 1.3, z + c[1] / 2, 'car');
+      WORLD.props.push({ kind: 'wheels', x, z, alongX });
+    },
+    barrier(x0, z0, x1, z1, h = 1.0, m = 'concrete') { addBox(x0, 0, z0, x1, h, z1, m); },
+    sandbags(x0, z0, x1, z1) { addBox(x0, 0, z0, x1, 1.1, z1, 'sand'); },
+    fence(x0, z0, x1, z1, h = 2.6) { addBox(x0, 0, z0, x1, h, z1, 'metal', { noClimb: true, fence: true }); },
+    tower(x, z, h = 5) {
+      const s = 3.2; for (const [dx, dz] of [[0, 0], [s - 0.3, 0], [0, s - 0.3], [s - 0.3, s - 0.3]]) addBox(x + dx, 0, z + dz, x + dx + 0.3, h, z + dz + 0.3, 'wood');
+      B.slab(x - 0.2, z - 0.2, x + s + 0.2, z + s + 0.2, h, 0.2, 'wood');
+      B.wallX(x - 0.2, x + s + 0.2, z - 0.2, h, 1.1, 0.12, 'wood'); B.wallZ(z - 0.2, z + s + 0.2, x - 0.2, h, 1.1, 0.12, 'wood'); B.wallZ(z - 0.2, z + s + 0.2, x + s + 0.08, h, 1.1, 0.12, 'wood');
+      addBox(x - 0.4, h + 2.4, z - 0.4, x + s + 0.4, h + 2.6, z + s + 0.4, 'roof');
+      for (const [dx, dz] of [[0, 0], [s - 0.12, 0], [0, s - 0.12], [s - 0.12, s - 0.12]]) addBox(x + dx, h, z + dz, x + dx + 0.12, h + 2.4, z + dz + 0.12, 'wood');
+      B.stairs(x + 0.6, z + s + 0.2 + Math.ceil(h / 0.2) * 0.3, 1.0, '-z', 0, h, 'wood');
+    },
+    rock(x, z, w, d, h, y = 0) { addBox(x - w / 2, y, z - d / 2, x + w / 2, y + h, z + d / 2, 'stone', { noClimb: h > 2.4 }); },
+    tree(x, z, s = 1) { addBox(x - 0.18 * s, 0, z - 0.18 * s, x + 0.18 * s, 3 * s, z + 0.18 * s, 'wood', { noClimb: true, tree: true }); WORLD.props.push({ kind: 'tree', x, z, s }); },
+    lamp(x, y, z, color = 0xffc070, intensity = 30, dist = 16) { WORLD.lights.push({ x, y, z, color, intensity, dist }); },
+    spawn(team, x, z, y = 0) { WORLD.spawns[team].push([x, z, y]); },
+    // видимое ограждение по краю карты (забор, бетонная стена или скалы)
+    perimeter(h = 4, m = 'concrete', th = 0.6) {
+      const W = WORLD.W, D = WORLD.D, f = { noClimb: true };
+      addBox(0, 0, 0, W, h, th, m, f); addBox(0, 0, D - th, W, h, D, m, f); addBox(0, 0, th, th, h, D - th, m, f); addBox(W - th, 0, th, W, h, D - th, m, f);
+    },
+  };
+  return B;
+}
+
+/* --- карта 0: «Узел связи» (исходная карта, переведена в 3D-формат без изменений геймплея) --- */
+const QUAD = [
+  '####################',
+  '#.........#.........',
+  '#..b......#...b.....',
+  '#.........#.........',
+  '#...###uuu###..#####',
+  '#....b..........#...',
+  '#.......b.......#...',
+  '###...###...B...#...',
+  '#.....#.........b...',
+  '#.....#....b........',
+  '#AAA..#.......###...',
+  '#AAA........B.....CC',
+  '#AAA..b.......#...CC',
+];
+const MAP = (() => { const top = QUAD.map(r => r + r.split('').reverse().map(c => c === 'A' ? 'Z' : c).join('')); return [...top, ...top.slice(0, -1).reverse()]; })();
+const MAPS = {
+  node: {
+    id: 'node', n: ['Узел связи', 'Uplink'], d: ['Исходная карта: коридоры, ящики, лазы', 'The original map: corridors, crates, crawlways'], W: 40 * CELL, D: 25 * CELL,
+    zone: [36, 22, 44, 28, 0],
+    env: { time: 'dusk', ground: 'tile', weather: null },
+    build(B) {
+      const zc = [];
+      for (let z = 0; z < MAP.length; z++) for (let x = 0; x < MAP[0].length; x++) {
+        const c = MAP[z][x], X = x * CELL, Z = z * CELL;
+        if (c === '#') B.box(X, 0, Z, X + CELL, WALL_H, Z + CELL, 'panel', { noClimb: true });
+        else if (c === 'b') B.box(X + 0.01, 0, Z + 0.01, X + CELL - 0.01, CRATE_H, Z + CELL - 0.01, 'crate');
+        else if (c === 'B') B.box(X + 0.01, 0, Z + 0.01, X + CELL - 0.01, TALL_H, Z + CELL - 0.01, 'container');
+        else if (c === 'u') B.box(X, DUCT_B, Z + 0.02, X + CELL, DUCT_T, Z + CELL - 0.02, 'duct');
+        else if (c === 'A') B.spawn(0, X + 1, Z + 1); else if (c === 'Z') B.spawn(1, X + 1, Z + 1);
+        else if (c === 'C') zc.push([X, Z]);
+      }
+    },
+  },
+  /* --- карта 1: разрушенный городской квартал --- */
+  city: {
+    id: 'city', n: ['Разрушенный квартал', 'Ruined district'], d: ['Улицы, 3-этажные дома, крыши, подземный переход', 'Streets, 3-storey buildings, rooftops, an underpass'],
+    W: 96, D: 72, zone: [42, 31, 54, 41, 0], groundPlane: false, floorY: -8,
+    env: { time: 'overcast', ground: 'asphalt', weather: 'rain' },
+    build(B) {
+      // земля — плита с проёмами лестниц в подземный переход под улицей (z 34..38, x 30..66)
+      const hole1 = { x0: 30, z0: 30.2, x1: 32.8, z1: 35.5 }, hole2 = { x0: 63.2, z0: 36.5, x1: 66, z1: 41.8 };
+      B.slab(0, 0, 96, 72, 0, 0.4, 'asphalt', [hole1, hole2]);
+      // переход: пол, стены, марши вниз
+      const ty = -3.4;
+      B.box(29.5, ty - 0.3, 30, 66.5, ty, 42, 'tile');
+      B.wallX(29.5, 66.5, 29.8, ty, -ty - 0.4, 0.2, 'tile'); B.wallX(29.5, 66.5, 42, ty, -ty - 0.4, 0.2, 'tile');
+      B.wallZ(29.8, 42.2, 29.3, ty, -ty - 0.4, 0.2, 'tile'); B.wallZ(29.8, 42.2, 66.5, ty, -ty - 0.4, 0.2, 'tile');
+      // марши: верхний конец у края проёма, спуск под улицу
+      B.stairs(30.2, 30.2 + 5.1, 2.4, '-z', ty, 0, 'concrete');
+      B.stairs(63.4, 41.8 - 5.1, 2.4, '+z', ty, 0, 'concrete');
+      // перила у проёмов (вход — с короткой стороны)
+      B.box(32.8, 0, 30.2, 33.0, 1.0, 35.5, 'metal'); B.box(29.8, 0, 35.5, 33.0, 1.0, 35.7, 'metal');
+      B.box(63.0, 0, 36.5, 63.2, 1.0, 41.8, 'metal'); B.box(63.0, 0, 36.3, 66.2, 1.0, 36.5, 'metal');
+      B.lamp(40, ty + 2.6, 36, 0xbfe0ff, 18, 12); B.lamp(56, ty + 2.6, 36, 0xbfe0ff, 18, 12);
+      // тротуары-бордюры
+      // кварталы: дома 2–3 этажа, двери с улицы, окна, крыши с выходом, частично разрушены
+      const R = 0.35;
+      B.building({ x: 4, z: 4, w: 14, d: 11, floors: 3, m: 'brick', doors: [{ side: 'n', at: 11 }, { side: 'e', at: 9 }], roofAccess: true, ruin: R, balcony: { f: 1 } });
+      B.building({ x: 22, z: 4, w: 12, d: 10, floors: 2, m: 'plaster', doors: [{ side: 'n', at: 28 }], roofAccess: true, ruin: R });
+      B.building({ x: 60, z: 4, w: 13, d: 11, floors: 3, m: 'plaster', doors: [{ side: 'n', at: 66 }, { side: 'w', at: 9 }], roofAccess: true, ruin: R });
+      B.building({ x: 78, z: 4, w: 14, d: 12, floors: 2, m: 'brick', doors: [{ side: 'n', at: 85 }], roofAccess: true, ruin: R });
+      B.building({ x: 4, z: 52, w: 14, d: 13, floors: 3, m: 'plaster', doors: [{ side: 's', at: 10 }, { side: 'e', at: 58 }], roofAccess: true, ruin: R });
+      B.building({ x: 22, z: 54, w: 12, d: 12, floors: 2, m: 'brick', doors: [{ side: 's', at: 27 }], roofAccess: true, ruin: R });
+      B.building({ x: 60, z: 53, w: 12, d: 12, floors: 2, m: 'brick', doors: [{ side: 's', at: 66 }], roofAccess: true, ruin: R });
+      B.building({ x: 77, z: 51, w: 15, d: 14, floors: 3, m: 'plaster', doors: [{ side: 's', at: 84 }, { side: 'w', at: 58 }], roofAccess: true, ruin: R, stairRight: true });
+      // внутренние дворы: заборы и проходы между домами
+      B.barrier(18, 18, 22, 18.4, 2.2, 'brick'); B.barrier(73, 18, 78, 18.4, 2.2, 'brick'); B.barrier(18, 53.6, 22, 54, 2.2, 'brick'); B.barrier(72, 53.6, 77, 54, 2.2, 'brick');
+      // разрушенные стены и завалы
+      B.box(36, 0, 18, 40, 1.6, 19, 'brick'); B.box(56, 0, 52, 60, 1.3, 53.2, 'brick'); B.box(38, 0, 24, 41, 0.7, 26.5, 'concrete'); B.box(55, 0, 45, 57.5, 0.8, 47.5, 'concrete');
+      // машины на улицах
+      B.car(46, 24, false, true); B.car(50, 47, false); B.car(26, 36, true, true); B.car(71, 34.5, true); B.car(84, 38, true, true); B.car(12, 33, true);
+      // баррикады и укрытия на перекрёстке
+      B.barrier(41, 28.5, 44, 29.3, 1.0); B.barrier(52, 42.7, 55, 43.5, 1.0); B.sandbags(46.5, 30, 49.5, 30.8); B.sandbags(46.5, 41.2, 49.5, 42);
+      B.container(48, 12, 6, true); B.container(48, 60, 6, true);
+      for (let i = 0; i < 6; i++) B.lamp(8 + i * 16, 4.5, 29, 0xffcf8a, 22, 16);
+      B.perimeter(5, 'brick');
+      for (const z of [26, 30, 34, 38, 42, 46]) { B.spawn(0, 3, z); B.spawn(1, 93, z); }
+    },
+  },
+  /* --- карта 2: промышленный комплекс --- */
+  factory: {
+    id: 'factory', n: ['Промышленный комплекс', 'Industrial complex'], d: ['Цех с мостками, склад, контейнеры, офис', 'Workshop with catwalks, warehouse, containers, office'],
+    W: 100, D: 72, zone: [42, 28, 58, 44, 0],
+    env: { time: 'night', ground: 'concrete', weather: 'rain' },
+    build(B) {
+      // главный цех: высокие стены, ворота, мостки по периметру на 4,5 м, лестницы
+      const x = 34, z = 20, w = 32, d = 32, h = 9;
+      const gate = (c, wd = 5) => ({ a: c - wd / 2, b: c + wd / 2, y0: 0, y1: 4.5 });
+      B.wallX(x, x + w, z, 0, h, 0.3, 'metal', [gate(x + 16), { a: x + 4, b: x + 6, y0: 5.5, y1: 7, glass: true }, { a: x + 26, b: x + 28, y0: 5.5, y1: 7, glass: true }], { noClimb: true });
+      B.wallX(x, x + w, z + d - 0.3, 0, h, 0.3, 'metal', [gate(x + 16), { a: x + 4, b: x + 6, y0: 5.5, y1: 7, glass: true }], { noClimb: true });
+      B.wallZ(z, z + d, x, 0, h, 0.3, 'metal', [gate(z + 16, 3.4), { a: z + 10, b: z + 12.2, y0: 4.6, y1: 6.8 }], { noClimb: true });
+      B.wallZ(z, z + d, x + w - 0.3, 0, h, 0.3, 'metal', [gate(z + 16, 3.4), { a: z + 4.4, b: z + 6, y0: 4.6, y1: 6.8 }], { noClimb: true });
+      B.box(x - 0.5, h, z - 0.5, x + w + 0.5, h + 0.3, z + d + 0.5, 'roof');
+      const cy = 4.5, cw = 2.2;
+      B.slab(x + 0.3, z + 0.3, x + w - 0.3, z + 0.3 + cw, cy, 0.15, 'metal'); B.slab(x + 0.3, z + d - 0.3 - cw, x + w - 0.3, z + d - 0.3, cy, 0.15, 'metal');
+      B.slab(x + 0.3, z + 0.3 + cw, x + 0.3 + cw, z + d - 0.3 - cw, cy, 0.15, 'metal'); B.slab(x + w - 0.3 - cw, z + 0.3 + cw, x + w - 0.3, z + d - 0.3 - cw, cy, 0.15, 'metal');
+      // лестницы на мостки: марш вплотную к мосткам, с верхней ступени — шаг на мостки
+      B.stairs(x + 4, z + 0.3 + cw, 1.2, '+x', 0, cy, 'metal'); B.stairs(x + w - 4, z + d - 0.3 - cw - 1.2, 1.2, '-x', 0, cy, 'metal');
+      // станки и укрытия в цеху
+      for (const [px, pz] of [[x + 9, z + 10], [x + 9, z + 22], [x + 23, z + 10], [x + 23, z + 22]]) B.box(px - 2, 0, pz - 1.2, px + 2, 1.6, pz + 1.2, 'metal');
+      B.container(x + 16, z + 16, 6, false); B.crate(x + 13, z + 13); B.crate(x + 19, z + 19); B.crate(x + 19, z + 19, 1.1, 1.1);
+      B.lamp(x + 8, 8, z + 16, 0xffb060, 60, 26); B.lamp(x + 24, 8, z + 16, 0xffb060, 60, 26);
+      // офис 3 этажа на западе, переход-мостик на мостки цеха
+      B.building({ x: 6, z: 26, w: 14, d: 12, floors: 2, sh: 4.5, m: 'concrete', doors: [{ side: 'e', at: 34 }, { side: 's', at: 13 }, { side: 'e', at: 31.1, f: 1, w: 1.8 }], roofAccess: true, groundWindows: true });
+      B.slab(20, 30, 34.3, 32.2, 4.5 + 0.0, 0.15, 'metal'); B.box(20, 4.5, 30, 34.3, 5.55, 30.08, 'metal'); B.box(20, 4.5, 32.12, 34.3, 5.55, 32.2, 'metal');
+      // склад на востоке со стеллажами
+      B.building({ x: 74, z: 8, w: 20, d: 16, floors: 1, m: 'metal', doors: [{ side: 'w', at: 16, w: 4 }, { side: 's', at: 84, w: 4 }], roofAccess: false, open: true, sh: 5 });
+      for (let i = 0; i < 3; i++) { B.box(78, 0, 12 + i * 4, 90, 3.2, 12.8 + i * 4, 'metal'); }
+      // контейнерный двор: ярусы, лестница на верх
+      for (const [cx, cz, along] of [[80, 34, true], [80, 37, true], [86, 46, false], [74, 50, true], [88, 58, true]]) B.container(cx, cz, 6, along);
+      B.container(80, 34, 6, true, 2.6); B.stairs(76.5, 31.2, 1.2, '+z', 0, 2.6, 'metal');
+      for (const [cx, cz, along] of [[14, 52, true], [20, 58, false], [10, 62, true], [26, 48, true]]) B.container(cx, cz, 6, along);
+      // трубы и платформы
+      B.box(66, 6, 30, 74, 6.6, 30.6, 'metal'); B.box(66, 6, 41, 74, 6.6, 41.6, 'metal');
+      B.tower(88, 64, 4.5); B.tower(8, 8, 4.5);
+      for (const [lx, lz] of [[30, 12], [70, 12], [30, 60], [70, 60], [50, 66], [50, 6]]) B.lamp(lx, 6, lz, 0xffa040, 40, 20);
+      B.perimeter(4, 'concrete');
+      for (const z of [12, 20, 46, 54, 60, 66]) { B.spawn(0, 3, z); B.spawn(1, 97, z); }
+    },
+  },
+  /* --- карта 3: военная база --- */
+  base: {
+    id: 'base', n: ['Военная база', 'Military base'], d: ['Казармы, штаб с бункером, ангар, вышки', 'Barracks, HQ with bunker, hangar, watchtowers'],
+    W: 100, D: 80, zone: [44, 34, 56, 46, 0], groundPlane: false, floorY: -8,
+    env: { time: 'day', ground: 'dirt', weather: null },
+    build(B) {
+      // земля с проёмом лестницы в бункер под штабом
+      const bh = { x0: 45, z0: 63.6, x1: 47.6, z1: 68.8 };
+      B.slab(0, 0, 100, 80, 0, 0.4, 'dirt', [bh]);
+      // бункер: коридор и две комнаты на −3,4 м
+      const by = -3.4;
+      B.box(40, by - 0.3, 58, 62, by, 72, 'concrete');
+      B.wallX(40, 62, 57.8, by, -by - 0.4, 0.2, 'concrete'); B.wallX(40, 62, 72, by, -by - 0.4, 0.2, 'concrete');
+      B.wallZ(57.8, 72.2, 39.8, by, -by - 0.4, 0.2, 'concrete'); B.wallZ(57.8, 72.2, 62, by, -by - 0.4, 0.2, 'concrete');
+      B.wallX(48.5, 62, 64, by, -by - 0.4, 0.2, 'concrete', [{ a: 54, b: 55.4, y0: 0, y1: 2.2 }]);
+      B.stairs(45.1, 63.6 + 5.1, 2.4, '-z', by, 0, 'concrete');
+      B.box(47.6, 0, 63.6, 47.8, 1.0, 68.8, 'metal'); B.box(44.8, 0, 68.8, 47.8, 1.0, 69.0, 'metal');
+      B.lamp(51, by + 2.5, 68, 0xffe8c0, 20, 12); B.lamp(56, by + 2.5, 61, 0xffe8c0, 20, 12);
+      // штаб 3 этажа над бункером
+      B.building({ x: 38, z: 60, w: 26, d: 14, floors: 3, m: 'concrete', doors: [{ side: 's', at: 51, w: 2 }, { side: 'w', at: 66 }, { side: 'e', at: 66 }], roofAccess: true, groundWindows: true, balcony: { f: 2 } });
+      // казармы (2 этажа)
+      B.building({ x: 8, z: 10, w: 22, d: 10, floors: 2, m: 'plaster', doors: [{ side: 'n', at: 14 }, { side: 'n', at: 24 }], roofAccess: true, groundWindows: true });
+      B.building({ x: 70, z: 10, w: 22, d: 10, floors: 2, m: 'plaster', doors: [{ side: 'n', at: 76 }, { side: 'n', at: 86 }], roofAccess: true, groundWindows: true });
+      // ангар: открытые ворота, внутри техника
+      B.building({ x: 38, z: 4, w: 24, d: 18, floors: 1, m: 'metal', sh: 7, doors: [{ side: 'n', at: 50, w: 10 }], open: true, roofM: 'roof' });
+      B.box(44, 0, 9, 52, 2.2, 14, 'car'); B.crate(57, 8); B.crate(57, 9.2, 1.1, 0); B.crate(42, 18);
+      // вышки по углам
+      B.tower(3, 3, 5); B.tower(93.5, 3, 5); B.tower(3, 70, 5); B.tower(93.5, 70, 5);
+      // склады
+      B.building({ x: 8, z: 50, w: 16, d: 12, floors: 1, m: 'metal', doors: [{ side: 'e', at: 56, w: 3 }, { side: 'n', at: 16 }], open: true, sh: 4.5 });
+      B.building({ x: 76, z: 50, w: 16, d: 12, floors: 1, m: 'metal', doors: [{ side: 'w', at: 56, w: 3 }, { side: 'n', at: 84 }], open: true, sh: 4.5 });
+      // плац: мешки с песком, блокпост, шлагбаумы
+      B.sandbags(46, 31, 49, 32); B.sandbags(51, 48, 54, 49); B.sandbags(40, 38, 41, 41); B.sandbags(59, 39, 60, 42);
+      B.barrier(30, 39, 31, 41.5, 1.1); B.barrier(69, 38.5, 70, 41, 1.1);
+      B.box(48, 0, 76, 52, 3, 79, 'concrete'); // будка КПП
+      B.car(28, 30, false); B.car(72, 46, false); B.car(60, 28, true);
+      for (const [cx, cz] of [[22, 30], [78, 30], [22, 44], [78, 44]]) B.container(cx, cz, 6, true);
+      B.perimeter(3.2, 'metal', 0.3);
+      // больше укрытий на открытом плацу
+      for (const [cx, cz] of [[36, 26], [64, 54], [36, 54], [64, 26]]) B.container(cx, cz, 6, false);
+      B.sandbags(28, 22, 31, 23); B.sandbags(69, 57, 72, 58); B.sandbags(16, 40, 17, 43); B.sandbags(83, 37, 84, 40);
+      for (const z of [26, 31, 36, 41, 46, 51]) { B.spawn(0, 3.5, z); B.spawn(1, 96.5, z); }
+    },
+  },
+  /* --- карта 4: горная деревня --- */
+  village: {
+    id: 'village', n: ['Горная деревня', 'Mountain village'], d: ['Террасы, каменные дома, мост, пещера, туман', 'Terraces, stone houses, a bridge, a cave, fog'],
+    W: 96, D: 80, zone: [42, 34, 54, 46, 2],
+    env: { time: 'morning', ground: 'dirt', weather: 'snow' },
+    build(B) {
+      // террасы: центр приподнят на 2 м, северный склон — 4 и 6 м
+      const terr = (x0, z0, x1, z1, h) => B.box(x0, 0, z0, x1, h, z1, 'stone', { noClimb: h > 2.3 });
+      terr(30, 26, 66, 54, 2); terr(30, 54, 66, 66, 4); terr(18, 60, 78, 72, 6);
+      // подъёмы на террасы — каменные лестницы
+      // подъёмы на террасы — каменные лестницы (нижний конец — на нижнем уровне)
+      B.stairs(46, 23, 3, '+z', 0, 2, 'stone'); B.stairs(46, 51, 3, '+z', 2, 4, 'stone');
+      B.stairs(30.5, 57, 2.4, '+z', 4, 6, 'stone'); B.stairs(61.5, 57, 2.4, '+z', 4, 6, 'stone');
+      B.stairs(27, 38, 2.4, '+x', 0, 2, 'stone'); B.stairs(69, 42, 2.4, '-x', 0, 2, 'stone');
+      // ущелье на юге и мост через него (насыпи по краям, мост на 3 м)
+      terr(0, 10, 40, 18, 3); terr(56, 10, 96, 18, 3);
+      B.slab(40, 12.5, 56, 15.5, 3, 0.3, 'wood'); B.box(40, 3, 12.4, 56, 4, 12.55, 'wood'); B.box(40, 3, 15.45, 56, 4, 15.6, 'wood');
+      B.stairs(20, 22.5, 2.4, '-z', 0, 3, 'stone'); B.stairs(72, 22.5, 2.4, '-z', 0, 3, 'stone');
+      // пещера: большая скала с проходом
+      // пещера: две скалы и свод над проходом высотой 2,6 м
+      B.rock(12, 35, 10, 4, 6); B.rock(12, 45, 10, 8, 6); B.box(7, 2.6, 37, 17, 6, 41, 'stone', { noClimb: true });
+      B.rock(84, 40, 9, 12, 5);
+      // каменные дома
+      B.building({ x: 34, z: 29, w: 10, d: 8, floors: 2, m: 'stone', doors: [{ side: 'e', at: 33 }], roofAccess: true, sh: 3, y: 2 });
+      B.building({ x: 56, z: 44, w: 9, d: 8, floors: 2, m: 'stone', doors: [{ side: 'w', at: 48 }], roofAccess: true, sh: 3, y: 2 });
+      B.building({ x: 34, z: 56, w: 11, d: 8, floors: 2, m: 'stone', doors: [{ side: 's', at: 39 }], roofAccess: true, sh: 3, y: 4 });
+      B.building({ x: 22, z: 62, w: 9, d: 8, floors: 2, m: 'stone', doors: [{ side: 's', at: 26 }], roofAccess: true, sh: 3, y: 6 });
+      B.building({ x: 64, z: 63, w: 10, d: 8, floors: 3, m: 'stone', doors: [{ side: 's', at: 69 }], roofAccess: true, sh: 3, y: 6 });
+      B.building({ x: 6, z: 56, w: 10, d: 10, floors: 2, m: 'stone', doors: [{ side: 'e', at: 60 }], roofAccess: true, sh: 3 });
+      B.building({ x: 80, z: 54, w: 10, d: 10, floors: 2, m: 'stone', doors: [{ side: 'w', at: 58 }], roofAccess: true, sh: 3 });
+      // смотровая площадка
+      B.tower(48, 74, 6);
+      // деревья, камни, заборы
+      for (const [tx, tz, s] of [[8, 24, 1.2], [14, 28, 1], [80, 24, 1.1], [88, 30, 1.3], [26, 44, 1], [72, 30, 1], [90, 70, 1.2], [6, 72, 1.1], [60, 22, 0.9], [36, 22, 1]]) B.tree(tx, tz, s);
+      B.rock(24, 34, 3, 2, 1.2); B.rock(70, 50, 2.5, 2, 1.1); B.rock(52, 30, 2, 2, 1.0, 2); B.rock(40, 48, 2.4, 1.6, 1.0, 2);
+      B.box(38, 2, 40, 41, 3, 40.4, 'wood'); B.box(55, 2, 38, 58, 3, 38.4, 'wood');
+      B.perimeter(7, 'stone', 1.5);
+      for (const z of [26, 31, 36, 41, 46, 51]) { B.spawn(0, 3, z); B.spawn(1, 93, z); }
+    },
+  },
+};
+const MAP_ORDER = ['node', 'city', 'factory', 'base', 'village'];
+const mapName = id => { const m = MAPS[id] || MAPS.node; return LANG === 'ru' || LANG === 'uk' ? m.n[0] : m.n[1]; };
+const mapDesc = id => { const m = MAPS[id] || MAPS.node; return LANG === 'ru' || LANG === 'uk' ? m.d[0] : m.d[1]; };
+loadWorld(SET.map && MAPS[SET.map] ? SET.map : 'node');
 /* ================= raycasting ================= */
 const RB = { t: 0, ax: 0 };
 function rayBox(ox, oy, oz, dx, dy, dz, x0, y0, z0, x1, y1, z1) {
@@ -1213,27 +1736,33 @@ function rayBox(ox, oy, oz, dx, dy, dz, x0, y0, z0, x1, y1, z1) {
   if (tmax < tmin || tmin < 0) return false;
   RB.t = tmin; RB.ax = ax; return true;
 }
-const RW = { t: 0, nx: 0, ny: 0, nz: 0, hit: false };
-function rayWorld(ox, oy, oz, dx, dy, dz, maxT) {
-  let best = maxT, nx = 0, ny = 0, nz = 0;
-  if (dy < 0) { const t = -oy / dy; if (t < best) { best = t; ny = 1; } }
+const RW = { t: 0, nx: 0, ny: 0, nz: 0, hit: false, box: null };
+// луч по миру: проход по клеткам сетки (DDA) и проверка коробок в каждой; skip — коробки, которые пропустить
+function rayWorld(ox, oy, oz, dx, dy, dz, maxT, skip) {
+  let best = maxT, nx = 0, ny = 0, nz = 0, hb = null;
+  const fy = WORLD.groundPlane ? 0 : WORLD.floorY;
+  if (dy < 0) { const t = (fy - oy) / dy; if (t >= 0 && t < best) { best = t; ny = 1; } }
+  const W = WORLD, st = ++W.stamp;
   let cx = Math.floor(ox / CELL), cz = Math.floor(oz / CELL);
   const sx = dx > 0 ? 1 : -1, sz = dz > 0 ? 1 : -1;
   const tdx = Math.abs(dx) > 1e-9 ? Math.abs(CELL / dx) : Infinity, tdz = Math.abs(dz) > 1e-9 ? Math.abs(CELL / dz) : Infinity;
   let tmx = Math.abs(dx) > 1e-9 ? (dx > 0 ? (cx + 1) * CELL - ox : ox - cx * CELL) / Math.abs(dx) : Infinity;
   let tmz = Math.abs(dz) > 1e-9 ? (dz > 0 ? (cz + 1) * CELL - oz : oz - cz * CELL) / Math.abs(dz) : Infinity;
-  for (let i = 0; i < 200; i++) {
-    const h = hAt(cx, cz);
-    if (h > 0 && rayBox(ox, oy, oz, dx, dy, dz, cx * CELL, bAt(cx, cz), cz * CELL, cx * CELL + CELL, h, cz * CELL + CELL) && RB.t < best) {
-      best = RB.t; nx = ny = nz = 0;
-      if (RB.ax === 0) nx = -Math.sign(dx); else if (RB.ax === 1) ny = -Math.sign(dy); else nz = -Math.sign(dz);
-      break;
+  for (let i = 0; i < 400; i++) {
+    if (cx < 0 || cz < 0 || cx >= W.gw || cz >= W.gd) { if (i === 0) { /* луч из-за границы */ } break; }
+    for (const b of W.grid[cz * W.gw + cx]) {
+      if (b.st === st || !b.alive || b.pass) continue; b.st = st;
+      if (skip && skip.has(b)) continue;
+      if (rayBox(ox, oy, oz, dx, dy, dz, b.x0, b.y0, b.z0, b.x1, b.y1, b.z1) && RB.t < best) {
+        best = RB.t; hb = b; nx = ny = nz = 0;
+        if (RB.ax === 0) nx = -Math.sign(dx); else if (RB.ax === 1) ny = -Math.sign(dy); else nz = -Math.sign(dz);
+      }
     }
     const tn = Math.min(tmx, tmz);
-    if (tn > best || h === 99) break;
+    if (tn > best) break;
     if (tmx < tmz) { cx += sx; tmx += tdx; } else { cz += sz; tmz += tdz; }
   }
-  RW.t = best; RW.nx = nx; RW.ny = ny; RW.nz = nz; RW.hit = best < maxT; return RW;
+  RW.t = best; RW.nx = nx; RW.ny = ny; RW.nz = nz; RW.hit = best < maxT; RW.box = RW.hit ? hb : null; return RW;
 }
 const RA = { t: 0, head: false };
 function rayAgent(ox, oy, oz, dx, dy, dz, a) {
@@ -1553,10 +2082,9 @@ addEventListener('resize', () => {
   camera.aspect = vmCam.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); vmCam.updateProjectionMatrix();
 });
 
-scene.add(new THREE.HemisphereLight(0xb8c6ff, 0x4a3a2a, 1.0), new THREE.AmbientLight(0x404a66, 0.25));
+const hemi = new THREE.HemisphereLight(0xb8c6ff, 0x4a3a2a, 1.0), amb = new THREE.AmbientLight(0x404a66, 0.25);
+scene.add(hemi, amb);
 const sun = new THREE.DirectionalLight(0xffd9b0, 2.1);
-sun.position.set(MW * CELL / 2 + 30, 60, MH * CELL / 2 - 25);
-sun.target.position.set(MW * CELL / 2, 0, MH * CELL / 2);
 sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
 Object.assign(sun.shadow.camera, { left: -55, right: 55, top: 55, bottom: -55, near: 1, far: 160 });
 sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.035;
@@ -1657,91 +2185,209 @@ const ductSet = pbrSet(256, 256, (g, w, h) => {
   for (let x = -40; x < w; x += 40) { g.fillStyle = '#e0b030'; g.beginPath(); g.moveTo(x, h - 30); g.lineTo(x + 20, h - 30); g.lineTo(x + 40, h); g.lineTo(x + 20, h); g.fill(); g.fillStyle = '#1a1a1a'; g.beginPath(); g.moveTo(x + 20, h - 30); g.lineTo(x + 40, h - 30); g.lineTo(x + 60, h); g.lineTo(x + 40, h); g.fill(); }
 }, (g, w, h) => { for (let x = 0; x < w; x += 32) { g.fillStyle = '#d0d0d0'; g.fillRect(x, 0, 6, h); } }, (g, w, h) => { g.fillStyle = '#5a5a5a'; g.fillRect(0, 0, w, h); speckle(g, w, h, 4000, 0.3); }, 2);
 
-// небо: градиент заката и звёзды
+// кирпич: кладка со швами и разными оттенками
+const brickSet = pbrSet(512, 512, (g, w, h) => {
+  g.fillStyle = '#7a3f2c'; g.fillRect(0, 0, w, h);
+  for (let y = 0, r = 0; y < h; y += 32, r++) for (let x = (r % 2) * -32; x < w; x += 64) { const k = 0.75 + rnd01() * 0.4; g.fillStyle = `rgb(${130 * k | 0},${62 * k | 0},${44 * k | 0})`; g.fillRect(x + 2, y + 2, 60, 28); }
+  g.fillStyle = 'rgba(200,190,170,.35)'; for (let y = 0; y < h; y += 32) g.fillRect(0, y, w, 3);
+  speckle(g, w, h, 6000, 0.15);
+}, (g, w, h) => { g.fillStyle = '#c0c0c0'; g.fillRect(0, 0, w, h); g.fillStyle = '#404040'; for (let y = 0, r = 0; y < h; y += 32, r++) { g.fillRect(0, y, w, 3); for (let x = (r % 2) * -32; x < w; x += 64) g.fillRect(x, y, 3, 32); } }, null, 3);
+// камень: бутовая кладка
+const stoneSet = pbrSet(512, 512, (g, w, h) => {
+  g.fillStyle = '#6d6a63'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 70; i++) { const k = 0.7 + rnd01() * 0.5; g.fillStyle = `rgb(${120 * k | 0},${116 * k | 0},${106 * k | 0})`; g.beginPath(); g.ellipse(rnd01() * w, rnd01() * h, 24 + rnd01() * 40, 16 + rnd01() * 24, rnd01() * 3, 0, 7); g.fill(); }
+  speckle(g, w, h, 8000, 0.2);
+}, (g, w, h) => { g.fillStyle = '#404040'; g.fillRect(0, 0, w, h); for (let i = 0; i < 70; i++) { g.fillStyle = `rgba(230,230,230,${0.5 + rnd01() * 0.5})`; g.beginPath(); g.ellipse(rnd01() * w, rnd01() * h, 22 + rnd01() * 38, 14 + rnd01() * 22, rnd01() * 3, 0, 7); g.fill(); } }, null, 3);
+// штукатурка: светлая с потёками
+const plasterSet = pbrSet(256, 256, (g, w, h) => {
+  g.fillStyle = '#b9b2a2'; g.fillRect(0, 0, w, h); speckle(g, w, h, 6000, 0.1);
+  for (let i = 0; i < 8; i++) { const x = rnd01() * w; const gg = g.createLinearGradient(0, 0, 0, h); gg.addColorStop(0, 'rgba(60,55,45,.25)'); gg.addColorStop(1, 'rgba(60,55,45,0)'); g.fillStyle = gg; g.fillRect(x, 0, 5 + rnd01() * 12, h); }
+}, (g, w, h) => { for (let i = 0; i < 3000; i++) { g.fillStyle = `rgba(${rnd01() < 0.5 ? '0,0,0' : '255,255,255'},${rnd01() * 0.25})`; g.fillRect(rnd01() * w, rnd01() * h, 2, 2); } }, null, 1.5);
+// асфальт и грунт
+const asphaltSet = pbrSet(512, 512, (g, w, h) => { g.fillStyle = '#2d3036'; g.fillRect(0, 0, w, h); speckle(g, w, h, 16000, 0.18); g.strokeStyle = 'rgba(15,15,18,.7)'; g.lineWidth = 1.5; for (let i = 0; i < 6; i++) { let x = rnd01() * w, y = rnd01() * h; g.beginPath(); g.moveTo(x, y); for (let k = 0; k < 8; k++) { x += (rnd01() - 0.5) * 50; y += (rnd01() - 0.5) * 50; g.lineTo(x, y); } g.stroke(); } },
+  (g, w, h) => { for (let i = 0; i < 9000; i++) { g.fillStyle = `rgba(${rnd01() < 0.5 ? '0,0,0' : '255,255,255'},${rnd01() * 0.3})`; g.fillRect(rnd01() * w, rnd01() * h, 2, 2); } }, null, 1.2);
+const dirtSet = pbrSet(512, 512, (g, w, h) => { g.fillStyle = '#5b4e3c'; g.fillRect(0, 0, w, h); for (let i = 0; i < 60; i++) { g.fillStyle = `rgba(${rnd01() < 0.5 ? '70,60,45' : '110,95,70'},${0.2 + rnd01() * 0.3})`; g.beginPath(); g.ellipse(rnd01() * w, rnd01() * h, 20 + rnd01() * 60, 10 + rnd01() * 30, rnd01() * 3, 0, 7); g.fill(); } speckle(g, w, h, 14000, 0.2); },
+  (g, w, h) => { for (let i = 0; i < 12000; i++) { g.fillStyle = `rgba(${rnd01() < 0.5 ? '0,0,0' : '255,255,255'},${rnd01() * 0.35})`; g.fillRect(rnd01() * w, rnd01() * h, 3, 3); } }, null, 1.5);
+const tileSet = floorSet;
+// бетон без разметки: плиты перекрытий, стены цехов, бункеры
+const concreteSet = pbrSet(512, 512, (g, w, h) => {
+  g.fillStyle = '#7d8086'; g.fillRect(0, 0, w, h); speckle(g, w, h, 14000, 0.12);
+  for (let i = 0; i < 20; i++) { g.fillStyle = `rgba(${rnd01() < 0.5 ? '40,42,48' : '150,152,158'},${rnd01() * 0.14})`; g.beginPath(); g.ellipse(rnd01() * w, rnd01() * h, 30 + rnd01() * 80, 15 + rnd01() * 40, rnd01() * 3, 0, 7); g.fill(); }
+  g.strokeStyle = '#5c5f66'; g.lineWidth = 3; g.strokeRect(2, 2, w - 4, h - 4);
+  g.fillStyle = '#9a9ea6'; for (const [x, y] of [[24, 24], [w - 24, 24], [24, h - 24], [w - 24, h - 24], [w / 2, h / 2]]) { g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill(); }
+}, (g, w, h) => { g.strokeStyle = '#303030'; g.lineWidth = 5; g.strokeRect(2, 2, w - 4, h - 4); for (let i = 0; i < 7000; i++) { g.fillStyle = `rgba(${rnd01() < 0.5 ? '0,0,0' : '255,255,255'},${rnd01() * 0.22})`; g.fillRect(rnd01() * w, rnd01() * h, 2, 2); } }, null, 2.2);
+// листовой металл: гофра с потёртостями (цеха, ангары, заборы)
+const sheetSet = pbrSet(256, 256, (g, w, h) => {
+  g.fillStyle = '#7f8a92'; g.fillRect(0, 0, w, h);
+  for (let x = 0; x < w; x += 16) { const gr = g.createLinearGradient(x, 0, x + 16, 0); gr.addColorStop(0, 'rgba(0,0,0,.25)'); gr.addColorStop(0.5, 'rgba(255,255,255,.12)'); gr.addColorStop(1, 'rgba(0,0,0,.25)'); g.fillStyle = gr; g.fillRect(x, 0, 16, h); }
+  speckle(g, w, h, 4000, 0.15); g.fillStyle = 'rgba(110,70,40,.3)'; for (let i = 0; i < 10; i++) g.fillRect(rnd01() * w, rnd01() * h, 3 + rnd01() * 10, 10 + rnd01() * 40);
+}, (g, w, h) => { for (let x = 0; x < w; x += 16) { const gr = g.createLinearGradient(x, 0, x + 16, 0); gr.addColorStop(0, '#404040'); gr.addColorStop(0.5, '#e0e0e0'); gr.addColorStop(1, '#404040'); g.fillStyle = gr; g.fillRect(x, 0, 16, h); } },
+(g, w, h) => { g.fillStyle = '#6a6a6a'; g.fillRect(0, 0, w, h); speckle(g, w, h, 5000, 0.35); }, 3);
+// материалы мира: тип → PBR-материал и масштаб текстуры (метров на повтор)
+const WMAT = {};
+function worldMat(m) {
+  if (WMAT[m]) return WMAT[m];
+  const T = (set, rep, o = {}) => { const mm = new THREE.MeshStandardMaterial({ map: set.map.clone(), normalMap: set.normalMap.clone(), roughnessMap: set.roughnessMap ? set.roughnessMap.clone() : null, roughness: 1, envMapIntensity: 0.45, ...o }); for (const t of [mm.map, mm.normalMap, mm.roughnessMap]) if (t) { t.repeat.set(1, 1); t.needsUpdate = true; } mm.userData.rep = rep; return mm; };
+  const def = {
+    concrete: () => T(concreteSet, 3.5, { normalScale: new THREE.Vector2(0.6, 0.6) }), panel: () => T(wallSet, 4.5, { normalScale: new THREE.Vector2(0.7, 0.7) }), brick: () => T(brickSet, 2.5), stone: () => T(stoneSet, 3), plaster: () => T(plasterSet, 2.5, { color: 0xf0ece4 }),
+    metal: () => T(sheetSet, 2.5, { metalness: 0.55, envMapIntensity: 0.8 }), roof: () => T(sheetSet, 2.5, { metalness: 0.5, color: 0xb07a5a }), duct: () => T(ductSet, 2, { metalness: 0.7, envMapIntensity: 0.9 }),
+    container: () => T(tallSet, 2.4, { metalness: 0.45, envMapIntensity: 0.6 }), wood: () => T(crateSet, 1.2, { roughness: 0.8, color: 0xc9a27a }), crate: () => T(crateSet, 1.1, { roughness: 0.78 }),
+    asphalt: () => T(asphaltSet, 4), dirt: () => T(dirtSet, 4), tile: () => T(tileSet, 4, { normalScale: new THREE.Vector2(0.6, 0.6) }), sand: () => T(dirtSet, 1.5, { color: 0xd8c9a0 }),
+    car: () => new THREE.MeshStandardMaterial({ color: 0x5a6b7c, metalness: 0.6, roughness: 0.35, envMapIntensity: 1.1 }),
+    snow: () => T(plasterSet, 3, { color: 0xffffff }), grass: () => T(dirtSet, 4, { color: 0x6f8a4a }),
+  };
+  return (WMAT[m] = (def[m] || def.concrete)());
+}
+// грани коробки с UV в мировых метрах (текстура тянется по поверхности без искажений)
+function pushBoxGeo(b, acc, rep) {
+  const { x0, y0, z0, x1, y1, z1 } = b, k = 1 / rep;
+  const F = [
+    [[x1, y0, z1], [x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [1, 0, 0], (p) => [-p[2] * k, p[1] * k]],
+    [[x0, y0, z0], [x0, y0, z1], [x0, y1, z1], [x0, y1, z0], [-1, 0, 0], (p) => [p[2] * k, p[1] * k]],
+    [[x0, y1, z1], [x1, y1, z1], [x1, y1, z0], [x0, y1, z0], [0, 1, 0], (p) => [p[0] * k, -p[2] * k]],
+    [[x0, y0, z0], [x1, y0, z0], [x1, y0, z1], [x0, y0, z1], [0, -1, 0], (p) => [p[0] * k, p[2] * k]],
+    [[x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1], [0, 0, 1], (p) => [p[0] * k, p[1] * k]],
+    [[x1, y0, z0], [x0, y0, z0], [x0, y1, z0], [x1, y1, z0], [0, 0, -1], (p) => [-p[0] * k, p[1] * k]],
+  ];
+  for (const [a, b_, c, d, n, uv] of F) {
+    const base = acc.pos.length / 3;
+    for (const p of [a, b_, c, d]) { acc.pos.push(p[0], p[1], p[2]); acc.nrm.push(n[0], n[1], n[2]); const u = uv(p); acc.uv.push(u[0], u[1]); }
+    acc.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+  }
+}
+const WR = { group: new THREE.Group(), glass: null, glassBoxes: [], lights: [] };
+scene.add(WR.group);
+const glassMat = new THREE.MeshStandardMaterial({ color: 0x9fc8e0, transparent: true, opacity: 0.32, roughness: 0.05, metalness: 0.2, envMapIntensity: 1.6, depthWrite: false });
+const carColors = [0x5a6b7c, 0x7a2d2a, 0x2f4a3a, 0xb8b0a0, 0x23262d, 0x6b5a3a];
+// небо (цвета задаёт окружение карты) и звёзды
 const sky = new THREE.Mesh(new THREE.SphereGeometry(250, 32, 16), new THREE.ShaderMaterial({
   side: THREE.BackSide, depthWrite: false, fog: false,
   uniforms: { top: { value: new THREE.Color(0x0b1026) }, mid: { value: new THREE.Color(0x2a2f45) }, low: { value: new THREE.Color(0xc0603a) } },
   vertexShader: 'varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
   fragmentShader: 'uniform vec3 top; uniform vec3 mid; uniform vec3 low; varying vec3 vP; void main(){ float h = vP.y; vec3 c = mix(mid, top, smoothstep(0.05, 0.6, h)); c = mix(c, low, smoothstep(0.18, -0.02, h) * 0.55); gl_FragColor = vec4(c, 1.0); }',
 }));
-sky.position.set(MW * CELL / 2, 0, MH * CELL / 2); sky.renderOrder = -1; scene.add(sky);
-{
+sky.renderOrder = -1; scene.add(sky);
+const stars = (() => {
   const n = 600, pos = new Float32Array(n * 3);
   for (let i = 0; i < n; i++) { const th = Math.random() * Math.PI * 2, y = rand(0.25, 1), r = Math.sqrt(1 - y * y); pos.set([Math.cos(th) * r * 240, y * 240, Math.sin(th) * r * 240], i * 3); }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  const st = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: 1.2, sizeAttenuation: false, fog: false, transparent: true, opacity: 0.8 }));
-  st.position.copy(sky.position); scene.add(st);
-}
-const floor = new THREE.Mesh(new THREE.PlaneGeometry(MW * CELL, MH * CELL), new THREE.MeshStandardMaterial({ ...floorSet, roughness: 1, metalness: 0.05, envMapIntensity: 0.45, normalScale: new THREE.Vector2(0.6, 0.6) }));
-floor.rotation.x = -Math.PI / 2; floor.position.set(MW * CELL / 2, 0, MH * CELL / 2); floor.receiveShadow = true;
-scene.add(floor);
-// земля за пределами локации и городские силуэты вдали — глубина и атмосферная перспектива (уходят в туман)
-{
-  const outer = new THREE.Mesh(new THREE.RingGeometry(Math.hypot(MW, MH) * CELL * 0.5 + 2, 260, 48, 1), new THREE.MeshStandardMaterial({ color: 0x232838, roughness: 1, metalness: 0 }));
-  outer.rotation.x = -Math.PI / 2; outer.position.set(MW * CELL / 2, -0.02, MH * CELL / 2); scene.add(outer);
-  const under = new THREE.Mesh(new THREE.PlaneGeometry(MW * CELL + 40, MH * CELL + 40), new THREE.MeshStandardMaterial({ color: 0x232838, roughness: 1 }));
-  under.rotation.x = -Math.PI / 2; under.position.set(MW * CELL / 2, -0.03, MH * CELL / 2); scene.add(under);
-  const winTex = canvasTex(64, 128, (g, w, h) => { g.fillStyle = '#141824'; g.fillRect(0, 0, w, h); for (let y = 6; y < h; y += 12) for (let x = 5; x < w; x += 12) { g.fillStyle = rnd01() < 0.22 ? `rgba(255,${190 + rnd01() * 50 | 0},120,${0.5 + rnd01() * 0.5})` : 'rgba(40,48,66,.8)'; g.fillRect(x, y, 6, 7); } });
-  const bm = new THREE.MeshStandardMaterial({ color: 0x1a1f2c, roughness: 0.9, emissive: 0xffffff, emissiveMap: winTex, emissiveIntensity: 0.55, map: winTex });
-  const n = 70, sk = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), bm, n), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), ps = new THREE.Vector3();
-  for (let i = 0; i < n; i++) {
-    const a = i / n * Math.PI * 2 + rnd01() * 0.05, r = 95 + rnd01() * 60, hgt = 14 + rnd01() * 46;
-    ps.set(MW * CELL / 2 + Math.cos(a) * r * 1.2, hgt / 2, MH * CELL / 2 + Math.sin(a) * r); sc.set(8 + rnd01() * 14, hgt, 8 + rnd01() * 14); q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), rnd01() * 3);
-    sk.setMatrixAt(i, m4.compose(ps, q, sc));
+  const st = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: 1.2, sizeAttenuation: false, fog: false, transparent: true, opacity: 0.8 })); scene.add(st); return st;
+})();
+// время суток: небо, туман, солнце, рассеянный свет
+const ENV_TIME = {
+  dusk: { sky: [0x0b1026, 0x2a2f45, 0xc0603a], fog: [0x2a2f45, 50, 170], sun: [0xffd9b0, 2.1, [30, 60, -25]], hemi: [0xb8c6ff, 0x4a3a2a, 1.0], amb: 0.25, stars: 0.8, exp: 1 },
+  overcast: { sky: [0x3a4250, 0x6a7280, 0x8a8a88], fog: [0x6a7280, 25, 120], sun: [0xd8dde6, 1.1, [-20, 70, 30]], hemi: [0xc8d0dc, 0x4a4640, 1.35], amb: 0.35, stars: 0, exp: 1 },
+  night: { sky: [0x03050c, 0x0c1222, 0x1e2436], fog: [0x0c1222, 24, 120], sun: [0x9fb4ff, 0.7, [-40, 60, 20]], hemi: [0x5a6a90, 0x221c16, 0.8], amb: 0.28, stars: 1, exp: 1.2 },
+  day: { sky: [0x3f7fd6, 0x9cc4ec, 0xdfe8ef], fog: [0xb8cde0, 60, 230], sun: [0xfff2dc, 3.0, [40, 80, 30]], hemi: [0xcfe2ff, 0x6a5a40, 1.2], amb: 0.3, stars: 0, exp: 0.95 },
+  morning: { sky: [0x6c8fb8, 0xb9c6d2, 0xe8d8c0], fog: [0xc4ccd4, 18, 95], sun: [0xffe6c4, 2.0, [60, 35, -30]], hemi: [0xd8e2ee, 0x5a5048, 1.25], amb: 0.32, stars: 0, exp: 1 },
+};
+let skyline = null, outerGround = null, groundMesh = null, zoneObj = null;
+function buildWorldRender() {
+  // очистка прошлой карты
+  for (const o of [...WR.group.children]) { WR.group.remove(o); o.traverse(c => { if (c.geometry) c.geometry.dispose(); }); }
+  for (const L of WR.lights) { scene.remove(L); L.dispose(); } WR.lights = []; WR.glassBoxes = [];
+  const W = WORLD, env = ENV_TIME[W.env.time] || ENV_TIME.dusk;
+  // геометрия: все коробки одного материала — один меш (статическое объединение = мало вызовов отрисовки)
+  const acc = {};
+  for (const b of W.boxes) {
+    if (b.hidden || b.glass) continue;
+    const key = b.car ? 'car' + (Math.abs(Math.floor(b.x0 * 7 + b.z0 * 13)) % carColors.length) : b.m;
+    const a = acc[key] || (acc[key] = { pos: [], nrm: [], uv: [], idx: [], m: b.m, car: b.car });
+    pushBoxGeo(b, a, worldMat(b.m).userData.rep || 2);
   }
-  scene.add(sk);
-}
-function buildInstanced(ch, h, mat, geo = new THREE.BoxGeometry(CELL, h, CELL), y0 = 0) {
-  const cells = []; for (let z = 0; z < MH; z++) for (let x = 0; x < MW; x++) if (MAP[z][x] === ch) cells.push([x, z]);
-  const m = new THREE.InstancedMesh(geo, mat, cells.length);
-  const mat4 = new THREE.Matrix4();
-  cells.forEach(([x, z], i) => { mat4.makeTranslation(x * CELL + CELL / 2, y0 + h / 2, z * CELL + CELL / 2); m.setMatrixAt(i, mat4); });
-  m.castShadow = m.receiveShadow = true; scene.add(m); return m;
-}
-buildInstanced('#', WALL_H, new THREE.MeshStandardMaterial({ ...wallSet, roughness: 1, envMapIntensity: 0.4, normalScale: new THREE.Vector2(0.8, 0.8) }));
-buildInstanced('b', CRATE_H, new THREE.MeshStandardMaterial({ map: crateSet.map, normalMap: crateSet.normalMap, roughness: 0.78, envMapIntensity: 0.35 }), new RoundedBoxGeometry(CELL - 0.02, CRATE_H, CELL - 0.02, 2, 0.07));
-buildInstanced('B', TALL_H, new THREE.MeshStandardMaterial({ ...tallSet, roughness: 1, metalness: 0.5, envMapIntensity: 0.7 }), new RoundedBoxGeometry(CELL - 0.02, TALL_H, CELL - 0.02, 2, 0.06));
-buildInstanced('u', DUCT_T - DUCT_B, new THREE.MeshStandardMaterial({ ...ductSet, roughness: 1, metalness: 0.7, envMapIntensity: 0.9 }), new RoundedBoxGeometry(CELL, DUCT_T - DUCT_B, CELL - 0.04, 2, 0.05), DUCT_B);
-// карнизы стен и неоновые полосы в цветах команд на сторонах карты
-{
-  const walls = []; for (let z = 0; z < MH; z++) for (let x = 0; x < MW; x++) if (MAP[z][x] === '#') walls.push([x, z]);
-  const cap = new THREE.InstancedMesh(new THREE.BoxGeometry(CELL + 0.12, 0.22, CELL + 0.12), new THREE.MeshStandardMaterial({ color: 0x3a4152, roughness: 0.5, metalness: 0.6, envMapIntensity: 0.6 }), walls.length);
-  const m4 = new THREE.Matrix4();
-  walls.forEach(([x, z], i) => { m4.makeTranslation(x * CELL + 1, WALL_H + 0.05, z * CELL + 1); cap.setMatrixAt(i, m4); });
-  cap.castShadow = cap.receiveShadow = true; scene.add(cap);
-  const strips = [[], []];
-  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  for (const [x, z] of walls) for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-    if (!walk(x + dx, z + dz) || rnd() > 0.22) continue;
-    strips[x < MW / 2 ? 0 : 1].push([x * CELL + 1 + dx * 1.005, z * CELL + 1 + dz * 1.005, dx !== 0]);
+  for (const [key, a] of Object.entries(acc)) {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(a.pos, 3)); g.setAttribute('normal', new THREE.Float32BufferAttribute(a.nrm, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(a.uv, 2));
+    g.setIndex(a.idx); g.computeBoundingSphere();
+    let mat = worldMat(a.m);
+    if (a.car) { mat = worldMat('car').clone(); mat.color.setHex(carColors[+key.slice(3)]); }
+    const mesh = new THREE.Mesh(g, mat); mesh.castShadow = mesh.receiveShadow = true; mesh.layers.enable(1); WR.group.add(mesh);
   }
-  const sg = new THREE.BoxGeometry(1.5, 0.07, 0.05);
-  strips.forEach((list, t) => {
-    const im = new THREE.InstancedMesh(sg, new THREE.MeshBasicMaterial({ color: t ? 0xff9a50 : 0x5fc0ff }), list.length);
-    list.forEach(([x, z, rot], i) => { m4.makeRotationY(rot ? Math.PI / 2 : 0).setPosition(x, 2.9, z); im.setMatrixAt(i, m4); });
-    scene.add(im);
-  });
+  // стекло — отдельные стёкла (можно разбить)
+  const gl = W.boxes.filter(b => b.glass);
+  if (gl.length) {
+    const im = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), glassMat, gl.length), m4 = new THREE.Matrix4();
+    gl.forEach((b, i) => { b.gi = i; m4.compose(new THREE.Vector3((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, (b.z0 + b.z1) / 2), new THREE.Quaternion(), new THREE.Vector3(b.x1 - b.x0, b.y1 - b.y0, b.z1 - b.z0)); im.setMatrixAt(i, m4); });
+    im.renderOrder = 1; WR.group.add(im); WR.glass = im; WR.glassBoxes = gl;
+  } else WR.glass = null;
+  // деревья (крона) и колёса машин — только вид
+  const treeGeo = new THREE.ConeGeometry(1.6, 4.2, 9), treeMat = new THREE.MeshStandardMaterial({ color: 0x2f4a32, roughness: 0.9 });
+  const trees = W.props.filter(p => p.kind === 'tree');
+  if (trees.length) { const im = new THREE.InstancedMesh(treeGeo, treeMat, trees.length), m4 = new THREE.Matrix4(); trees.forEach((t, i) => im.setMatrixAt(i, m4.compose(new THREE.Vector3(t.x, 2.6 * t.s + 1.4, t.z), new THREE.Quaternion(), new THREE.Vector3(t.s, t.s, t.s)))); im.castShadow = true; WR.group.add(im); WR.trees = im; }
+  const wheels = W.props.filter(p => p.kind === 'wheels');
+  if (wheels.length) {
+    const im = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.34, 0.34, 0.24, 14), new THREE.MeshStandardMaterial({ color: 0x151515, roughness: 0.8 }), wheels.length * 4), m4 = new THREE.Matrix4(), q = new THREE.Quaternion();
+    wheels.forEach((w, i) => { const ax = w.alongX; q.setFromEuler(new THREE.Euler(ax ? Math.PI / 2 : 0, 0, ax ? 0 : Math.PI / 2)); [[-1.4, -0.85], [1.4, -0.85], [-1.4, 0.85], [1.4, 0.85]].forEach(([a, c], k) => im.setMatrixAt(i * 4 + k, m4.compose(new THREE.Vector3(w.x + (ax ? a : c), 0.34, w.z + (ax ? c : a)), q, new THREE.Vector3(1, 1, 1)))); });
+    WR.group.add(im);
+  }
+  // земля
+  if (groundMesh) { scene.remove(groundMesh); groundMesh.geometry.dispose(); groundMesh = null; }
+  if (W.groundPlane) {
+    const gm = worldMat(W.env.ground || 'tile'), g = new THREE.PlaneGeometry(W.W, W.D), rep = gm.userData.rep || 4;
+    const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * W.W / rep, uv.getY(i) * W.D / rep);
+    groundMesh = new THREE.Mesh(g, gm); groundMesh.rotation.x = -Math.PI / 2; groundMesh.position.set(W.W / 2, 0, W.D / 2); groundMesh.receiveShadow = true; groundMesh.layers.enable(1); scene.add(groundMesh);
+  }
+  // окрестности: земля вокруг и силуэты вдали
+  if (outerGround) scene.remove(outerGround);
+  const R0 = Math.hypot(W.W, W.D) * 0.5 + 2;
+  outerGround = new THREE.Mesh(new THREE.RingGeometry(R0 - 6, 300, 48, 1), new THREE.MeshStandardMaterial({ color: env === ENV_TIME.day ? 0x6a6048 : 0x232838, roughness: 1 }));
+  outerGround.rotation.x = -Math.PI / 2; outerGround.position.set(W.W / 2, -0.05, W.D / 2); scene.add(outerGround);
+  if (skyline) { scene.remove(skyline); skyline = null; }
+  {
+    const mountain = W.id === 'village' || W.id === 'base';
+    const winTex = canvasTex(64, 128, (g, w, h) => { g.fillStyle = '#141824'; g.fillRect(0, 0, w, h); for (let y = 6; y < h; y += 12) for (let x = 5; x < w; x += 12) { g.fillStyle = rnd01() < 0.22 ? `rgba(255,${190 + rnd01() * 50 | 0},120,${0.5 + rnd01() * 0.5})` : 'rgba(40,48,66,.8)'; g.fillRect(x, y, 6, 7); } });
+    const bm = mountain ? new THREE.MeshStandardMaterial({ color: W.id === 'village' ? 0x5a6470 : 0x6b6a5a, roughness: 1, flatShading: true }) : new THREE.MeshStandardMaterial({ color: 0x1a1f2c, roughness: 0.9, emissive: 0xffffff, emissiveMap: winTex, emissiveIntensity: env.stars ? 0.55 : 0.08, map: winTex });
+    const n = mountain ? 40 : 70, geo = mountain ? new THREE.ConeGeometry(1, 1, 6) : new THREE.BoxGeometry(1, 1, 1), sk = new THREE.InstancedMesh(geo, bm, n), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), ps = new THREE.Vector3();
+    for (let i = 0; i < n; i++) {
+      const a = i / n * Math.PI * 2 + rnd01() * 0.05, r = R0 + 45 + rnd01() * 70, hgt = mountain ? 40 + rnd01() * 70 : 14 + rnd01() * 46;
+      ps.set(W.W / 2 + Math.cos(a) * r, hgt / 2, W.D / 2 + Math.sin(a) * r); sc.set(mountain ? 40 + rnd01() * 40 : 8 + rnd01() * 14, hgt, mountain ? 40 + rnd01() * 40 : 8 + rnd01() * 14); q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), rnd01() * 3);
+      sk.setMatrixAt(i, m4.compose(ps, q, sc));
+    }
+    scene.add(sk); skyline = sk;
+  }
+  // небо, туман, солнце
+  sky.position.set(W.W / 2, 0, W.D / 2); stars.position.copy(sky.position); stars.material.opacity = env.stars; stars.visible = env.stars > 0;
+  sky.material.uniforms.top.value.setHex(env.sky[0]); sky.material.uniforms.mid.value.setHex(env.sky[1]); sky.material.uniforms.low.value.setHex(env.sky[2]);
+  scene.background = new THREE.Color(env.fog[0]); scene.fog.color.setHex(env.fog[0]); WORLD.fogBase = [env.fog[1], env.fog[2]];
+  sun.color.setHex(env.sun[0]); sun.intensity = env.sun[1]; sun.position.set(W.W / 2 + env.sun[2][0], env.sun[2][1], W.D / 2 + env.sun[2][2]); sun.target.position.set(W.W / 2, 0, W.D / 2);
+  const ext = Math.max(W.W, W.D) * 0.62; Object.assign(sun.shadow.camera, { left: -ext, right: ext, top: ext, bottom: -ext, near: 1, far: 260 }); sun.shadow.camera.updateProjectionMatrix();
+  hemi.color.setHex(env.hemi[0]); hemi.groundColor.setHex(env.hemi[1]); hemi.intensity = env.hemi[2]; amb.intensity = env.amb;
+  WORLD.exposure = env.exp;
+  // локальные источники света карты (не больше 8 — ограничение по производительности)
+  for (const l of W.lights.slice(0, 8)) { const L = new THREE.PointLight(l.color, l.intensity, l.dist); L.position.set(l.x, l.y, l.z); scene.add(L); WR.lights.push(L); }
+  for (const t of [0, 1]) { const s = W.spawns[t][Math.floor(W.spawns[t].length / 2)]; if (!s) continue; const L = new THREE.PointLight(t ? 0xff8a3d : 0x4fb3ff, 20, 12); L.position.set(s[0], (s[2] || 0) + 3, s[1]); scene.add(L); WR.lights.push(L); }
+  // узел связи
+  zoneObj.place();
+  if (typeof applySettings === 'function' && typeof buildPost === 'function') { try { applySettings(); } catch (e) {} }
 }
-
-// узел связи
+// разбить стекло: стекло исчезает, летят осколки
+function breakGlass(b, p) {
+  if (!b || !b.glass || !b.alive) return;
+  b.alive = false;
+  if (WR.glass && b.gi !== undefined) { const m4 = new THREE.Matrix4().makeScale(0, 0, 0); WR.glass.setMatrixAt(b.gi, m4); WR.glass.instanceMatrix.needsUpdate = true; }
+  if (typeof glassFx === 'function') glassFx(b, p);
+  netEvent && NET && NET.mode === 'host' && netEvent({ k: 'gl', i: b.i });
+}
+function restoreGlass() {
+  if (!WR.glass) return; const m4 = new THREE.Matrix4();
+  for (const b of WR.glassBoxes) { if (b.alive) continue; b.alive = true; m4.compose(new THREE.Vector3((b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2, (b.z0 + b.z1) / 2), new THREE.Quaternion(), new THREE.Vector3(b.x1 - b.x0, b.y1 - b.y0, b.z1 - b.z0)); WR.glass.setMatrixAt(b.gi, m4); }
+  WR.glass.instanceMatrix.needsUpdate = true;
+}
+// узел связи: площадка, луч и кольцо (переставляются при смене карты)
 const zoneMat = new THREE.MeshBasicMaterial({ color: 0xc7a6ff, transparent: true, opacity: 0.18, depthWrite: false });
-const zonePlane = new THREE.Mesh(new THREE.PlaneGeometry(zone.x1 - zone.x0, zone.z1 - zone.z0), zoneMat);
-zonePlane.rotation.x = -Math.PI / 2; zonePlane.position.set(zone.cx, 0.02, zone.cz); scene.add(zonePlane);
-const zoneEdge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(zone.x1 - zone.x0, 0.05, zone.z1 - zone.z0)), new THREE.LineBasicMaterial({ color: 0xc7a6ff }));
-zoneEdge.position.set(zone.cx, 0.05, zone.cz); scene.add(zoneEdge);
+const zonePlane = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), zoneMat); zonePlane.rotation.x = -Math.PI / 2; scene.add(zonePlane);
+const zoneEdge = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 0.05, 1)), new THREE.LineBasicMaterial({ color: 0xc7a6ff })); scene.add(zoneEdge);
 const beamMat = new THREE.MeshBasicMaterial({ color: 0xc7a6ff, transparent: true, opacity: 0.25, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
-const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.6, 40, 16, 1, true), beamMat);
-beam.position.set(zone.cx, 20, zone.cz); scene.add(beam);
-const ring = new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.06, 8, 48), new THREE.MeshBasicMaterial({ color: 0xc7a6ff }));
-ring.rotation.x = Math.PI / 2; ring.position.set(zone.cx, 1.5, zone.cz); scene.add(ring);
-const zoneLight = new THREE.PointLight(0xc7a6ff, 30, 16); zoneLight.position.set(zone.cx, 3, zone.cz); scene.add(zoneLight);
-for (const t of [0, 1]) {
-  const c = spawnCells[t][7]; const L = new THREE.PointLight(t ? 0xff8a3d : 0x4fb3ff, 25, 14);
-  L.position.set(c[0] * CELL + 1, 3, c[1] * CELL + 1); scene.add(L);
-}
-
-// статичная геометрия мира — слой 1 (для AO и будущего отсечения невидимого)
-for (const o of scene.children) if ((o.isMesh || o.isInstancedMesh) && o !== sky && !(o.material && o.material.transparent)) o.layers.enable(1);
+const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.6, 40, 16, 1, true), beamMat); scene.add(beam);
+const ring = new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.06, 8, 48), new THREE.MeshBasicMaterial({ color: 0xc7a6ff })); ring.rotation.x = Math.PI / 2; scene.add(ring);
+const zoneLight = new THREE.PointLight(0xc7a6ff, 30, 16); scene.add(zoneLight);
+zoneObj = { place() {
+  const w = zone.x1 - zone.x0, d = zone.z1 - zone.z0, y = zone.y;
+  zonePlane.scale.set(w, d, 1); zonePlane.position.set(zone.cx, y + 0.03, zone.cz);
+  zoneEdge.scale.set(w, 1, d); zoneEdge.position.set(zone.cx, y + 0.05, zone.cz);
+  beam.position.set(zone.cx, y + 20, zone.cz); ring.position.set(zone.cx, y + 1.5, zone.cz); zoneLight.position.set(zone.cx, y + 3, zone.cz);
+} };
+onWorld(buildWorldRender);
 bootMark('06_renderer_scene');
 /* ================= постобработка ================= */
 // Цепочка: сцена (MSAA при включённом сглаживании) → AO (только «Ультра») → умеренное свечение →
@@ -1908,6 +2554,8 @@ function makeParticles(n, additive) {
   P_.pts = pts; P_.geo = geo; P_.mat = mat; return P_;
 }
 const PSMOKE = makeParticles(700, false), PGLOW = makeParticles(500, true);
+PSMOKE.floor = PGLOW.floor = 0.02;
+onWorld(() => { PSMOKE.floor = PGLOW.floor = (WORLD.groundPlane ? 0 : WORLD.floorY) + 0.02; });
 addEventListener('resize', () => { PSMOKE.mat.uniforms.scale.value = PGLOW.mat.uniforms.scale.value = innerHeight * 0.5; });
 const fxScale = () => SET.effects ? 1 : 0.5; // при низких эффектах частиц вдвое меньше
 // emit: позиция, скорость, размер и рост, время жизни, цвет, прозрачность, гравитация, сопротивление воздуха
@@ -1927,7 +2575,7 @@ function updateParticles(S, dt) {
     const dr = Math.exp(-S.drag[i] * dt);
     S.vel[k] *= dr; S.vel[k + 1] = S.vel[k + 1] * dr - S.grav[i] * dt; S.vel[k + 2] *= dr;
     S.pos[k] += S.vel[k] * dt; S.pos[k + 1] += S.vel[k + 1] * dt; S.pos[k + 2] += S.vel[k + 2] * dt;
-    if (S.pos[k + 1] < 0.02 && S.grav[i] > 0) { S.pos[k + 1] = 0.02; S.vel[k + 1] *= -0.3; S.vel[k] *= 0.6; S.vel[k + 2] *= 0.6; }
+    if (S.pos[k + 1] < S.floor && S.grav[i] > 0) { S.pos[k + 1] = 0.02; S.vel[k + 1] *= -0.3; S.vel[k] *= 0.6; S.vel[k + 2] *= 0.6; }
     S.size[i] += S.grow[i] * dt;
     const f = S.life[i] / S.max[i]; S.alpha[i] = S.a0[i] * Math.min(1, f * 1.6) * Math.min(1, (1 - f) * 12 + 0.25);
     any = true;
@@ -1945,13 +2593,24 @@ function sparks(pos, n, blood = false) {
 }
 // материал поверхности по клетке карты: бетон, дерево, металл или земля
 function surfaceAt(p, nx, ny, nz) {
-  if (ny > 0.5 && p.y < 0.05) return 'ground';
-  const c = cellCh(Math.floor((p.x - nx * 0.05) / CELL), Math.floor((p.z - nz * 0.05) / CELL));
-  return c === 'b' ? 'wood' : c === 'B' || c === 'u' ? 'metal' : 'concrete';
+  if (WORLD.groundPlane && ny > 0.5 && p.y < 0.05) return MAT_INFO[WORLD.env.ground]?.fx || 'ground';
+  const m = materialAt(p.x - nx * 0.05, p.y - ny * 0.05, p.z - nz * 0.05);
+  return (MAT_INFO[m] && MAT_INFO[m].fx) || 'concrete';
+}
+// осколки стекла: блестящие частицы и звон
+function glassFx(b, p) {
+  const cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2, cz = (b.z0 + b.z1) / 2, q = fxScale();
+  for (let i = 0; i < 40 * q; i++) {
+    const x = rand(b.x0, b.x1), y = rand(b.y0, b.y1), z = rand(b.z0, b.z1);
+    emit(PGLOW, x, y, z, rand(-1.5, 1.5), rand(-0.5, 1.5), rand(-1.5, 1.5), rand(0.03, 0.06), 0, rand(0.6, 1.2), 0.75, 0.9, 1, 0.8, 9, 0.6);
+  }
+  const d = camera.position.distanceTo(new THREE.Vector3(cx, cy, cz));
+  if (d < 40) { const v = Math.max(0.05, 0.35 * (1 - d / 40)); for (let i = 0; i < 4; i++) setTimeout(() => tone(rand(2600, 5200), 0.12, 'triangle', v), i * 35); }
 }
 // попадание по миру: реакция зависит от материала
 function impactFx(p, nx, ny, nz) {
   const m = surfaceAt(p, nx, ny, nz), q = fxScale();
+  if (m === 'glass') { emit(PGLOW, p.x, p.y, p.z, 0, 0, 0, 0.15, -0.4, 0.1, 0.8, 0.95, 1, 1); return; }
   if (m === 'metal') { sparks(p, 7); emit(PGLOW, p.x, p.y, p.z, 0, 0, 0, 0.22, -0.6, 0.06, 1, 0.85, 0.5, 1); }
   else {
     const col = m === 'wood' ? [0.45, 0.33, 0.2] : m === 'ground' ? [0.38, 0.36, 0.33] : [0.55, 0.56, 0.6];
@@ -3266,42 +3925,50 @@ let P = agents[0];
 
 bootMark('09_agents');
 /* ================= physics ================= */
+// столкновения бойца (цилиндр радиуса r, высота по позе) с коробками мира, по осям отдельно.
+// Ступени и пороги до STEP — перешагиваем, если над ними хватает места.
 function resolveAxis(a, axis, d) {
   const r = 0.32, H = a.height(), p = a.pos;
-  const x0 = Math.floor((p.x - r) / CELL), x1 = Math.floor((p.x + r) / CELL), z0 = Math.floor((p.z - r) / CELL), z1 = Math.floor((p.z + r) / CELL);
-  for (let cz = z0; cz <= z1; cz++) for (let cx = x0; cx <= x1; cx++) {
-    const h = hAt(cx, cz); if (!solidSpan(cx, cz, p.y, p.y + H)) continue;
-    if (a.onGround && h - p.y <= STEP && h < 90 && bAt(cx, cz) === 0) { p.y = h; continue; }
-    if (axis === 0) p.x = d > 0 ? cx * CELL - r - 1e-4 : (cx + 1) * CELL + r + 1e-4;
-    else p.z = d > 0 ? cz * CELL - r - 1e-4 : (cz + 1) * CELL + r + 1e-4;
+  let blocked = false;
+  eachBox(p.x - r, p.z - r, p.x + r, p.z + r, b => {
+    if (b.pass || b.y1 <= p.y + 0.001 || b.y0 >= p.y + H - 0.001) return;
+    if (a.onGround && b.y1 - p.y <= STEP && !solidRect(p.x, p.z, r, b.y1 + 0.01, b.y1 + H)) { p.y = b.y1; return; }
+    if (axis === 0) p.x = d > 0 ? b.x0 - r - 1e-4 : b.x1 + r + 1e-4;
+    else p.z = d > 0 ? b.z0 - r - 1e-4 : b.z1 + r + 1e-4;
     if (axis === 0) a.vel.x = 0; else a.vel.z = 0;
-    return true;
-  }
-  return false;
+    blocked = true;
+  });
+  return blocked;
 }
 function moveBody(a, dt) {
   const p = a.pos, dx = a.vel.x * dt, dz = a.vel.z * dt;
   let blocked = false;
-  if (dx) { p.x += dx; blocked = resolveAxis(a, 0, dx) || blocked; }
-  if (dz) { p.z += dz; blocked = resolveAxis(a, 1, dz) || blocked; }
-  const prevY = p.y; a.vel.y -= GRAV * dt; p.y += a.vel.y * dt; a.onGround = false;
-  if (p.y <= 0) { p.y = 0; a.vel.y = 0; a.onGround = true; }
-  const r = 0.28, x0 = Math.floor((p.x - r) / CELL), x1 = Math.floor((p.x + r) / CELL), z0 = Math.floor((p.z - r) / CELL), z1 = Math.floor((p.z + r) / CELL);
-  const H = a.height();
-  for (let cz = z0; cz <= z1; cz++) for (let cx = x0; cx <= x1; cx++) {
-    const h = hAt(cx, cz); if (h <= 0 || h > 90) continue;
-    if (p.y < h && prevY >= h - 0.001 && a.vel.y <= 0) { p.y = h; a.vel.y = 0; a.onGround = true; }
-    // удар головой о низ воздуховода при прыжке
-    const b = bAt(cx, cz);
-    if (b > 0 && a.vel.y > 0 && p.y + H > b && prevY + H <= b + 0.001) { p.y = b - H; a.vel.y = 0; }
+  // большие смещения дробим, чтобы не проскочить тонкую стену
+  const n = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dz)) / 0.25));
+  for (let i = 0; i < n; i++) {
+    if (dx) { p.x += dx / n; blocked = resolveAxis(a, 0, dx) || blocked; }
+    if (dz) { p.z += dz / n; blocked = resolveAxis(a, 1, dz) || blocked; }
+  }
+  // страховка: боец никогда не выходит за пределы карты
+  p.x = clamp(p.x, 0.34, WORLD.W - 0.34); p.z = clamp(p.z, 0.34, WORLD.D - 0.34);
+  const wasGround = a.onGround, prevY = p.y, H = a.height();
+  a.vel.y -= GRAV * dt; p.y += a.vel.y * dt; a.onGround = false;
+  const fy = WORLD.groundPlane ? 0 : WORLD.floorY;
+  if (p.y <= fy) { p.y = fy; a.vel.y = 0; a.onGround = true; }
+  const r = 0.28;
+  eachBox(p.x - r, p.z - r, p.x + r, p.z + r, b => {
+    if (b.pass) return;
+    if (a.vel.y <= 0 && p.y < b.y1 && prevY >= b.y1 - 0.001) { p.y = b.y1; a.vel.y = 0; a.onGround = true; }
+    else if (a.vel.y > 0 && p.y + H > b.y0 && prevY + H <= b.y0 + 0.001) { p.y = b.y0 - H; a.vel.y = 0; }
+  });
+  // спуск по ступеням: прилипаем к опоре, если она чуть ниже (без «подпрыгивания» на лестнице)
+  if (!a.onGround && wasGround && a.vel.y <= 0 && a.mstate !== 'dodge') {
+    const f = floorAt(p.x, p.z, prevY + 0.01, 0.25);
+    if (prevY - f <= 0.45 && prevY - f >= 0) { p.y = f; a.vel.y = 0; a.onGround = true; }
   }
   return blocked;
 }
-function freeAt(a, x, z, y = a.pos.y, H = a.height()) {
-  const r = 0.33;
-  for (const [ox, oz] of [[-r, -r], [r, -r], [-r, r], [r, r]]) if (solidSpan(Math.floor((x + ox) / CELL), Math.floor((z + oz) / CELL), y + 0.01, y + H)) return false;
-  return true;
-}
+function freeAt(a, x, z, y = a.pos.y, H = a.height()) { return !solidRect(x, z, 0.33, y + 0.01, y + H); }
 function separate() {
   for (let i = 0; i < agents.length; i++) for (let j = i + 1; j < agents.length; j++) {
     const a = agents[i], b = agents[j]; if (!a.alive || !b.alive || a.net === 'remote' || b.net === 'remote' || a.net === 'proxy' || b.net === 'proxy') continue;
@@ -3315,36 +3982,9 @@ function separate() {
 }
 
 /* ================= pathfinding ================= */
-const prevArr = new Int32Array(MW * MH);
-function findPath(sx, sz, gx, gz) {
-  if (!walk(gx, gz)) return [];
-  prevArr.fill(-2); const start = sz * MW + sx, goal = gz * MW + gx;
-  const q = [start]; prevArr[start] = -1; let head = 0;
-  const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
-  while (head < q.length) {
-    const c = q[head++]; if (c === goal) break;
-    const cx = c % MW, cz = (c / MW) | 0;
-    for (const [ddx, ddz] of dirs) {
-      const nx = cx + ddx, nz = cz + ddz; if (!walk(nx, nz)) continue;
-      if (ddx && ddz && (!walk(cx + ddx, cz) || !walk(cx, cz + ddz))) continue;
-      const n = nz * MW + nx; if (prevArr[n] !== -2) continue;
-      prevArr[n] = c; q.push(n);
-    }
-  }
-  if (prevArr[goal] === -2) return [];
-  const path = []; for (let c = goal; c !== start && c !== -1; c = prevArr[c]) path.push([c % MW, (c / MW) | 0]);
-  return path.reverse();
-}
-function lineWalkable(ax, az, bx, bz) {
-  const d = Math.hypot(bx - ax, bz - az), n = Math.ceil(d / 0.4);
-  const px = -(bz - az) / (d || 1) * 0.38, pz = (bx - ax) / (d || 1) * 0.38;
-  for (let i = 0; i <= n; i++) {
-    const x = ax + (bx - ax) * i / n, z = az + (bz - az) * i / n;
-    if (!walk(Math.floor((x + px) / CELL), Math.floor((z + pz) / CELL)) || !walk(Math.floor((x - px) / CELL), Math.floor((z - pz) / CELL))) return false;
-  }
-  return true;
-}
-
+// Поиск пути — по графу навигации мира (см. 02_map.js: buildNav, nearestNode, navPath).
+// Обёртка для старого интерфейса тестов: путь между двумя точками мира.
+function findPath(a, b) { return navPath(nearestNode(a), nearestNode(b)); }
 /* ================= game state ================= */
 // mode: sp — одиночная игра с ботами, mp — мультиплеер (только люди, пустые места = 'empty')
 const G = { started: false, paused: true, state: 'menu', mode: 'sp', timer: 0, liveT: 0, round: 0, score: [0, 0], prog: [0, 0], over: false, buyOpen: false, board: false,
@@ -3356,11 +3996,11 @@ const freshGren = () => ({ he: 0, smoke: 0, flash: 0 });
 const active = a => a.net !== 'empty';
 const humans = (tm) => agents.filter(a => (a.net === 'local' || a.net === 'remote') && (tm == null || a.team === tm));
 
-function spawnAgent(a, cell) {
-  const [cx, cz] = cell || pick(spawnCells[a.team]);
-  a.pos.set(cx * CELL + CELL / 2 + rand(-0.3, 0.3), 0, cz * CELL + CELL / 2 + rand(-0.3, 0.3));
+function spawnAgent(a, sp) {
+  const [sx, sz, sy] = sp || pick(WORLD.spawns[a.team]);
+  a.pos.set(sx + rand(-0.3, 0.3), sy || 0, sz + rand(-0.3, 0.3)); a.pos.y = floorAt(a.pos.x, a.pos.z, (sy || 0) + 0.5, 0.2); a.onGround = true;
   a.vel.set(0, 0, 0); a.hp = G.maxHp; a.alive = true; a.posture = 0; a.mstate = 'ground'; a.mT = 0; a.proneK = 0; a.ledge = null; a.dodgeT = 0; a.dodgeCd = 0; a.eyeOff.set(0, 0, 0); if (a === P) { wantProne = false; crouchToggled = false; } a.reloading = 0; a.fireCd = 0; a.burstLeft = 0;
-  a.yaw = a.team === 0 ? -Math.PI / 2 : Math.PI / 2; a.pitch = 0; a.punchP = a.punchY = 0; a.spreadAcc = 0;
+  a.yaw = Math.atan2(-(zone.cx - a.pos.x), -(zone.cz - a.pos.z)); a.pitch = 0; a.punchP = a.punchY = 0; a.spreadAcc = 0;
   a.slot = a.inv[1] ? 1 : 2; a.lastSlot = 3; a.spot = [0, 0]; a.tp++; a.blindT = 0;
   a.model.visible = true; resetRig(a);
 }
@@ -3369,13 +4009,13 @@ function startMatch() {
   G.score = [0, 0]; G.round = 0; G.over = false; G.lobbyT = -1;
   for (const a of agents) { a.money = START_MONEY; a.kills = a.deaths = 0; a.inv = freshInv(); clearGear(a); a.gren = freshGren(); a.alive = false; if (a.net === 'bot') applyCos(a, randomCos()); }
   $('feed').innerHTML = '';
-  clearSmokes();
+  clearSmokes(); restoreGlass();
   startRound();
 }
 function startRound() {
   G.round++; G.state = 'freeze'; G.timer = FREEZE; G.liveT = 0; G.prog = [0, 0];
   for (const tm of [0, 1]) {
-    const cells = [...spawnCells[tm]].sort(() => Math.random() - 0.5);
+    const cells = [...WORLD.spawns[tm]].sort(() => Math.random() - 0.5);
     agents.filter(a => a.team === tm).forEach((a, i) => {
       if (!active(a)) { hideEmpty(a); return; }
       if (!a.alive) { a.inv = freshInv(); clearGear(a); a.gren = freshGren(); }
@@ -3446,19 +4086,15 @@ function showOver() {
   PROF.stats.matches++; if (win) PROF.stats.wins++;
   earn(30 + (win ? 150 : 0), t(win ? 'rwWin' : 'rwMatch'));
 }
+// маршрут бота: 1–2 промежуточные точки (часто — на этажах и крышах), затем удержание узла связи
 function newAI(a) {
-  const enemyTeam = 1 - a.team, mid = MW / 2;
-  const lanes = [
-    () => randomCellIn(mid - 6, mid + 5, 1, 3),
-    () => randomCellIn(mid - 6, mid + 5, MH - 4, MH - 2),
-    () => randomCellIn(a.team ? mid : mid - 10, a.team ? mid + 9 : mid - 1, 7, MH - 8),
-    () => randomCellIn(a.team ? mid - 4 : mid + 3, a.team ? mid - 1 : mid + 6, 5, MH - 6),
-  ];
-  let wps = []; wps.push(pick(lanes)());
-  if (Math.random() < 0.35) wps.push(randomCellIn(enemyTeam ? mid + 2 : 3, enemyTeam ? MW - 4 : mid - 3, 1, MH - 2));
-  wps = wps.filter(Boolean);
+  const W = WORLD, enemyX = a.team ? W.W * 0.2 : W.W * 0.8;
+  const wps = [];
+  const mid = randomNodeIn(W.W * 0.25, 4, W.W * 0.75, W.D - 4, n => Math.random() < (n.y > 1.5 ? 0.9 : 0.35));
+  if (mid) wps.push(mid);
+  if (Math.random() < 0.35) { const deep = randomNodeIn(enemyX - W.W * 0.15, 4, enemyX + W.W * 0.15, W.D - 4); if (deep) wps.push(deep); }
   return { wps, path: null, pathKey: -1, pathI: 0, repath: 0, think: rand(0, 0.2), target: null, visible: false, seen: 0,
-    react: rand(...diff.react), invest: null, investUntil: 0, strafe: 0, strafeT: 0, burst: randi(3, 7), holdT: 0, holdCell: null, phase: rand(0, 6), stuckT: 0, deadT: 0 };
+    react: rand(...diff.react), invest: null, investUntil: 0, strafe: 0, strafeT: 0, burst: randi(3, 7), holdT: 0, holdNode: null, phase: rand(0, 6), stuckT: 0, deadT: 0, cover: null, coverT: 0 };
 }
 // боты закупаются из всего каталога: копят на лучшее, иногда экономят
 function botBuy(a) {
@@ -3512,8 +4148,9 @@ function damage(victim, amount, attacker, head, weaponId, fromPos, zone) {
     netEvent({ k: 'hurt', i: idxOf(victim), f: fromPos ? [r2(fromPos.x), r2(fromPos.z)] : null });
   } else if (victim.net === 'bot' && attacker && attacker.alive) {
     const ai = victim.ai; ai.invest = attacker.pos.clone(); ai.investUntil = now + 4;
-    // боты иногда уходят из-под огня рывком в сторону
+    // боты иногда уходят из-под огня рывком в сторону, а при малом здоровье — отходят в укрытие
     if (victim.hp - d > 0 && Math.random() < 0.25 + 0.1 * (SET.diff | 0)) dodge(victim, Math.random() < 0.5 ? -1 : 1, 0);
+    if (victim.hp - d > 0 && victim.hp - d < G.maxHp * 0.35 && !ai.cover && Math.random() < 0.6) { ai.cover = findCover(victim, attacker.pos); if (ai.cover) ai.coverT = now + 4; }
     if (!ai.target) { ai.target = attacker; ai.seen = Math.max(ai.seen, ai.react * 0.5); }
   }
   if (attacker === P && victim !== P) { hitMarker(head, victim.hp <= 0); hitSound(head, helmet, victim.pos); dmgNumber(victim, d, head); }
@@ -3797,22 +4434,64 @@ function botSense(b) {
     if (ai.target !== best) { ai.seen = Math.min(ai.seen, 0); ai.react = rand(...diff.react); }
     ai.target = best; ai.visible = true; ai.invest = best.pos.clone(); ai.investUntil = now + 4;
     best.spot[b.team] = 1.2;
+    // координация: союзники рядом без цели получают «доклад» о противнике (с задержкой реакции)
+    if (!ai.calledT || now > ai.calledT) {
+      ai.calledT = now + 3;
+      for (const m of agents) if (m !== b && m.alive && m.team === b.team && m.net === 'bot' && !m.ai.target && m.pos.distanceTo(b.pos) < 35) { m.ai.invest = best.pos.clone(); m.ai.investUntil = now + 5 + Math.random() * 2; }
+    }
   } else { ai.visible = false; if (ai.target) { ai.target = null; } }
 }
+// цель бота — узел навигации: укрытие при отступлении, место шума/выстрела, точки маршрута, удержание узла связи
 function botGoal(b) {
   const ai = b.ai;
-  if (ai.invest && now < ai.investUntil) {
-    const cx = Math.floor(ai.invest.x / CELL), cz = Math.floor(ai.invest.z / CELL);
-    for (const [ox, oz] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) if (walk(cx + ox, cz + oz)) return [cx + ox, cz + oz];
-  }
+  if (ai.cover && now < ai.coverT) return ai.cover;
+  ai.cover = null;
+  if (ai.invest && now < ai.investUntil) { const n = nearestNode(ai.invest, 4); if (n) return n; }
   ai.invest = null;
   if (G.liveT > ZONE_OPEN && ai.wps.length && Math.random() < 0.002) ai.wps.length = 0;
   if (ai.wps.length) return ai.wps[0];
-  if (!ai.holdCell || ai.holdT <= 0) {
-    const zc = pick(zoneCells), r = G.liveT > ZONE_OPEN - 4 ? 0 : 3;
-    ai.holdCell = r ? randomCellIn(zc[0] - r - 2, zc[0] + r, zc[1] - r, zc[1] + r) || zc : zc; ai.holdT = rand(2, 5);
+  if (!ai.holdNode || ai.holdT <= 0) {
+    const r = G.liveT > ZONE_OPEN - 4 ? 0 : 3;
+    ai.holdNode = randomNodeIn(zone.x0 - r, zone.z0 - r, zone.x1 + r, zone.z1 + r, n => Math.abs(n.y - zone.y) < 1.5) || nearestNode({ x: zone.cx, y: zone.y, z: zone.cz }, 6);
+    ai.holdT = rand(2, 5);
   }
-  return ai.holdCell;
+  return ai.holdNode;
+}
+// укрытие: ближайший узел, с которого не видно угрозу (по лучу на уровне груди)
+function findCover(b, threat) {
+  const N = WORLD.nav; if (!N) return null;
+  let best = null, bd = 1e9; const t = new THREE.Vector3(threat.x, threat.y + 1.4, threat.z), p = new THREE.Vector3();
+  for (let k = 0; k < 40; k++) {
+    const n = N.nodes[(Math.random() * N.nodes.length) | 0];
+    const d = Math.hypot(n.x - b.pos.x, n.z - b.pos.z); if (d > 14 || d < 2 || Math.abs(n.y - b.pos.y) > 3.5) continue;
+    p.set(n.x, n.y + 1.2, n.z); if (losClear(p, t)) continue;
+    const score = d - Math.hypot(n.x - threat.x, n.z - threat.z) * 0.4; if (score < bd) { bd = score; best = n; }
+  }
+  return best;
+}
+// движение по пути к цели (узлы навигации: этажи, лестницы, крыши); возвращает направление или null
+function followPath(b, dt) {
+  const ai = b.ai;
+  const goal = botGoal(b), key = goal ? goal.i : -1;
+  ai.repath -= dt;
+  if (goal && (ai.pathKey !== key || ai.repath <= 0 || !ai.path)) { const from = nearestNode(b.pos); ai.path = navPath(from, goal); ai.pathI = 0; ai.pathKey = key; ai.repath = 3 + Math.random(); }
+  const P_ = ai.path || [];
+  while (ai.pathI < P_.length) {
+    const n = P_[ai.pathI];
+    if (Math.hypot(n.x - b.pos.x, n.z - b.pos.z) < 0.55 && Math.abs(n.y - b.pos.y) < 1.3) ai.pathI++; else break;
+  }
+  // срезаем углы только на одной высоте
+  if (ai.pathI + 1 < P_.length) { const n2 = P_[ai.pathI + 1]; if (Math.abs(n2.y - b.pos.y) < 0.3 && Math.abs(P_[ai.pathI].y - b.pos.y) < 0.3 && lineWalkable(b.pos.x, b.pos.z, n2.x, n2.z, b.pos.y)) ai.pathI++; }
+  const atGoal = goal && Math.hypot(goal.x - b.pos.x, goal.z - b.pos.z) < 0.8 && Math.abs(goal.y - b.pos.y) < 1.3;
+  if (ai.pathI >= P_.length) {
+    if (atGoal && ai.cover) { ai.cover = null; ai.coverT = 0; }
+    else if (atGoal && ai.invest) { ai.invest = null; }
+    else if (atGoal && ai.wps.length && ai.wps[0] === goal) ai.wps.shift();
+    else if (!P_.length && goal && !atGoal) { ai.holdT = 0; if (ai.wps[0] === goal) ai.wps.shift(); ai.invest = null; }
+    return null;
+  }
+  const n = P_[ai.pathI], dx = n.x - b.pos.x, dz = n.z - b.pos.z, d = Math.hypot(dx, dz) || 1;
+  return [dx / d, dz / d];
 }
 function updateBot(b, dt) {
   const ai = b.ai, M = b.model;
@@ -3822,7 +4501,8 @@ function updateBot(b, dt) {
   let mx = 0, mz = 0, spd = 4.6 * b.w().move;
   if (G.state === 'freeze') { b.vel.x = b.vel.z = 0; }
   else {
-    ai.think -= dt; if (ai.think <= 0) { ai.think = rand(0.1, 0.2); botSense(b); }
+    // частота решений: вдали от игрока реже
+    ai.think -= dt; if (ai.think <= 0) { ai.think = rand(0.1, 0.2) * (b.pos.distanceTo(P.pos) > 45 ? 2 : 1); botSense(b); }
     if (ai.target && !ai.target.alive) { ai.target = null; ai.visible = false; }
     const t = ai.target;
     if (t && ai.visible) {
@@ -3850,34 +4530,17 @@ function updateBot(b, dt) {
       if (ai.strafeT <= 0) { ai.strafe = pick([-1, 0, 1, 1, -1]); ai.strafeT = rand(0.35, 1.0); }
       if (W.scope) ai.strafe = 0;
       mx = Math.cos(b.yaw) * ai.strafe; mz = -Math.sin(b.yaw) * ai.strafe; spd = 2.4;
-      if (hd > 30 && !W.scope) { mx -= Math.sin(b.yaw) * 0.6; mz -= Math.cos(b.yaw) * 0.6; }
+      // отступление к укрытию под огнём (стреляет на ходу)
+      if (ai.cover && now < ai.coverT) { const dx = ai.cover.x - b.pos.x, dz = ai.cover.z - b.pos.z, d = Math.hypot(dx, dz); if (d > 0.6) { mx = dx / d; mz = dz / d; spd = 4.6; } else { ai.cover = null; } }
+      // дальний бой: продолжаем свой маршрут (этажи, обход) и стреляем на ходу
+      if (hd > 22 && !W.scope && !(ai.cover && now < ai.coverT)) { const pd = followPath(b, dt); if (pd) { mx = pd[0] * 0.9 + mx * 0.3; mz = pd[1] * 0.9 + mz * 0.3; spd = 3.4; } }
       if (W.melee) { mx = -Math.sin(b.yaw); mz = -Math.cos(b.yaw); spd = 5.5; }
     } else {
       ai.seen = Math.max(0, ai.seen - dt);
       if (b.reloading <= 0 && b.gun().mag < (b.w().mag || 0) * 0.4 && b.gun().res > 0) startReload(b);
       if (b.slot !== 1 && b.inv[1] && b.inv[1].mag + b.inv[1].res > 0) switchSlot(b, 1);
-      const goal = botGoal(b), key = goal[1] * MW + goal[0];
-      const ccx = Math.floor(b.pos.x / CELL), ccz = Math.floor(b.pos.z / CELL);
-      ai.repath -= dt;
-      if (ai.pathKey !== key || ai.repath <= 0 || !ai.path) { ai.path = findPath(ccx, ccz, goal[0], goal[1]); ai.pathI = 0; ai.pathKey = key; ai.repath = 3; }
-      const P_ = ai.path;
-      while (ai.pathI < P_.length) {
-        const n = cellCenter(P_[ai.pathI][0], P_[ai.pathI][1], _b);
-        if (Math.hypot(n.x - b.pos.x, n.z - b.pos.z) < 0.6) ai.pathI++; else break;
-      }
-      if (ai.pathI + 1 < P_.length) { const n2 = cellCenter(P_[ai.pathI + 1][0], P_[ai.pathI + 1][1], _b); if (lineWalkable(b.pos.x, b.pos.z, n2.x, n2.z)) ai.pathI++; }
-      if (ai.pathI >= P_.length) {
-        if (ai.invest && now < ai.investUntil && ccx === goal[0] && ccz === goal[1]) { ai.invest = null; }
-        else if (ai.wps.length && ccx === ai.wps[0][0] && ccz === ai.wps[0][1]) ai.wps.shift();
-        else if (P_.length === 0 && (ccx !== goal[0] || ccz !== goal[1])) { ai.holdT = 0; ai.wps.shift(); }
-        if (ai.investUntil > now) { b.yaw += dt * 1.5; }
-      } else {
-        const n = cellCenter(P_[ai.pathI][0], P_[ai.pathI][1], _b);
-        const dx = n.x - b.pos.x, dz = n.z - b.pos.z, d = Math.hypot(dx, dz) || 1;
-        mx = dx / d; mz = dz / d;
-        b.yaw = turnTo(b.yaw, Math.atan2(-mx, -mz), 7 * dt);
-        if (ai.invest && now < ai.investUntil) spd *= 0.8;
-      }
+      const pd = followPath(b, dt); if (pd) { mx = pd[0]; mz = pd[1]; b.yaw = turnTo(b.yaw, Math.atan2(-mx, -mz), 7 * dt); if (ai.invest && now < ai.investUntil) spd *= 0.8; if (ai.cover) spd = 5.2; }
+      else if (ai.investUntil > now) b.yaw += dt * 1.5;
       b.pitch = turnTo(b.pitch, 0, 2 * dt);
     }
     if (b.mstate === 'dodge') updateDodge(b, dt);
@@ -4234,26 +4897,27 @@ function updateDodge(a, dt) {
 // Ищет край в соседней по оси клетке перед бойцом (fx, fz — куда смотрит или движется).
 // Проверяет высоту края, расстояние до грани, место для зависания и место наверху.
 function findLedge(a, fx, fz) {
-  const C = MOVE_CFG.ledge, p = a.pos, pcx = Math.floor(p.x / CELL), pcz = Math.floor(p.z / CELL);
-  let best = null, bestDot = 0.55;
-  for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-    const dot = dx * fx + dz * fz; if (dot < bestDot) continue;
-    const cx = pcx + dx, cz = pcz + dz;
-    if (!C.types.includes(cellCh(cx, cz))) continue;
-    const h = hAt(cx, cz), rel = h - p.y;
-    if (rel < C.reachMin || rel > C.reachMax) continue;
-    const face = dx ? (dx > 0 ? cx * CELL : (cx + 1) * CELL) : (dz > 0 ? cz * CELL : (cz + 1) * CELL);
-    if (Math.abs(face - (dx ? p.x : p.z)) > 0.62) continue;
-    const lo = (dx ? cz : cx) * CELL + 0.36, hi = lo + CELL - 0.72;
-    const lat = clamp(dx ? p.z : p.x, lo, hi);
-    const top = dx ? new THREE.Vector3(face + dx * C.inset, h, lat) : new THREE.Vector3(lat, h, face + dz * C.inset);
-    const hangY = Math.max(0, h - C.hangDrop);
-    const hang = dx ? new THREE.Vector3(face - dx * 0.34, hangY, lat) : new THREE.Vector3(lat, hangY, face - dz * 0.34);
-    // наверху есть где встать хотя бы пригнувшись, а у стены есть где висеть
-    if (!freeAt(a, top.x, top.z, h, POSTURE_H[1]) || !freeAt(a, hang.x, hang.z, hangY, POSTURE_H[0])) continue;
-    best = { h, nx: -dx, nz: -dz, top, hang, from: p.clone(), auto: false }; bestDot = dot;
-  }
-  return best;
+  const C = MOVE_CFG.ledge, p = a.pos;
+  const ground = floorAt(p.x, p.z, p.y + 0.1, 0.25); // опора под бойцом — от неё считается досягаемость
+  const px = p.x + fx * 0.6, pz = p.z + fz * 0.6;
+  let best = null;
+  eachBox(px - 0.06, pz - 0.06, px + 0.06, pz + 0.06, b => {
+    if (b.pass || b.glass || b.noClimb || b.stair) return;
+    const rel = b.y1 - ground; if (rel < C.reachMin || rel > C.reachMax || b.y1 < p.y + 0.3) return;
+    if (!best || b.y1 > best.y1) best = b;
+  });
+  if (!best) return null;
+  const h = best.y1, alongX = Math.abs(fx) >= Math.abs(fz), dir = alongX ? Math.sign(fx) : Math.sign(fz);
+  const face = alongX ? (dir > 0 ? best.x0 : best.x1) : (dir > 0 ? best.z0 : best.z1);
+  if (Math.abs(face - (alongX ? p.x : p.z)) > 0.62) return null;
+  // точка наверху: за кромкой на inset; поперёк — где боец, но внутри коробки
+  const lat = alongX ? clamp(p.z, best.z0 + 0.3, best.z1 - 0.3) : clamp(p.x, best.x0 + 0.3, best.x1 - 0.3);
+  const top = alongX ? new THREE.Vector3(face + dir * C.inset, h, lat) : new THREE.Vector3(lat, h, face + dir * C.inset);
+  const hangY = Math.max(ground, h - C.hangDrop);
+  const hang = alongX ? new THREE.Vector3(face - dir * 0.34, hangY, lat) : new THREE.Vector3(lat, hangY, face - dir * 0.34);
+  if (!freeAt(a, top.x, top.z, h, POSTURE_H[1]) || !freeAt(a, hang.x, hang.z, hangY, POSTURE_H[0])) return null;
+  // наверху должна быть опора (или это стенка — тогда боец перелезет и спрыгнет дальше)
+  return { h, nx: alongX ? -dir : 0, nz: alongX ? 0 : -dir, top, hang, from: p.clone(), auto: false };
 }
 function startLedge(a, L) {
   if (!L || !setMove(a, 'ledgeGrab')) return false;
@@ -4287,7 +4951,7 @@ function updateLedge(a, dt, input) {
     a.pos.set(L.hang.x + (L.top.x - L.hang.x) * over, L.hang.y + (L.h - L.hang.y) * up, L.hang.z + (L.top.z - L.hang.z) * over);
     if (k >= 1) { a.pos.copy(L.top); setMove(a, 'climbFinish'); if (a === P) landSound(); }
   } else if (a.mstate === 'climbFinish') {
-    a.pos.copy(L.top); a.onGround = true;
+    a.onGround = true;
     if (a.mT >= C.finishTime) {
       a.posture = fitsHeight(a, POSTURE_H[0]) ? 0 : 1;
       setMove(a, 'ground'); a.ledge = null; a.ledgeCd = 0.3;
@@ -4509,19 +5173,31 @@ function renderBoard() {
     <tr><th class="c1">${esc(t('team1n'))}</th><th>${t('kills')}</th><th>${t('deaths')}</th><th></th><th></th></tr>${rows(1)}</table>`;
 }
 const radar = $('radar'), rctx = radar.getContext('2d'), RS = 5;
-const radarBg = document.createElement('canvas'); radarBg.width = MW * RS; radarBg.height = MH * RS;
-{
-  const g = radarBg.getContext('2d');
-  for (let z = 0; z < MH; z++) for (let x = 0; x < MW; x++) {
-    const h = heights[z * MW + x];
-    if (h) { g.fillStyle = MAP[z][x] === 'u' ? '#4b5a6e' : h > 3 ? '#56607a' : h > 2 ? '#3d6a7a' : '#7a5a3a'; g.fillRect(x * RS, z * RS, RS, RS); }
+// вид сверху по коробкам мира: от низких к высоким, цвет — по материалу, светлее — выше
+const TOPC = { concrete: [110, 118, 134], brick: [150, 86, 64], plaster: [176, 168, 150], stone: [130, 126, 116], metal: [96, 120, 136], roof: [120, 92, 80], wood: [140, 106, 70], crate: [138, 104, 66],
+  container: [70, 120, 136], duct: [90, 106, 126], car: [160, 70, 70], sand: [190, 170, 120], tile: [90, 96, 110], asphalt: [60, 64, 72], dirt: [104, 90, 66] };
+function drawTopDown(g, s, opts = {}) {
+  const W = WORLD, gr = TOPC[W.env.ground] || [40, 46, 60];
+  g.fillStyle = W.groundPlane ? `rgb(${gr[0] * 0.55 | 0},${gr[1] * 0.55 | 0},${gr[2] * 0.6 | 0})` : '#20242e'; g.fillRect(0, 0, W.W * s, W.D * s);
+  const list = W.boxes.filter(b => !b.hidden && b.alive && b.y1 > -0.5 && !(b.y1 <= 0.01 && b.y1 - b.y0 < 1)).sort((a, b) => a.y1 - b.y1);
+  for (const b of list) {
+    const c = TOPC[b.m] || [120, 120, 130], k = clamp(0.62 + b.y1 * 0.05, 0.55, 1.15);
+    g.fillStyle = b.glass ? 'rgba(160,210,240,.5)' : `rgb(${Math.min(255, c[0] * k) | 0},${Math.min(255, c[1] * k) | 0},${Math.min(255, c[2] * k) | 0})`;
+    g.fillRect(b.x0 * s, b.z0 * s, Math.max(1, (b.x1 - b.x0) * s), Math.max(1, (b.z1 - b.z0) * s));
+    if (opts.edges && b.y1 - b.y0 > 1.5 && (b.x1 - b.x0) * s > 3 && (b.z1 - b.z0) * s > 3) { g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 1; g.strokeRect(b.x0 * s + 0.5, b.z0 * s + 0.5, (b.x1 - b.x0) * s - 1, (b.z1 - b.z0) * s - 1); }
   }
-  g.strokeStyle = '#c7a6ff'; g.lineWidth = 1.5; g.strokeRect(zone.x0 / CELL * RS, zone.z0 / CELL * RS, (zone.x1 - zone.x0) / CELL * RS, (zone.z1 - zone.z0) / CELL * RS);
+  g.strokeStyle = '#c7a6ff'; g.lineWidth = Math.max(1.5, s * 0.3); g.strokeRect(zone.x0 * s, zone.z0 * s, (zone.x1 - zone.x0) * s, (zone.z1 - zone.z0) * s);
 }
+const radarBg = document.createElement('canvas');
+onWorld(() => {
+  const RSM = 2.5; radarBg.width = WORLD.W * RSM; radarBg.height = WORLD.D * RSM;
+  radar.width = 200; radar.height = Math.round(200 * WORLD.D / WORLD.W);
+  drawTopDown(radarBg.getContext('2d'), RSM);
+});
 function drawRadar() {
   rctx.clearRect(0, 0, radar.width, radar.height);
   rctx.drawImage(radarBg, 0, 0, radar.width, radar.height);
-  const sx = radar.width / (MW * CELL), sz = radar.height / (MH * CELL);
+  const sx = radar.width / WORLD.W, sz = radar.height / WORLD.D;
   for (const a of agents) {
     if (!a.alive || !active(a)) continue;
     // «все игроки на радаре»: видны обе команды по всей карте, иначе враги — только замеченные
@@ -4540,44 +5216,19 @@ bootMark('17_hud');
 // Полноэкранная карта: масштаб (колёсико, щипок, кнопки), сдвиг перетаскиванием, свои метки.
 // Статичные объекты описаны в WORLD_MARKERS — новые точки интереса и локации добавляются данными.
 // Противники видны по тем же правилам, что и на радаре (настройка «Все игроки на радаре» или замечены союзниками).
-const WORLD_MARKERS = [
-  { kind: 'zone', x: zone.cx, z: zone.cz, label: 'mkZone', color: '#c7a6ff' },
-  ...[0, 1].map(tm => {
-    const c = spawnCells[tm]; const x = c.reduce((s, v) => s + v[0], 0) / c.length * CELL + 1, z = c.reduce((s, v) => s + v[1], 0) / c.length * CELL + 1;
-    return { kind: 'spawn', team: tm, x, z, label: 'mkSpawn' + tm, color: tm ? '#ff8a3d' : '#4fb3ff' };
-  }),
-];
-// группы клеток-лазов (воздуховодов) — по одной метке на группу
-{
-  const seen = new Set();
-  for (let z = 0; z < MH; z++) for (let x = 0; x < MW; x++) if (MAP[z][x] === 'u' && !seen.has(z * MW + x)) {
-    let n = 0, sx = 0, sz = 0; const st = [[x, z]];
-    while (st.length) { const [a, b] = st.pop(); if (seen.has(b * MW + a) || cellCh(a, b) !== 'u') continue; seen.add(b * MW + a); n++; sx += a; sz += b; st.push([a + 1, b], [a - 1, b], [a, b + 1], [a, b - 1]); }
-    WORLD_MARKERS.push({ kind: 'duct', x: sx / n * CELL + 1, z: sz / n * CELL + 1, label: 'mkDuct', color: '#9fb4c8' });
-  }
-}
-const WM = { open: false, zoom: 0, cx: MW * CELL / 2, cz: MH * CELL / 2, pins: [], ptrs: new Map(), moved: 0, pinch: 0 };
+const WORLD_MARKERS = [];
+onWorld(() => {
+  WORLD_MARKERS.length = 0;
+  WORLD_MARKERS.push({ kind: 'zone', x: zone.cx, z: zone.cz, label: 'mkZone', color: '#c7a6ff' });
+  for (const tm of [0, 1]) { const c = WORLD.spawns[tm]; if (!c.length) continue; WORLD_MARKERS.push({ kind: 'spawn', team: tm, x: c.reduce((s, v) => s + v[0], 0) / c.length, z: c.reduce((s, v) => s + v[1], 0) / c.length, label: 'mkSpawn' + tm, color: tm ? '#ff8a3d' : '#4fb3ff' }); }
+  for (const m of WORLD.markers) if (m.kind === 'bld') WORLD_MARKERS.push({ kind: 'bld', x: m.x, z: m.z, label: '', floors: m.floors, color: '#dfe6f5' });
+});
+const WM = { open: false, zoom: 0, cx: WORLD.W / 2, cz: WORLD.D / 2, pins: [], ptrs: new Map(), moved: 0, pinch: 0 };
 const wmCanvas = $('wmapc'), wmCtx = wmCanvas.getContext('2d');
-// фон карты рисуется один раз в отдельный холст (8 пикселей на метр)
+// фон карты рисуется при загрузке локации (8 пикселей на метр)
 const WM_PX = 8, wmBg = document.createElement('canvas');
-wmBg.width = MW * CELL * WM_PX; wmBg.height = MH * CELL * WM_PX;
-{
-  const g = wmBg.getContext('2d'), s = CELL * WM_PX;
-  g.fillStyle = '#1c2230'; g.fillRect(0, 0, wmBg.width, wmBg.height);
-  g.strokeStyle = 'rgba(255,255,255,.04)'; g.lineWidth = 1;
-  for (let x = 0; x <= MW; x++) { g.beginPath(); g.moveTo(x * s, 0); g.lineTo(x * s, wmBg.height); g.stroke(); }
-  for (let z = 0; z <= MH; z++) { g.beginPath(); g.moveTo(0, z * s); g.lineTo(wmBg.width, z * s); g.stroke(); }
-  for (const t of [0, 1]) { g.fillStyle = t ? 'rgba(255,138,61,.13)' : 'rgba(79,179,255,.13)'; for (const [x, z] of spawnCells[t]) g.fillRect(x * s, z * s, s, s); }
-  for (let z = 0; z < MH; z++) for (let x = 0; x < MW; x++) {
-    const c = MAP[z][x];
-    if (c === '#') { g.fillStyle = '#5a6478'; g.fillRect(x * s, z * s, s, s); g.fillStyle = '#6c778d'; g.fillRect(x * s + 2, z * s + 2, s - 4, s - 4); }
-    else if (c === 'b') { g.fillStyle = '#8a6a44'; g.fillRect(x * s + 2, z * s + 2, s - 4, s - 4); g.strokeStyle = '#5a4128'; g.lineWidth = 2; g.beginPath(); g.moveTo(x * s + 4, z * s + 4); g.lineTo(x * s + s - 4, z * s + s - 4); g.moveTo(x * s + s - 4, z * s + 4); g.lineTo(x * s + 4, z * s + s - 4); g.stroke(); }
-    else if (c === 'B') { g.fillStyle = '#3d7486'; g.fillRect(x * s + 1, z * s + 1, s - 2, s - 2); }
-    else if (c === 'u') { g.fillStyle = '#3a4250'; g.fillRect(x * s, z * s, s, s); g.strokeStyle = '#9fb4c8'; g.lineWidth = 1.5; for (let k = -s; k < s; k += 5) { g.beginPath(); g.moveTo(x * s + k, z * s); g.lineTo(x * s + k + s, z * s + s); g.stroke(); } }
-  }
-  g.strokeStyle = '#c7a6ff'; g.lineWidth = 3; g.setLineDash([8, 6]); g.strokeRect(zone.x0 * WM_PX, zone.z0 * WM_PX, (zone.x1 - zone.x0) * WM_PX, (zone.z1 - zone.z0) * WM_PX); g.setLineDash([]);
-}
-function wmFit() { const r = wmCanvas.getBoundingClientRect(); return Math.min(r.width / (MW * CELL), r.height / (MH * CELL)) * 0.92; }
+onWorld(() => { wmBg.width = WORLD.W * WM_PX; wmBg.height = WORLD.D * WM_PX; drawTopDown(wmBg.getContext('2d'), WM_PX, { edges: true }); WM.zoom = 0; });
+function wmFit() { const r = wmCanvas.getBoundingClientRect(); return Math.min(r.width / (WORLD.W), r.height / (WORLD.D)) * 0.92; }
 function toggleWorldMap(force) {
   const open = force ?? !WM.open;
   if (open === WM.open || (open && !G.started)) return;
@@ -4585,7 +5236,7 @@ function toggleWorldMap(force) {
   if (open) {
     resizeWorldMap(); if (!WM.zoom) WM.zoom = wmFit();
     // при общем масштабе видна вся локация, при крупном — центр на игроке
-    if (WM.zoom <= wmFit() * 1.05) { WM.cx = MW * CELL / 2; WM.cz = MH * CELL / 2; } else { WM.cx = P.pos.x; WM.cz = P.pos.z; }
+    if (WM.zoom <= wmFit() * 1.05) { WM.cx = WORLD.W / 2; WM.cz = WORLD.D / 2; } else { WM.cx = P.pos.x; WM.cz = P.pos.z; }
     if (!TOUCH && document.pointerLockElement) document.exitPointerLock();
     mouseDown = false;
   } else if (!TOUCH && G.started && !G.paused) lock();
@@ -4610,15 +5261,17 @@ function drawWorldMap() {
   const g = wmCtx, W = wmCanvas.width, H = wmCanvas.height, k = wmCanvas.width / wmCanvas.getBoundingClientRect().width, z = WM.zoom * k;
   g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = '#0d1018'; g.fillRect(0, 0, W, H);
   const [ox, oy] = wmToScreen(0, 0);
-  g.imageSmoothingEnabled = true; g.drawImage(wmBg, ox, oy, MW * CELL * z, MH * CELL * z);
-  g.strokeStyle = '#8a96b0'; g.lineWidth = 2 * k; g.strokeRect(ox, oy, MW * CELL * z, MH * CELL * z); // граница локации
+  g.imageSmoothingEnabled = true; g.drawImage(wmBg, ox, oy, WORLD.W * z, WORLD.D * z);
+  g.strokeStyle = '#8a96b0'; g.lineWidth = 2 * k; g.strokeRect(ox, oy, WORLD.W * z, WORLD.D * z); // граница локации
   const label = (txt, x, y, col) => { g.font = `600 ${12 * k}px system-ui,sans-serif`; g.textAlign = 'center'; g.fillStyle = 'rgba(0,0,0,.6)'; g.fillText(txt, x + k, y + k); g.fillStyle = col; g.fillText(txt, x, y); };
   for (const m of WORLD_MARKERS) {
     const [x, y] = wmToScreen(m.x, m.z);
     g.fillStyle = m.color; g.beginPath();
     if (m.kind === 'zone') { g.arc(x, y, 7 * k, 0, 7); g.fill(); g.strokeStyle = m.color; g.lineWidth = 2 * k; g.beginPath(); g.arc(x, y, (11 + Math.sin(now * 3) * 2) * k, 0, 7); g.stroke(); }
     else if (m.kind === 'spawn') { g.rect(x - 6 * k, y - 6 * k, 12 * k, 12 * k); g.fill(); }
+    else if (m.kind === 'bld') { /* подпись этажности */ }
     else { g.arc(x, y, 4 * k, 0, 7); g.fill(); }
+    if (m.kind === 'bld') { label(m.floors + (LANG === 'ru' || LANG === 'uk' ? ' эт.' : ' fl.'), x, y + 4 * k, 'rgba(240,244,255,.8)'); continue; }
     label(t(m.label), x, y - 13 * k, m.color);
   }
   for (const a of agents) {
@@ -4656,7 +5309,7 @@ const wmUp = e => {
   const single = WM.ptrs.size === 1; WM.ptrs.delete(e.pointerId);
   if (single && WM.moved < 6 && e.type === 'pointerup') {
     const [x, z] = wmToWorld(e.clientX, e.clientY);
-    if (x < 0 || z < 0 || x > MW * CELL || z > MH * CELL) return;
+    if (x < 0 || z < 0 || x > WORLD.W || z > WORLD.D) return;
     const near = WM.pins.findIndex(p => Math.hypot(p.x - x, p.z - z) * WM.zoom < 16);
     if (near >= 0) WM.pins.splice(near, 1); else { WM.pins.push({ x, z }); if (WM.pins.length > 6) WM.pins.shift(); }
     uiSound('blip1');
@@ -4712,7 +5365,7 @@ function updateGame(dt) {
   updateFx(dt);
 }
 function zoneVisual(dt) {
-  ring.rotation.z += dt * 0.8; ring.position.y = 1.5 + Math.sin(now * 2) * 0.2;
+  ring.rotation.z += dt * 0.8; ring.position.y = zone.y + 1.5 + Math.sin(now * 2) * 0.2;
   if ((G.state === 'live' || G.state === 'end') && G.liveT >= ZONE_OPEN) {
     const n = [0, 0]; for (const a of agents) if (a.alive && inZone(a.pos)) n[a.team]++;
     const col = n[0] && n[1] ? 0xffffff : n[0] ? 0x4fb3ff : n[1] ? 0xff8a3d : 0xc7a6ff;
@@ -4903,7 +5556,7 @@ function moveHuman(from, to) {
   else { to.net = 'remote'; to.conn = from.conn; to.netState = null; if (to.conn) to.conn.agent = to; }
   from.net = 'empty'; from.conn = null; from.name = ''; hideEmpty(from);
   if (G.state === 'lobby') { to.money = START_MONEY; spawnAgent(to); } else hideEmpty(to);
-  if (to.conn && to.conn.open) to.conn.send({ t: 'welcome', i: idxOf(to), code: NET.code, names: agents.map(x => x.name), cos: agents.map(x => x.rig.cos) });
+  if (to.conn && to.conn.open) to.conn.send({ t: 'welcome', i: idxOf(to), code: NET.code, map: WORLD.id, glass: WORLD.boxes.filter(b => b.glass && !b.alive).map(b => b.i), names: agents.map(x => x.name), cos: agents.map(x => x.rig.cos) });
   netEvent({ k: 'nm', n: agents.map(x => x.name) }); netEvent({ k: 'cos', c: agents.map(x => x.rig.cos) });
 }
 function requestTeamSwitch() {
@@ -4929,6 +5582,7 @@ async function hostGame() {
     peer.on('open', () => {
       NET.mode = 'host'; NET.code = code; G.mode = 'mp';
       G.maxHp = +SET.mpHp; G.winRounds = +SET.mpRounds; G.autoN = +SET.mpAuto;
+      if (WORLD.id !== (SET.mpMap || 'node')) loadWorld(SET.mpMap || 'node');
       P.name = myName();
       for (const a of agents) if (a !== P) { a.net = 'empty'; a.name = ''; }
       setStatus(''); startGameUI(); startLobby(); updateRoomBadge();
@@ -4964,7 +5618,7 @@ function hostAccept(conn) {
     if (G.state === 'lobby') { slot.money = START_MONEY; spawnAgent(slot); }
     else { slot.money = START_MONEY; hideEmpty(slot); }
     conn.agent = slot; conn.lastSeen = performance.now(); NET.conns.push(conn);
-    conn.send({ t: 'welcome', i: idxOf(slot), code: NET.code, names: agents.map(a => a.name), cos: agents.map(a => a.rig.cos) });
+    conn.send({ t: 'welcome', i: idxOf(slot), code: NET.code, map: WORLD.id, glass: WORLD.boxes.filter(b => b.glass && !b.alive).map(b => b.i), names: agents.map(a => a.name), cos: agents.map(a => a.rig.cos) });
     netEvent({ k: 'cos', c: agents.map(a => a.rig.cos) });
     if (G.state !== 'lobby') conn.send({ t: 'msg', k: 'specNext' });
     netEvent({ k: 'nm', n: agents.map(a => a.name) });
@@ -5106,6 +5760,9 @@ function clientMsg(m) {
   if (m.t === 'msg') { showHint(t(m.k), 3); return; }
   if (m.t === 'welcome') {
     const first = NET.mode !== 'client';
+    // карта хоста
+    if (MAPS[m.map] && WORLD.id !== m.map) loadWorld(m.map);
+    if (Array.isArray(m.glass)) for (const gi of m.glass.slice(0, 400)) breakGlass(WORLD.boxes[gi]);
     NET.mode = 'client'; G.mode = 'mp'; NET.myIdx = m.i; NET.code = String(m.code || '').slice(0, 8); NET.lastSnap = performance.now();
     P.isPlayer = false; P = agents[m.i]; P.isPlayer = true; P.eye = 1.62; P.tp = -1;
     agents.forEach(a => { a.net = a === P ? 'local' : 'proxy'; a.netState = null; });
@@ -5198,6 +5855,7 @@ function clientEvent(e) {
     case 'cos': applyAllCos(e.c); break;
     case 'ms': showCenter(t('matchStart'), '', 2); radio('go'); break;
     case 'bl': showHint(t('backLobby'), 3); break;
+    case 'gl': { const bx = WORLD.boxes[e.i | 0]; if (bx) breakGlass(bx); break; }
     case 'chat': addChat(String(e.n || '?').slice(0, 14), e.tm ? 1 : 0, String(e.m || '').slice(0, 120)); break;
   }
 }
@@ -5267,7 +5925,7 @@ function dirBecome() {
 }
 function cleanRoom(r) {
   return { code: String(r.code || '').replace(/\D/g, '').slice(0, 8), name: String(r.name || '').slice(0, 24), n: clamp(r.n | 0, 0, 10),
-    st: ['lobby', 'freeze', 'live', 'end', 'over'].includes(r.st) ? r.st : 'lobby', r: clamp(r.r | 0, 0, 99), hp: clamp(r.hp | 0, 0, 999), t: Date.now() };
+    st: ['lobby', 'freeze', 'live', 'end', 'over'].includes(r.st) ? r.st : 'lobby', r: clamp(r.r | 0, 0, 99), hp: clamp(r.hp | 0, 0, 999), map: MAPS[r.map] ? r.map : '', t: Date.now() };
 }
 function dirHandle(c, m) {
   if (!m || typeof m !== 'object') return;
@@ -5280,7 +5938,7 @@ function dirList() {
   for (const [k, r] of DIR.rooms) if (nowMs - r.t > ROOM_TTL) DIR.rooms.delete(k);
   return [...DIR.rooms.values()].sort((a, b) => b.n - a.n).slice(0, 50);
 }
-function myRoomInfo() { return { t: 'reg', code: NET.code, name: SET.srvName || (P.name + ' — ' + t('mpTitle')), n: humansCount(), st: G.state, r: G.round, hp: G.maxHp }; }
+function myRoomInfo() { return { t: 'reg', code: NET.code, name: SET.srvName || (P.name + ' — ' + t('mpTitle')), n: humansCount(), st: G.state, r: G.round, hp: G.maxHp, map: WORLD.id }; }
 // хост: регистрация комнаты в справочной
 function dirRegister() {
   if (NET.mode !== 'host' || !SET.mpPublic) return;
@@ -5325,7 +5983,7 @@ function renderServers(list) {
   if (list === null) { el.innerHTML = `<p class="sub">${esc(t('st_nointernet'))}</p>`; return; }
   DIR.list = list;
   if (!list.length) { el.innerHTML = `<p class="sub">${esc(t('srvEmpty'))}</p>`; return; }
-  el.innerHTML = list.map(r => `<div class="srv"><div><b>${esc(r.name || r.code)}</b><small>${esc(r.st === 'lobby' ? t('srvWarmup') : t('srvMatch', r.r))} · ${r.hp} HP</small></div>
+  el.innerHTML = list.map(r => `<div class="srv"><div><b>${esc(r.name || r.code)}</b><small>${esc(r.st === 'lobby' ? t('srvWarmup') : t('srvMatch', r.r))} · ${r.hp} HP${MAPS[r.map] ? ' · ' + esc(mapName(r.map)) : ''}</small></div>
     <span class="srvn">${r.n}/10</span><button data-code="${esc(r.code)}" ${r.n >= 10 ? 'disabled' : ''}>${esc(t('join'))}</button></div>`).join('');
   for (const b of el.querySelectorAll('button[data-code]')) b.onclick = () => { $('mpcode').value = b.dataset.code; joinGame(); };
 }
@@ -5383,7 +6041,13 @@ function segBtns(id, values, key, fmt) {
     el.appendChild(b);
   }
 }
+const MAP_ICON = { node: '📡', city: '🏚️', factory: '🏭', base: '🪖', village: '🏔️' };
+function mapCards(id, key) {
+  const el = $(id); el.innerHTML = MAP_ORDER.map(m => `<button data-m="${m}" class="${(SET[key] || 'node') === m ? 'sel' : ''}"><b>${MAP_ICON[m] || ''} ${esc(mapName(m))}</b><small>${esc(mapDesc(m))}</small></button>`).join('');
+  for (const b of el.children) b.onclick = () => { SET[key] = b.dataset.m; saveSettings(); mapCards(id, key); };
+}
 function buildOptions() {
+  mapCards('optMap', 'map'); mapCards('optMpMap', 'mpMap');
   segBtns('optDiff', [0, 1, 2], 'diff', v => t('d' + v));
   segBtns('optHp', [100, 150, 210, 250], 'hp', v => v + ' HP');
   segBtns('optRounds', [5, 8, 12, 16], 'rounds', v => String(v));
@@ -5399,6 +6063,7 @@ function renderHelp() {
 $('play').onclick = () => {
   netReset(); setStatus('');
   G.mode = 'sp'; G.maxHp = +SET.hp; G.winRounds = +SET.rounds; diff = DIFF[SET.diff] || DIFF[1];
+  if (WORLD.id !== (SET.map || 'node')) loadWorld(SET.map || 'node');
   startGameUI(); startMatch();
 };
 $('mphost').onclick = () => hostGame();
@@ -5561,8 +6226,10 @@ function applySettings() {
   for (const a of agents) if (a.rig) a.rig.lodDirty = true; // тени бойцов выставит LOD с учётом дальности
   scene.environment = SET.reflections ? envTex : null; vmScene.environment = SET.reflections ? envTex : null;
   const dd = [[30, 90, 120], [50, 170, 300], [80, 260, 420]][SET.drawDist] || [50, 170, 300];
-  scene.fog.near = dd[0]; scene.fog.far = dd[1]; camera.far = dd[2]; camera.updateProjectionMatrix();
-  renderer.toneMappingExposure = SET.brightness;
+  // туман: дальность из настроек, но не дальше, чем требует погода карты
+  const fb = WORLD.fogBase || [dd[0], dd[1]];
+  scene.fog.near = Math.min(dd[0], fb[0]); scene.fog.far = Math.min(dd[1], fb[1]); camera.far = dd[2]; camera.updateProjectionMatrix();
+  renderer.toneMappingExposure = SET.brightness * (WORLD.exposure || 1);
   buildPost();
   vmRoot.scale.x = SET.vmSide === 'left' ? -1 : 1;
   applyVolume();
@@ -5853,7 +6520,7 @@ window.__onBack = () => {
   return false;
 };
 
-window.__game = { BOOT, PERF, perfFrame, perfStats, keys, moveStateName, toggleProne, setWantProne: v => { wantProne = v; }, canUseWeapon, dash, dodge, dodgeTry: (x, z) => dodge(P, x, z), setPosture, setMove, WM, toggleWorldMap, gearAction, absorbDamage, PROF, GEAR_ITEMS, restoreGear, myGearCfg, gearProf, MOVE_CFG, POST, buildPost, G, agents, SET, toggleBuy, buyKey, chat: sendChat, uiBufs, applySettings, hostStartMatch, startLobby, throwNade, WEAPONS, get P() { return P; }, NET, renderer, fire, damage, buy: buyItem, animateSoldier, vm, vmGuns, get now() { return now; }, findPath, spawnCells, zoneCells, walk, step: (n, dt = 1 / 60) => { for (let i = 0; i < n && G.state !== "over"; i++) { now += dt; updateGame(dt); } } };
+window.__game = { BOOT, PERF, perfFrame, perfStats, keys, moveStateName, toggleProne, setWantProne: v => { wantProne = v; }, canUseWeapon, dash, dodge, dodgeTry: (x, z) => dodge(P, x, z), setPosture, setMove, WM, toggleWorldMap, gearAction, absorbDamage, PROF, GEAR_ITEMS, restoreGear, myGearCfg, gearProf, MOVE_CFG, POST, buildPost, G, agents, SET, toggleBuy, buyKey, chat: sendChat, uiBufs, applySettings, hostStartMatch, startLobby, throwNade, WEAPONS, get P() { return P; }, NET, renderer, fire, damage, buy: buyItem, animateSoldier, vm, vmGuns, get now() { return now; }, findPath, WORLD, loadWorld, nearestNode, navPath, floorAt, solidRect, rayWorld, MAPS, step: (n, dt = 1 / 60) => { for (let i = 0; i < n && G.state !== "over"; i++) { now += dt; updateGame(dt); } } };
 </script>
 </body>
 </html>
