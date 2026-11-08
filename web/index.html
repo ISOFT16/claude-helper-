@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>SandForge</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="game"></div>
+
+<!-- In-game HUD -->
+<div id="hud" class="hidden">
+  <div id="crosshair"></div>
+  <div id="roominfo"></div>
+  <div id="weaponbar"></div>
+  <div id="toolinfo"></div>
+  <div id="chatlog"></div>
+  <div id="notice"></div>
+  <div id="topbtns">
+    <button id="b-pause" title="Меню (Esc)">☰</button>
+    <button id="b-spawn" title="Меню спавна (Q)">＋ Спавн</button>
+    <button id="b-chat" title="Чат (T)">💬</button>
+  </div>
+  <div id="touch" class="hidden">
+    <div id="lookzone"></div>
+    <div id="joyzone"><div id="joy"><div id="joyknob"></div></div></div>
+    <div id="tbtns">
+      <button class="tb big" id="b-fire">Огонь</button>
+      <button class="tb" id="b-alt">Альт</button>
+      <button class="tb" id="b-jump">Прыжок</button>
+      <button class="tb small" id="b-down">▼</button>
+      <button class="tb small" id="b-rot">⟲ Вращ.</button>
+      <button class="tb small" id="b-far">Дальше</button>
+      <button class="tb small" id="b-near">Ближе</button>
+      <button class="tb small" id="b-noclip">Полёт</button>
+      <button class="tb small" id="b-undo">↶ Отмена</button>
+      <button class="tb small" id="b-run">Бег</button>
+    </div>
+  </div>
+  <div id="pchint" class="hidden">WASD — ходьба · Пробел — прыжок · Shift — бег · ЛКМ/ПКМ — огонь/альт · 1-5 — оружие · Колесо — дальность · E — вращать · Q — спавн · Z — отмена · V — полёт · T — чат</div>
+</div>
+
+<!-- Spawn menu -->
+<div id="spawnmenu" class="panel hidden">
+  <div class="panel-head">
+    <div id="spawntabs" class="tabs"></div>
+    <button class="close" data-close="spawnmenu">✕</button>
+  </div>
+  <div id="spawncontent" class="panel-body"></div>
+</div>
+
+<!-- Chat input -->
+<div id="chatbox" class="hidden">
+  <input id="chatinput" maxlength="200" placeholder="Сообщение или !команда (например !помощь)" autocomplete="off">
+  <button id="chatsend">➤</button>
+</div>
+
+<!-- Main menu -->
+<div id="mainmenu" class="screen">
+  <div class="menu-card">
+    <div class="logo">Sand<span>Forge</span></div>
+    <div class="subtitle">физическая песочница · строй · экспериментируй · играй с друзьями</div>
+    <button class="mbtn primary" id="m-single">▶ Одиночная игра</button>
+    <button class="mbtn" id="m-host">🌐 Создать сервер</button>
+    <div class="row">
+      <input id="m-code" maxlength="5" placeholder="Код комнаты" autocomplete="off">
+      <button class="mbtn" id="m-join">Подключиться</button>
+    </div>
+    <button class="mbtn" id="m-addons">🧩 Аддоны</button>
+    <button class="mbtn" id="m-settings">⚙ Настройки</button>
+    <div id="m-status" class="status"></div>
+    <div class="ver">v1.0</div>
+  </div>
+</div>
+
+<!-- Pause menu -->
+<div id="pausemenu" class="screen hidden">
+  <div class="menu-card">
+    <div class="logo small">Пауза</div>
+    <div id="p-room" class="roomcode"></div>
+    <button class="mbtn primary" id="p-resume">Продолжить</button>
+    <button class="mbtn" id="p-open">🌐 Открыть сервер для друзей</button>
+    <button class="mbtn" id="p-players">👥 Игроки</button>
+    <button class="mbtn" id="p-addons">🧩 Аддоны</button>
+    <button class="mbtn" id="p-settings">⚙ Настройки</button>
+    <button class="mbtn danger" id="p-quit">Выйти в главное меню</button>
+  </div>
+</div>
+
+<!-- Addons manager -->
+<div id="addonsmenu" class="screen hidden">
+  <div class="menu-card wide">
+    <div class="panel-head"><div class="logo small">Аддоны</div><button class="close" data-back="addonsmenu">✕</button></div>
+    <div class="tabs" id="addontabs">
+      <button data-tab="installed" class="active">Установленные</button>
+      <button data-tab="workshop">Мастерская</button>
+      <button data-tab="import">Установить свой</button>
+      <button data-tab="loaded">Загружены сейчас</button>
+    </div>
+    <div id="addoncontent" class="scroll"></div>
+    <div class="note">Изменения вступят в силу после перезапуска. <button class="mbtn inline" id="a-reload">Перезапустить</button></div>
+  </div>
+</div>
+
+<!-- Settings -->
+<div id="settingsmenu" class="screen hidden">
+  <div class="menu-card">
+    <div class="panel-head"><div class="logo small">Настройки</div><button class="close" data-back="settingsmenu">✕</button></div>
+    <label>Имя игрока <input id="s-name" maxlength="16"></label>
+    <label>Цвет робота</label>
+    <div id="s-colors" class="swatches"></div>
+    <label>Графика
+      <select id="s-quality">
+        <option value="low">Низкая (быстро)</option>
+        <option value="medium">Средняя</option>
+        <option value="high">Высокая</option>
+      </select>
+    </label>
+    <label>Чувствительность <input type="range" id="s-sens" min="0.3" max="3" step="0.1"></label>
+    <label class="check"><input type="checkbox" id="s-serveraddons"> Загружать аддоны с серверов</label>
+    <label>Свой сервер связи PeerJS (необязательно) <input id="s-peer" placeholder="например 192.168.0.10:9000/"></label>
+    <button class="mbtn primary" id="s-save">Сохранить</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,56 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.sandforge.game'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.sandforge.game'
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName '1.0'
+    }
+
+    signingConfigs {
+        // Public test key committed to the repo so that new builds install over old ones.
+        // For publishing on Google Play, create your own private key.
+        sandforge {
+            storeFile file('../sandforge.keystore')
+            storePassword 'sandforge'
+            keyAlias 'sandforge'
+            keyPassword 'sandforge'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.sandforge
+        }
+        debug {
+            signingConfig signingConfigs.sandforge
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+
+    androidResources {
+        // keep the web game files uncompressed-friendly and never ignore them
+        ignoreAssetsPattern '!.svn:!.git:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.12.1'
+}

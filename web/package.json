@@ -1,0 +1,17 @@
+{
+  "name": "sandforge",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SandForge - physics sandbox game",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "dependencies": {
+    "cannon-es": "0.20.0",
+    "peerjs": "1.5.4",
+    "three": "0.160.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.24.0"
+  }
+}
