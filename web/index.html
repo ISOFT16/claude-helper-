@@ -120,6 +120,11 @@
     </label>
     <label>Чувствительность <input type="range" id="s-sens" min="0.3" max="3" step="0.1"></label>
     <label class="check"><input type="checkbox" id="s-serveraddons"> Загружать аддоны с серверов</label>
+    <label>Своя текстура физпушки (картинка с телефона, хранится только у вас)</label>
+    <div class="row"><input type="file" id="s-skin" accept="image/*"><button class="mbtn sm" id="s-skinreset">Убрать</button></div>
+    <div id="s-skininfo" class="note"></div>
+    <label>Цвет свечения физпушки</label>
+    <div id="s-glow" class="swatches"></div>
     <label>Свой сервер связи PeerJS (необязательно) <input id="s-peer" placeholder="например 192.168.0.10:9000/"></label>
     <button class="mbtn primary" id="s-save">Сохранить</button>
   </div>

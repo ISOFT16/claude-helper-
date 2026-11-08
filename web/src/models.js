@@ -387,15 +387,18 @@ export function applyTint(obj, color) {
 }
 
 // ---------- first-person weapons ----------
-export function buildWeapon(kind) {
+export function buildWeapon(kind, opts = {}) {
   const steel = material('steel');
   const dark = material('paint', { color: 0x2a2f36, clearcoat: 0.6 });
   const g = new THREE.Group();
   if (kind === 'physgun') {
-    const body = material('paint', { color: 0x38424e, clearcoat: 0.8 });
+    // opts.skin: a picture the player chose on their device (Settings), opts.glow: glow colour
+    const skinMat = opts.skin ? new THREE.MeshStandardMaterial({ map: opts.skin, roughness: 0.55, metalness: 0.45 }) : null;
+    const body = skinMat || material('paint', { color: 0x38424e, clearcoat: 0.8 });
     g.add(M(roundedBox(0.13, 0.15, 0.42, 'paint', 0.04), body, [0, 0, 0.02]));
-    g.add(M(bevelCylinder(0.055, 0.075, 0.32, 0.015), steel, [0, 0.015, -0.3], [Math.PI / 2, 0, 0]));
-    const glow = material('flat', { color: 0x9fe8ff, emissive: 0x40c8ff, emissiveIntensity: 4 });
+    g.add(M(bevelCylinder(0.055, 0.075, 0.32, 0.015), skinMat || steel, [0, 0.015, -0.3], [Math.PI / 2, 0, 0]));
+    const gc = opts.glow ?? 0x40c8ff;
+    const glow = material('flat', { color: new THREE.Color(gc).lerp(new THREE.Color(0xffffff), 0.5).getHex(), emissive: gc, emissiveIntensity: 4 });
     for (let i = 0; i < 3; i++) g.add(M(torus(0.07, 0.012), glow, [0, 0.015, -0.2 - i * 0.07]));
     for (let i = 0; i < 3; i++) {
       const a = i * Math.PI * 2 / 3;

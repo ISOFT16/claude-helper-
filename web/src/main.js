@@ -605,6 +605,24 @@ function frame() {
   render();
 }
 
+// ---------- physgun look (player's own picture + glow colour) ----------
+let skinTex = null;
+function applyPhysgun() {
+  let url = null;
+  try { url = localStorage.getItem('sf_physgun_skin'); } catch (e) { url = null; }
+  const glow = new THREE.Color(G.settings.physgunGlow || '#40c8ff').getHex();
+  if (beam.obj) P.setBeamColor(beam.obj, glow);
+  if (skinTex) { skinTex.dispose(); skinTex = null; }
+  if (!url) { P.rebuildPhysgun(null, glow); return; }
+  new THREE.TextureLoader().load(url, (t) => {
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.anisotropy = 8;
+    skinTex = t;
+    P.rebuildPhysgun(t, glow);
+  });
+}
+
 // ---------- boot ----------
 function boot() {
   loadSettings();
@@ -615,6 +633,7 @@ function boot() {
   P.initPlayer();
   beam.obj = P.makeBeam(0x66ccff);
   P.setToolScreen(G.toolDefs.get(toolId)?.name || toolId);
+  applyPhysgun();
   const results = loadEnabledAddons();
   initControls({
     key: onKey,
@@ -639,7 +658,8 @@ function boot() {
     sendChat,
     listPlayers,
     kick: (id) => G.net?.kick(id),
-    applySettings: () => { applyQuality(); refreshHud(); P.tintViewModel(G.me.color); },
+    applySettings: () => { applyQuality(); refreshHud(); P.tintViewModel(G.me.color); applyPhysgun(); },
+    applyPhysgun,
   });
   const bad = results.filter(r => !r.ok);
   if (bad.length) UI.toast('Ошибка аддона: ' + bad.map(b => b.name + ' — ' + b.error).join('; '));

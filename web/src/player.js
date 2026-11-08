@@ -124,6 +124,22 @@ export function buildViewModel() {
   tipMarker.position.set(0, 0.02, -0.55);
   vm.add(tipMarker);
 }
+// Rebuild the physgun with the player's own picture (or none) and glow colour
+export function rebuildPhysgun(skinTex, glow) {
+  if (!vm) return;
+  const old = vmModels.physgun;
+  const w = buildWeapon('physgun', { skin: skinTex, glow });
+  w.add(buildHand(G.me.color));
+  w.traverse(o => { if (o.isMesh) { o.castShadow = false; o.frustumCulled = false; } });
+  w.visible = old ? old.visible : false;
+  if (old) vm.remove(old);
+  vm.add(w);
+  vmModels.physgun = w;
+}
+export function setBeamColor(beam, color) {
+  beam.line.material.color.set(color);
+  beam.glow.material.color.set(color);
+}
 export function setToolScreen(text) { if (vmModels.toolgun) updateToolScreen(vmModels.toolgun, text); }
 export function tintViewModel(color) { for (const k in vmModels) applyTint(vmModels[k], new THREE.Color(color).getHex()); }
 

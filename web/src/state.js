@@ -32,6 +32,7 @@ const DEFAULT_SETTINGS = {
   quality: 'high',
   sens: 1,
   serverAddons: true,
+  physgunGlow: '#40c8ff',
 };
 
 export function loadSettings() {

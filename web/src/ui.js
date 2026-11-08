@@ -131,6 +131,43 @@ function renderSettings() {
   $('s-sens').value = G.settings.sens;
   $('s-serveraddons').checked = G.settings.serverAddons;
   $('s-peer').value = G.settings.peerServer || '';
+  const GLOWS = ['#40e0d0', '#40c8ff', '#3070ff', '#5dff7a', '#ff8a2a', '#c060ff', '#ff4060', '#f0f0f0'];
+  const gw = $('s-glow');
+  gw.innerHTML = GLOWS.map(c => `<button style="background:${c}" data-c="${c}" class="${c === G.settings.physgunGlow ? 'active' : ''}"></button>`).join('');
+  gw.querySelectorAll('button').forEach(b => {
+    b.onclick = () => { G.settings.physgunGlow = b.dataset.c; gw.querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b)); };
+  });
+  const hasSkin = (() => { try { return !!localStorage.getItem('sf_physgun_skin'); } catch (e) { return false; } })();
+  $('s-skininfo').textContent = hasSkin ? 'Сейчас стоит ваша картинка.' : 'Сейчас стандартная окраска.';
+  $('s-skin').value = '';
+  $('s-skin').onchange = (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        // shrink to 1024 px so it fits in local storage
+        const k = Math.min(1, 1024 / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        try {
+          localStorage.setItem('sf_physgun_skin', c.toDataURL('image/jpeg', 0.9));
+          $('s-skininfo').textContent = 'Картинка поставлена.';
+          H.applyPhysgun();
+        } catch (err) { toast('Картинка слишком большая, не удалось сохранить'); }
+      };
+      img.onerror = () => toast('Не удалось открыть картинку');
+      img.src = String(rd.result);
+    };
+    rd.readAsDataURL(f);
+  };
+  $('s-skinreset').onclick = () => {
+    try { localStorage.removeItem('sf_physgun_skin'); } catch (e) { /* ignore */ }
+    $('s-skininfo').textContent = 'Сейчас стандартная окраска.';
+    H.applyPhysgun();
+  };
   const sw = $('s-colors');
   sw.innerHTML = COLORS.map(c => `<button style="background:${c}" data-c="${c}" class="${c === G.settings.color ? 'active' : ''}"></button>`).join('');
   sw.querySelectorAll('button').forEach(b => {
