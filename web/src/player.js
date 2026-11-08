@@ -2,7 +2,8 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { G, GROUP } from './state.js';
-import { physMat } from './world.js';
+import { physMat, followSun } from './world.js';
+import { buildHumanoid, buildWeapon, buildHand, applyTint, updateToolScreen } from './models.js';
 
 export const SPAWN = [0, 2, 12];
 
@@ -94,10 +95,7 @@ export function updateCamera() {
   G.camera.position.copy(player.eye);
   G.camera.quaternion.setFromEuler(new THREE.Euler(player.pitch, player.yaw, 0, 'YXZ'));
   player.dir.set(0, 0, -1).applyQuaternion(G.camera.quaternion);
-  if (G.sun) {
-    G.sun.position.set(b.position.x + 40, 70, b.position.z + 25);
-    G.sun.target.position.set(b.position.x, 0, b.position.z);
-  }
+  followSun(b.position.x, b.position.z);
 }
 
 // ---------- View model (weapon in hands) ----------
@@ -108,44 +106,26 @@ export function buildViewModel() {
   vm = new THREE.Group();
   vm.scale.setScalar(0.7);
   G.camera.add(vm);
-  vm.position.set(0.32, -0.3, -0.55);
-  const mat = (c, e) => new THREE.MeshStandardMaterial({ color: c, emissive: e || 0x000000, emissiveIntensity: e ? 1 : 0, roughness: 0.5, metalness: 0.3 });
-  const mk = (geo, m, p, r) => { const x = new THREE.Mesh(geo, m); x.position.set(...p); if (r) x.rotation.set(...r); return x; };
-
-  const physgun = new THREE.Group();
-  physgun.add(mk(new THREE.BoxGeometry(0.12, 0.14, 0.5), mat(0x2b3440), [0, 0, 0]));
-  physgun.add(mk(new THREE.CylinderGeometry(0.05, 0.07, 0.35, 12), mat(0x7ad0ff, 0x2299ff), [0, 0.02, -0.38], [Math.PI / 2, 0, 0]));
-  physgun.add(mk(new THREE.TorusGeometry(0.08, 0.015, 8, 16), mat(0xaaddff, 0x3399ff), [0, 0.02, -0.5]));
-  physgun.add(mk(new THREE.BoxGeometry(0.08, 0.18, 0.1), mat(0x1c232b), [0, -0.13, 0.1], [0.3, 0, 0]));
-  vmModels.physgun = physgun;
-
-  const toolgun = new THREE.Group();
-  toolgun.add(mk(new THREE.BoxGeometry(0.11, 0.16, 0.42), mat(0x9aa0a8), [0, 0, 0]));
-  toolgun.add(mk(new THREE.BoxGeometry(0.1, 0.07, 0.01), mat(0x113322, 0x22ff88), [0, 0.06, 0.212]));
-  toolgun.add(mk(new THREE.CylinderGeometry(0.025, 0.025, 0.25, 8), mat(0x444444), [0, 0.02, -0.3], [Math.PI / 2, 0, 0]));
-  toolgun.add(mk(new THREE.BoxGeometry(0.08, 0.18, 0.1), mat(0x555a60), [0, -0.13, 0.08], [0.3, 0, 0]));
-  vmModels.toolgun = toolgun;
-
-  const pistol = new THREE.Group();
-  pistol.add(mk(new THREE.BoxGeometry(0.08, 0.1, 0.35), mat(0x30343a), [0, 0, -0.05]));
-  pistol.add(mk(new THREE.BoxGeometry(0.07, 0.16, 0.08), mat(0x22252a), [0, -0.11, 0.07], [0.25, 0, 0]));
-  pistol.add(mk(new THREE.BoxGeometry(0.03, 0.03, 0.04), mat(0xff5522, 0xff3300), [0, 0.06, -0.2]));
-  vmModels.pistol = pistol;
-
-  const launcher = new THREE.Group();
-  launcher.add(mk(new THREE.CylinderGeometry(0.09, 0.09, 0.7, 12), mat(0x4a5a3a), [0, 0, -0.1], [Math.PI / 2, 0, 0]));
-  launcher.add(mk(new THREE.BoxGeometry(0.08, 0.16, 0.1), mat(0x333333), [0, -0.14, 0.05], [0.3, 0, 0]));
-  vmModels.launcher = launcher;
-
+  for (const k of ['physgun', 'toolgun', 'pistol', 'launcher']) {
+    const w = buildWeapon(k);
+    w.add(buildHand(G.me.color));
+    vmModels[k] = w;
+  }
   const hands = new THREE.Group();
-  hands.add(mk(new THREE.BoxGeometry(0.12, 0.12, 0.35), mat(0x9aa7b5), [0.05, -0.05, 0]));
+  const h = buildHand(G.me.color); h.position.set(0.02, 0.02, -0.08);
+  hands.add(h);
   vmModels.hands = hands;
-
-  for (const k in vmModels) { vmModels[k].visible = false; vm.add(vmModels[k]); }
+  for (const k in vmModels) {
+    vmModels[k].visible = false;
+    vmModels[k].traverse(o => { if (o.isMesh) { o.castShadow = false; o.frustumCulled = false; } });
+    vm.add(vmModels[k]);
+  }
   tipMarker = new THREE.Object3D();
   tipMarker.position.set(0, 0.02, -0.55);
   vm.add(tipMarker);
 }
+export function setToolScreen(text) { if (vmModels.toolgun) updateToolScreen(vmModels.toolgun, text); }
+export function tintViewModel(color) { for (const k in vmModels) applyTint(vmModels[k], new THREE.Color(color).getHex()); }
 
 let bob = 0, kick = 0;
 export function setViewModel(name) {
@@ -200,7 +180,7 @@ function nameSprite(text, color) {
   const g = c.getContext('2d');
   g.fillStyle = 'rgba(0,0,0,0.45)';
   g.beginPath(); g.roundRect ? g.roundRect(8, 8, 240, 48, 14) : g.rect(8, 8, 240, 48); g.fill();
-  g.font = 'bold 30px sans-serif'; g.textAlign = 'center'; g.fillStyle = color;
+  g.font = '700 30px "Exo 2", sans-serif'; g.textAlign = 'center'; g.fillStyle = color;
   g.fillText(text.slice(0, 16), 128, 43);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
@@ -211,35 +191,16 @@ function nameSprite(text, color) {
 }
 
 export function buildAvatar(color) {
-  const g = new THREE.Group();
-  const body = new THREE.MeshStandardMaterial({ color: new THREE.Color(color), roughness: 0.6, metalness: 0.2 });
-  const dark = new THREE.MeshStandardMaterial({ color: 0x3a434c, roughness: 0.8 });
-  const visor = new THREE.MeshStandardMaterial({ color: 0x22ddff, emissive: 0x22ddff, emissiveIntensity: 1 });
-  const add = (geo, mat, p, parent = g) => { const m = new THREE.Mesh(geo, mat); m.position.set(...p); m.castShadow = true; parent.add(m); return m; };
-  add(new THREE.BoxGeometry(0.7, 0.75, 0.4), body, [0, 1.15, 0]);
-  add(new THREE.BoxGeometry(0.4, 0.14, 0.05), new THREE.MeshStandardMaterial({ color: 0xffcc00, emissive: 0x996600 }), [0, 1.3, 0.21]);
-  const head = new THREE.Group(); head.position.set(0, 1.75, 0); g.add(head);
-  add(new THREE.BoxGeometry(0.46, 0.42, 0.42), body, [0, 0, 0], head);
-  add(new THREE.BoxGeometry(0.38, 0.12, 0.05), visor, [0, 0.03, -0.22], head);
-  add(new THREE.CylinderGeometry(0.02, 0.02, 0.25, 6), dark, [0, 0.32, 0], head);
-  add(new THREE.SphereGeometry(0.05, 8, 6), new THREE.MeshStandardMaterial({ color: 0xff3030, emissive: 0xff2020 }), [0, 0.46, 0], head);
-  const limb = (x, y, w, h, mat) => {
-    const piv = new THREE.Group(); piv.position.set(x, y, 0); g.add(piv);
-    add(new THREE.BoxGeometry(w, h, w), mat, [0, -h / 2, 0], piv);
-    return piv;
-  };
-  const armL = limb(-0.47, 1.5, 0.2, 0.7, body);
-  const armR = limb(0.47, 1.5, 0.2, 0.7, body);
-  const legL = limb(-0.18, 0.76, 0.25, 0.76, dark);
-  const legR = limb(0.18, 0.76, 0.25, 0.76, dark);
-  return { group: g, head, armL, armR, legL, legR, bodyMat: body };
+  const av = buildHumanoid(0xffffff);
+  applyTint(av.group, new THREE.Color(color).getHex());
+  return av;
 }
 
 export function createRemotePlayer(id, name, color) {
   const av = buildAvatar(color);
   G.scene.add(av.group);
   const tag = nameSprite(name, color);
-  tag.position.set(0, 2.35, 0);
+  tag.position.set(0, 2.3, 0);
   av.group.add(tag);
   const body = new CANNON.Body({
     mass: 0, type: CANNON.Body.KINEMATIC, collisionFilterGroup: GROUP.PLAYER,
@@ -261,7 +222,7 @@ export function updateRemotePlayer(rp, s) {
   rp.target.set(s.p[0], s.p[1], s.p[2]);
   rp.yaw = s.y; rp.pitch = s.pi;
   rp.weapon = s.w; rp.beamTo = s.b || null; rp.noclip = !!s.n;
-  if (s.c && s.c !== rp.color) { rp.color = s.c; rp.av.bodyMat.color.set(s.c); }
+  if (s.c && s.c !== rp.color) { rp.color = s.c; applyTint(rp.av.group, new THREE.Color(s.c).getHex()); }
 }
 
 export function removeRemotePlayer(id) {
@@ -283,7 +244,7 @@ export function animateRemotePlayers(dt) {
     rp.body.velocity.set(vel.x, vel.y, vel.z);
     const g = rp.av.group;
     g.position.set(rp.pos.x, rp.pos.y - 0.9, rp.pos.z);
-    g.rotation.y = rp.yaw;
+    g.rotation.y = rp.yaw + Math.PI;
     rp.av.head.rotation.x = -rp.pitch * 0.7;
     const sp = Math.hypot(vel.x, vel.z);
     rp.walk += dt * sp * 2;

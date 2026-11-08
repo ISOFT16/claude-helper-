@@ -4,6 +4,7 @@ import {
   WORKSHOP, utilities, loadedAddons, getInstalled, installAddon, setAddonEnabled, uninstallAddon,
 } from './addons.js';
 import { isTouch } from './controls.js';
+import { thumbnail } from './thumbs.js';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -118,7 +119,7 @@ function renderPause() {
 
 function showPlayers() {
   const list = H.listPlayers();
-  const html = list.map(p => `<div class="playerrow"><span class="dot" style="background:${esc(p.color)}"></span><span style="flex:1">${esc(p.name)}${p.me ? ' (вы)' : ''}${p.host ? ' 👑' : ''}</span>${G.isHost && !p.me && G.net ? `<button class="mbtn sm" data-kick="${esc(p.id)}">Выгнать</button>` : ''}</div>`).join('');
+  const html = list.map(p => `<div class="playerrow"><span class="dot" style="background:${esc(p.color)}"></span><span style="flex:1">${esc(p.name)}${p.me ? ' (вы)' : ''}${p.host ? ' (хост)' : ''}</span>${G.isHost && !p.me && G.net ? `<button class="mbtn sm" data-kick="${esc(p.id)}">Выгнать</button>` : ''}</div>`).join('');
   $('p-room').innerHTML = (G.net ? `Код комнаты: <b>${esc(G.net.code)}</b><br>` : '') + `<div style="text-align:left;margin-top:8px">${html}</div>`;
   $('p-room').querySelectorAll('[data-kick]').forEach(b => { b.onclick = () => { H.kick(b.dataset.kick); setTimeout(showPlayers, 300); }; });
 }
@@ -153,17 +154,17 @@ export function renderSpawnMenu() {
   const cats = new Set();
   for (const d of G.propDefs.values()) if (!d.hidden) cats.add(d.category);
   const ordered = [...CAT_ORDER.filter(c => cats.has(c)), ...[...cats].filter(c => !CAT_ORDER.includes(c))];
-  const tabs = [...ordered, '🔧 Инструменты', '🧰 Утилиты'];
+  const tabs = [...ordered, 'Инструменты', 'Утилиты'];
   if (!tabs.includes(spawnTab)) spawnTab = tabs[0];
   $('spawntabs').innerHTML = tabs.map(t => `<button class="${t === spawnTab ? 'active' : ''}" data-t="${esc(t)}">${esc(t)}</button>`).join('');
   $('spawntabs').querySelectorAll('button').forEach(b => { b.onclick = () => { spawnTab = b.dataset.t; renderSpawnMenu(); }; });
   const body = $('spawncontent');
-  if (spawnTab === '🔧 Инструменты') {
+  if (spawnTab === 'Инструменты') {
     const cur = H.currentTool();
     let html = '<div class="section">Режимы тулгана (выберите, затем стреляйте тулганом)</div><div class="grid">';
     for (const t of G.toolDefs.values()) {
       if (t.hidden) continue;
-      html += `<button class="item ${t.id === cur ? 'active' : ''}" data-tool="${esc(t.id)}"><span class="ic">${esc(t.icon || '🔧')}</span>${esc(t.name)}</button>`;
+      html += `<button class="item text ${t.id === cur ? 'active' : ''}" data-tool="${esc(t.id)}">${esc(t.name)}</button>`;
     }
     html += '</div><div class="section">Цвет для «Краски» и «Шариков»</div><div class="swatches" id="toolcolors">';
     html += `<button data-c="" class="${!ui.toolColor ? 'active' : ''}" style="background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red)" title="Случайный"></button>`;
@@ -172,21 +173,23 @@ export function renderSpawnMenu() {
     body.innerHTML = html;
     body.querySelectorAll('[data-tool]').forEach(b => { b.onclick = () => { H.selectTool(b.dataset.tool); closeSpawnMenu(); }; });
     body.querySelectorAll('#toolcolors button').forEach(b => { b.onclick = () => { ui.toolColor = b.dataset.c || null; renderSpawnMenu(); }; });
-  } else if (spawnTab === '🧰 Утилиты') {
+  } else if (spawnTab === 'Утилиты') {
     const items = [
-      ['↶', 'Отменить последнее', () => H.undo()],
-      ['🧹', 'Убрать мои предметы', () => H.cleanup(false)],
-      ['💣', 'Очистить всю карту' + (G.isHost ? '' : ' (только хост)'), () => H.cleanup(true)],
-      ['🔄', 'Возродиться', () => H.respawn()],
-      ...utilities.map(u => ['⭐', u.name, () => H.runCommand(u.cmd)]),
+      ['', 'Отменить последнее', () => H.undo()],
+      ['', 'Убрать мои предметы', () => H.cleanup(false)],
+      ['', 'Очистить всю карту' + (G.isHost ? '' : ' (только хост)'), () => H.cleanup(true)],
+      ['', 'Возродиться', () => H.respawn()],
+      ['', 'Сохранить постройку', () => H.runCommand('сохранить')],
+      ['', 'Загрузить постройку', () => H.runCommand('загрузить')],
+      ...utilities.map(u => ['', u.name, () => H.runCommand(u.cmd)]),
     ];
-    body.innerHTML = '<div class="grid">' + items.map((it, i) => `<button class="item" data-i="${i}"><span class="ic">${it[0]}</span>${esc(it[1])}</button>`).join('') + '</div>' +
+    body.innerHTML = '<div class="grid">' + items.map((it, i) => `<button class="item text" data-i="${i}">${esc(it[1])}</button>`).join('') + '</div>' +
       '<div class="section">Команды чата: !помощь, !луна (с аддоном), !очистить</div>';
     body.querySelectorAll('[data-i]').forEach(b => { b.onclick = () => { items[Number(b.dataset.i)][2](); closeSpawnMenu(); }; });
   } else {
     const list = [...G.propDefs.values()].filter(d => d.category === spawnTab && !d.hidden);
-    body.innerHTML = '<div class="grid">' + list.map(d => `<button class="item" data-type="${esc(d.type)}"><span class="ic">${esc(d.icon)}</span>${esc(d.name)}</button>`).join('') + '</div>';
-    body.querySelectorAll('[data-type]').forEach(b => { b.onclick = () => { H.spawn(b.dataset.type); if (!isTouch) closeSpawnMenu(); else toast('Создано: ' + b.textContent.trim().slice(2)); }; });
+    body.innerHTML = '<div class="grid">' + list.map(d => `<button class="item" data-type="${esc(d.type)}"><img class="thumb" alt="" src="${thumbnail(d.type)}">${esc(d.name)}</button>`).join('') + '</div>';
+    body.querySelectorAll('[data-type]').forEach(b => { b.onclick = () => { H.spawn(b.dataset.type); if (!isTouch) closeSpawnMenu(); else toast('Создано: ' + b.textContent.trim()); }; });
   }
 }
 
@@ -197,7 +200,7 @@ const TEMPLATE = `addon({
   version: '1.0',
   init(api) {
     api.registerProp('my_cube', {
-      name: 'Мой куб', icon: '🟪', category: 'Мои вещи', mass: 10,
+      name: 'Мой куб', category: 'Мои вещи', mass: 10,
       shape: { type: 'box', size: [1, 1, 1], color: 0xaa44ff, tex: 'metal' },
     });
   },
@@ -210,7 +213,7 @@ function renderAddons() {
   if (addonTab === 'installed') {
     if (!installed.length) { box.innerHTML = '<p>Аддонов пока нет. Загляните в «Мастерскую» или установите свой.</p>'; return; }
     box.innerHTML = installed.map(a => `<div class="addon"><div class="info"><div class="name">${esc(a.name)} <small>${esc(a.version || '')}</small></div><div class="desc">${esc(a.desc || '')} ${a.author ? '· ' + esc(a.author) : ''}</div></div>
-      <div class="btns"><button class="mbtn sm" data-toggle="${esc(a.id)}">${a.enabled ? '✅ Включён' : '⛔ Выключен'}</button><button class="mbtn sm danger" data-del="${esc(a.id)}">Удалить</button></div></div>`).join('');
+      <div class="btns"><button class="mbtn sm" data-toggle="${esc(a.id)}">${a.enabled ? 'Включён' : 'Выключен'}</button><button class="mbtn sm danger" data-del="${esc(a.id)}">Удалить</button></div></div>`).join('');
     box.querySelectorAll('[data-toggle]').forEach(b => {
       b.onclick = () => { const a = installed.find(x => x.id === b.dataset.toggle); setAddonEnabled(a.id, !a.enabled); renderAddons(); };
     });
@@ -218,8 +221,8 @@ function renderAddons() {
   } else if (addonTab === 'workshop') {
     box.innerHTML = WORKSHOP.map(w => {
       const have = installed.find(a => a.id === w.id);
-      return `<div class="addon"><div class="info"><div class="name">🧩 ${esc(w.name)}</div><div class="desc">${esc(w.desc)} · ${esc(w.author)}</div></div>
-        <div class="btns">${have ? '<span>✔ Установлен</span>' : `<button class="mbtn sm primary" data-inst="${esc(w.id)}">Установить</button>`}</div></div>`;
+      return `<div class="addon"><div class="info"><div class="name">${esc(w.name)}</div><div class="desc">${esc(w.desc)} · ${esc(w.author)}</div></div>
+        <div class="btns">${have ? '<span>Установлен</span>' : `<button class="mbtn sm primary" data-inst="${esc(w.id)}">Установить</button>`}</div></div>`;
     }).join('');
     box.querySelectorAll('[data-inst]').forEach(b => {
       b.onclick = () => {
@@ -260,7 +263,7 @@ function renderAddons() {
     $('a-install').onclick = () => doInstall($('a-code').value);
     $('a-template').onclick = () => { $('a-code').value = TEMPLATE; };
   } else {
-    box.innerHTML = loadedAddons.length ? loadedAddons.map(a => `<div class="addon"><div class="info"><div class="name">${esc(a.name)}</div><div class="desc">${a.source === 'server' ? '🌐 с сервера' : '💾 локальный'}</div></div></div>`).join('')
+    box.innerHTML = loadedAddons.length ? loadedAddons.map(a => `<div class="addon"><div class="info"><div class="name">${esc(a.name)}</div><div class="desc">${a.source === 'server' ? 'с сервера' : 'локальный'}</div></div></div>`).join('')
       : '<p>Сейчас не загружено ни одного аддона.</p>';
   }
 }
@@ -312,13 +315,13 @@ export function notice(t) {
 export function setRoomInfo(t) { $('roominfo').textContent = t; }
 export function setWeaponBar(weapons, cur) {
   const bar = $('weaponbar');
-  bar.innerHTML = weapons.map((w, i) => `<button class="${w.id === cur ? 'active' : ''}" data-w="${i}">${w.icon} ${isTouch ? '' : (i + 1) + '.'} ${esc(w.name)}</button>`).join('');
+  bar.innerHTML = weapons.map((w, i) => `<button class="${w.id === cur ? 'active' : ''}" data-w="${i}">${isTouch ? '' : (i + 1) + '. '}${esc(w.name)}</button>`).join('');
   bar.querySelectorAll('button').forEach(b => { b.onclick = () => H.selectWeapon(Number(b.dataset.w)); });
 }
 export function setToolInfo(html) { $('toolinfo').innerHTML = html; $('toolinfo').classList.toggle('hidden', !html); }
 export function setTouchMode(noclip, weapon) {
   $('b-down').classList.toggle('hidden', !noclip);
-  $('b-jump').textContent = noclip ? '▲' : 'Прыжок';
+  $('b-jump').textContent = noclip ? 'Вверх' : 'Прыжок';
   $('b-noclip').classList.toggle('on', noclip);
   for (const id of ['b-rot', 'b-far', 'b-near']) $(id).classList.toggle('hidden', weapon !== 'physgun');
 }

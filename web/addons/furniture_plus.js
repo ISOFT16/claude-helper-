@@ -8,7 +8,7 @@ addon({
   init(api) {
     const box = (size, o) => Object.assign({ type: 'box', size }, o || {});
     api.registerProp('sofa', {
-      name: 'Диван', icon: '🛋️', category: 'Мебель', mass: 40,
+      name: 'Диван', category: 'Мебель', mass: 40,
       shapes: [
         box([2.4, 0.5, 1], { color: 0x8a3b52 }),
         box([2.4, 0.8, 0.25], { offset: [0, 0.55, -0.4], color: 0x8a3b52 }),
@@ -17,14 +17,14 @@ addon({
       ],
     });
     api.registerProp('wardrobe', {
-      name: 'Шкаф', icon: '🚪', category: 'Мебель', mass: 60,
+      name: 'Шкаф', category: 'Мебель', mass: 60,
       shapes: [
         box([1.6, 2.4, 0.7], { tex: 'plank', color: 0xd0a070 }),
         box([0.05, 2.2, 0.02], { offset: [0, 0, 0.36], color: 0x5a3a20, tint: false }),
       ],
     });
     api.registerProp('lamp', {
-      name: 'Лампа', icon: '💡', category: 'Мебель', mass: 4,
+      name: 'Лампа', category: 'Мебель', mass: 4,
       shapes: [
         { type: 'cylinder', r: 0.3, h: 0.08, offset: [0, -0.8, 0], color: 0x333333 },
         { type: 'cylinder', r: 0.04, h: 1.5, color: 0x888888 },
@@ -32,7 +32,7 @@ addon({
       ],
     });
     api.registerProp('bed', {
-      name: 'Кровать', icon: '🛏️', category: 'Мебель', mass: 50,
+      name: 'Кровать', category: 'Мебель', mass: 50,
       shapes: [
         box([1.6, 0.4, 2.6], { tex: 'plank', color: 0xc09060 }),
         box([1.5, 0.25, 2.4], { offset: [0, 0.3, 0.05], color: 0xeeeeff }),

@@ -1,7 +1,7 @@
 // SandForge — entry point: game loop, weapons, networking glue.
 import * as THREE from 'three';
 import { G, loadSettings } from './state.js';
-import { initWorld, applyQuality, updateFx, unlockAudio, playSound, mapMeshes } from './world.js';
+import { initWorld, applyQuality, updateFx, unlockAudio, playSound, mapMeshes, render } from './world.js';
 import * as E from './entities.js';
 import { registerBuiltins } from './content.js';
 import { createApi, loadEnabledAddons, runAddon, loadedAddons, addonsForClients } from './addons.js';
@@ -13,11 +13,11 @@ import { Net } from './net.js';
 const $ = id => document.getElementById(id);
 
 const WEAPONS = [
-  { id: 'physgun', name: 'Физпушка', icon: '🧲' },
-  { id: 'toolgun', name: 'Тулган', icon: '🔧' },
-  { id: 'pistol', name: 'Бластер', icon: '🔫' },
-  { id: 'launcher', name: 'Гранатомёт', icon: '💣' },
-  { id: 'hands', name: 'Руки', icon: '✋' },
+  { id: 'physgun', name: 'Физпушка' },
+  { id: 'toolgun', name: 'Тулган' },
+  { id: 'pistol', name: 'Бластер' },
+  { id: 'launcher', name: 'Гранатомёт' },
+  { id: 'hands', name: 'Руки' },
 ];
 
 let weapon = 'physgun';
@@ -121,15 +121,16 @@ function selectTool(id) {
   toolId = id;
   selectWeapon(1);
   UI.notice('Тулган: ' + (G.toolDefs.get(id)?.name || id));
+  P.setToolScreen(G.toolDefs.get(id)?.name || id);
 }
 
 function refreshHud() {
   UI.setWeaponBar(WEAPONS, weapon);
   let info = '';
-  if (weapon === 'physgun') info = '<b>Физпушка</b><br>' + (isTouch ? 'Огонь (держать) — схватить · Альт — заморозить · Вращ. + свайп — вращать' : 'ЛКМ (держать) — схватить · ПКМ — заморозить · E + мышь — вращать · колесо — дальность');
+  if (weapon === 'physgun') info = '<b>Физпушка</b><br>' + (isTouch ? 'Держите «Огонь» — схватить (палец можно вести для обзора) · «Альт» — заморозить · «Вращать» + свайп — крутить предмет' : 'ЛКМ (держать) — схватить · ПКМ — заморозить · E + мышь — вращать · колесо — дальность');
   else if (weapon === 'toolgun') {
     const t = G.toolDefs.get(toolId);
-    info = `<b>Тулган: ${UI.esc(t ? t.name : toolId)}</b><br>${UI.esc(t ? t.desc || '' : '')}<br><small>Режим меняется в «Спавн → Инструменты»</small>`;
+    info = `<b>Тулган: ${UI.esc(t ? t.name : toolId)}</b><br>${UI.esc(t ? t.desc || '' : '')}<br><small>Режим выбирается в меню «Спавн», раздел «Инструменты»</small>`;
   } else if (weapon === 'pistol') info = '<b>Бластер</b> — толкает предметы и ломает бочки';
   else if (weapon === 'launcher') info = '<b>Гранатомёт</b> — граната взрывается через 2.5 с';
   else info = '<b>Руки</b> — Огонь: толкнуть предмет';
@@ -180,7 +181,7 @@ function onPress(name) {
   }
   if (name === 'alt') {
     if (weapon === 'physgun') {
-      if (grab) { releaseGrab(true); UI.notice('Заморожено ❄'); }
+      if (grab) { releaseGrab(true); UI.notice('Заморожено'); }
       else {
         const hit = aim(120);
         if (hit && hit.entId != null) { act({ a: 'unfreeze', id: hit.entId, p: v3(hit.point) }); playSound('grab'); }
@@ -523,7 +524,7 @@ function frame() {
     G.camera.position.set(Math.sin(a) * 45, 16, Math.cos(a) * 45);
     G.camera.lookAt(0, 3, -10);
     E.syncEntityMeshes(dt);
-    G.renderer.render(G.scene, G.camera);
+    render();
     return;
   }
   if (cooldown > 0) cooldown -= dt;
@@ -601,7 +602,7 @@ function frame() {
   } else P.setBeam(beam.obj, null);
 
   netTick(dt);
-  G.renderer.render(G.scene, G.camera);
+  render();
 }
 
 // ---------- boot ----------
@@ -613,6 +614,7 @@ function boot() {
   registerCommands();
   P.initPlayer();
   beam.obj = P.makeBeam(0x66ccff);
+  P.setToolScreen(G.toolDefs.get(toolId)?.name || toolId);
   const results = loadEnabledAddons();
   initControls({
     key: onKey,
@@ -637,7 +639,7 @@ function boot() {
     sendChat,
     listPlayers,
     kick: (id) => G.net?.kick(id),
-    applySettings: () => { applyQuality(); refreshHud(); },
+    applySettings: () => { applyQuality(); refreshHud(); P.tintViewModel(G.me.color); },
   });
   const bad = results.filter(r => !r.ok);
   if (bad.length) UI.toast('Ошибка аддона: ' + bad.map(b => b.name + ' — ' + b.error).join('; '));
@@ -654,4 +656,5 @@ function boot() {
   G.debug = { act, onPress, onRelease, selectWeapon, selectTool, spawnFromMenu, player: P.player };
 }
 
-boot();
+// wait for the bundled font so text drawn on textures uses it
+(document.fonts ? Promise.race([document.fonts.load('800 20px "Exo 2"'), new Promise(r => setTimeout(r, 1500))]) : Promise.resolve()).then(boot, boot);

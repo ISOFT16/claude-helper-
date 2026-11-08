@@ -12,75 +12,88 @@ const cyl = (r, h, o = {}) => ({ type: 'cylinder', r, h, ...o });
 
 export function registerBuiltins() {
   // ----- Предметы -----
-  registerProp('crate', { name: 'Ящик', icon: '📦', mass: 20, shape: box([1, 1, 1], { tex: 'wood', color: 0xffffff }) });
-  registerProp('crate_big', { name: 'Большой ящик', icon: '🗃️', mass: 70, shape: box([2, 2, 2], { tex: 'wood', color: 0xe8d6b8 }) });
-  registerProp('barrel', { name: 'Бочка', icon: '🛢️', mass: 30, shape: cyl(0.45, 1.3, { tex: 'metal', color: 0x4f7fb0, metal: 0.4 }) });
+  registerProp('crate', { name: 'Ящик', mass: 20, shape: box([1, 1, 1], { model: 'crate' }) });
+  registerProp('crate_big', { name: 'Большой ящик', mass: 70, shape: box([2, 2, 2], { model: 'crate', color: 0xe6d2b0 }) });
+  registerProp('barrel', { name: 'Бочка', mass: 30, shape: cyl(0.45, 1.3, { model: 'barrel', color: 0x2e5f8a }) });
   registerProp('barrel_boom', {
-    name: 'Взрывная бочка', icon: '💥', mass: 30, health: 40,
+    name: 'Взрывная бочка', mass: 30, health: 40,
     explosive: { radius: 8, force: 1200, damage: 150 },
-    shape: cyl(0.45, 1.3, { tex: 'hazard', color: 0xffffff, tint: false }),
+    shape: cyl(0.45, 1.3, { model: 'barrel_boom' }),
   });
-  registerProp('ball', { name: 'Мяч', icon: '⚽', mass: 3, bouncy: true, angularDamping: 0.3, shape: sph(0.4, { tex: 'checker', color: 0xff5050 }) });
-  registerProp('beachball', { name: 'Пляжный мяч', icon: '🏐', mass: 0.8, bouncy: true, damping: 0.25, shape: sph(1, { tex: 'stripes', color: 0xffffff }) });
-  registerProp('cone', { name: 'Конус', icon: '🚧', mass: 4, shape: { type: 'cylinder', rt: 0.06, rb: 0.4, h: 1, tex: 'stripes', color: 0xff8030 } });
-  registerProp('wheel', { name: 'Колесо', icon: '🛞', mass: 12, shape: cyl(0.7, 0.35, { rot: [0, 0, Math.PI / 2], color: 0x2a2a2a }) });
-  registerProp('brick', { name: 'Кирпич', icon: '🧱', mass: 5, shape: box([0.5, 0.25, 0.25], { tex: 'wall', color: 0xd06040 }) });
-  registerProp('melon', { name: 'Арбуз', icon: '🍉', mass: 6, health: 15, shape: sph(0.35, { color: 0x2f8f3a }) });
+  registerProp('ball', { name: 'Мяч', mass: 3, bouncy: true, angularDamping: 0.3, shape: sph(0.4, { model: 'ball', color: 0xd8342c }) });
+  registerProp('beachball', { name: 'Пляжный мяч', mass: 0.8, bouncy: true, damping: 0.25, shape: sph(1, { model: 'beachball' }) });
+  registerProp('cone', { name: 'Дорожный конус', mass: 4, shape: { type: 'cylinder', rt: 0.06, rb: 0.4, h: 1, model: 'cone' } });
+  registerProp('wheel', { name: 'Колесо', mass: 12, shape: cyl(0.7, 0.35, { rot: [0, 0, Math.PI / 2], model: 'wheel' }) });
+  registerProp('brick', { name: 'Кирпич', mass: 5, shape: box([0.5, 0.25, 0.25], { model: 'brick', color: 0xffffff }) });
+  registerProp('melon', { name: 'Арбуз', mass: 6, health: 15, shape: sph(0.35, { model: 'melon' }) });
 
   // ----- Строительство -----
-  registerProp('plank', { name: 'Доска', icon: '🪵', category: 'Строительство', mass: 15, shape: box([4, 0.2, 1], { tex: 'plank', color: 0xffffff }) });
-  registerProp('plank_long', { name: 'Длинная доска', icon: '📏', category: 'Строительство', mass: 30, shape: box([8, 0.2, 1], { tex: 'plank', color: 0xffffff }) });
-  registerProp('plate', { name: 'Металлическая плита', icon: '⬜', category: 'Строительство', mass: 60, shape: box([4, 0.15, 4], { tex: 'metal', color: 0xffffff, metal: 0.5 }) });
-  registerProp('wall', { name: 'Стена', icon: '🧱', category: 'Строительство', mass: 120, shape: box([4, 3, 0.3], { tex: 'concrete', color: 0xffffff }) });
-  registerProp('beam', { name: 'Балка', icon: '➖', category: 'Строительство', mass: 25, shape: box([0.3, 0.3, 6], { tex: 'metal', color: 0xc05030, metal: 0.4 }) });
-  registerProp('cube_metal', { name: 'Стальной куб', icon: '🔲', category: 'Строительство', mass: 150, shape: box([1.5, 1.5, 1.5], { tex: 'metal', color: 0xffffff, metal: 0.6 }) });
-  registerProp('trampoline', { name: 'Батут', icon: '🤸', category: 'Строительство', mass: 40, bouncy: true, shapes: [box([3, 0.2, 3], { color: 0x30c070 }), box([3.2, 0.3, 0.2], { offset: [0, 0, 1.6], color: 0x333333 }), box([3.2, 0.3, 0.2], { offset: [0, 0, -1.6], color: 0x333333 })] });
+  registerProp('plank', { name: 'Доска', category: 'Строительство', mass: 15, shape: box([4, 0.2, 1], { mat: 'wood' }) });
+  registerProp('plank_long', { name: 'Длинная доска', category: 'Строительство', mass: 30, shape: box([8, 0.2, 1], { mat: 'wood' }) });
+  registerProp('plate', { name: 'Стальной лист', category: 'Строительство', mass: 60, shape: box([4, 0.12, 4], { mat: 'steel' }) });
+  registerProp('wall', { name: 'Бетонная стена', category: 'Строительство', mass: 120, shape: box([4, 3, 0.3], { mat: 'concrete', color: 0xd0d0cc }) });
+  registerProp('brickwall', { name: 'Кирпичная стена', category: 'Строительство', mass: 140, shape: box([4, 3, 0.4], { mat: 'brick' }) });
+  registerProp('beam', { name: 'Балка', category: 'Строительство', mass: 25, shape: box([0.3, 0.3, 6], { mat: 'paint', color: 0xb5452a }) });
+  registerProp('cube_metal', { name: 'Стальной куб', category: 'Строительство', mass: 150, shape: box([1.5, 1.5, 1.5], { mat: 'steel' }) });
+  registerProp('glass', { name: 'Стекло', category: 'Строительство', mass: 20, health: 20, shape: box([3, 2, 0.06], { mat: 'flat', opacity: 0.3, clearcoat: 1, color: 0xcfe6f0 }) });
+  registerProp('trampoline', {
+    name: 'Батут', category: 'Строительство', mass: 40, bouncy: true,
+    shapes: [
+      box([3, 0.15, 3], { mat: 'fabric', color: 0x2f6fd0 }),
+      box([3.3, 0.25, 0.25], { offset: [0, 0, 1.6], mat: 'paint', color: 0x30343a, tint: false }),
+      box([3.3, 0.25, 0.25], { offset: [0, 0, -1.6], mat: 'paint', color: 0x30343a, tint: false }),
+      box([0.25, 0.25, 3], { offset: [1.6, 0, 0], mat: 'paint', color: 0x30343a, tint: false }),
+      box([0.25, 0.25, 3], { offset: [-1.6, 0, 0], mat: 'paint', color: 0x30343a, tint: false }),
+    ],
+  });
 
   // ----- Мебель -----
   registerProp('chair', {
-    name: 'Стул', icon: '🪑', category: 'Мебель', mass: 8,
+    name: 'Стул', category: 'Мебель', mass: 8,
     shapes: [
-      box([0.9, 0.12, 0.9], { offset: [0, 0, 0], tex: 'plank' }),
-      box([0.9, 0.9, 0.12], { offset: [0, 0.5, -0.4], tex: 'plank' }),
-      ...[[-0.38, -0.38], [0.38, -0.38], [-0.38, 0.38], [0.38, 0.38]].map(([x, z]) => box([0.1, 0.8, 0.1], { offset: [x, -0.45, z], color: 0x6e4520 })),
+      box([0.9, 0.1, 0.9], { mat: 'wood' }),
+      box([0.9, 0.9, 0.1], { offset: [0, 0.5, -0.4], mat: 'wood' }),
+      ...[[-0.38, -0.38], [0.38, -0.38], [-0.38, 0.38], [0.38, 0.38]].map(([x, z]) => box([0.08, 0.8, 0.08], { offset: [x, -0.45, z], mat: 'paint', color: 0x2c2c2c, tint: false })),
     ],
   });
   registerProp('table', {
-    name: 'Стол', icon: '🍽️', category: 'Мебель', mass: 25,
+    name: 'Стол', category: 'Мебель', mass: 25,
     shapes: [
-      box([2.4, 0.12, 1.4], { tex: 'plank' }),
-      ...[[-1.05, -0.55], [1.05, -0.55], [-1.05, 0.55], [1.05, 0.55]].map(([x, z]) => box([0.12, 1, 0.12], { offset: [x, -0.55, z], color: 0x6e4520 })),
+      box([2.4, 0.1, 1.4], { mat: 'wood' }),
+      ...[[-1.05, -0.55], [1.05, -0.55], [-1.05, 0.55], [1.05, 0.55]].map(([x, z]) => box([0.1, 1, 0.1], { offset: [x, -0.55, z], mat: 'paint', color: 0x2c2c2c, tint: false })),
     ],
   });
   registerProp('tv', {
-    name: 'Телевизор', icon: '📺', category: 'Мебель', mass: 15, health: 30,
-    shapes: [box([1.6, 1, 0.3], { color: 0x222222 }), box([1.4, 0.8, 0.02], { offset: [0, 0, 0.16], color: 0x113355, emissive: 0x2266aa, tint: false })],
+    name: 'Телевизор', category: 'Мебель', mass: 15, health: 30,
+    shapes: [box([1.6, 1, 0.12], { mat: 'plastic', color: 0x1c1c1e }), box([1.5, 0.88, 0.02], { offset: [0, 0, 0.065], mat: 'flat', color: 0x0a1626, emissive: 0x1d4f8a, tint: false }),
+      box([0.5, 0.06, 0.3], { offset: [0, -0.56, 0], mat: 'plastic', color: 0x1c1c1e, tint: false })],
   });
   registerProp('fridge', {
-    name: 'Холодильник', icon: '🧊', category: 'Мебель', mass: 80,
-    shapes: [box([1, 2, 0.9], { color: 0xf0f0f0, metal: 0.2 }), box([0.06, 0.5, 0.06], { offset: [0.35, 0.3, 0.48], color: 0x888888, tint: false })],
+    name: 'Холодильник', category: 'Мебель', mass: 80,
+    shapes: [box([1, 2, 0.9], { mat: 'plastic', color: 0xf2f2f0, clearcoat: 0.6 }), box([0.05, 0.5, 0.05], { offset: [0.36, 0.3, 0.48], mat: 'steel', tint: false }),
+      box([0.98, 0.02, 0.02], { offset: [0, 0.35, 0.455], mat: 'flat', color: 0x999999, tint: false })],
   });
 
   // ----- Забавное -----
   registerProp('balloon', {
-    name: 'Воздушный шар', icon: '🎈', category: 'Забавное', mass: 0.3, lift: 40, health: 1, damping: 0.4, angularDamping: 0.6,
-    shapes: [sph(0.5, { color: 0xff3355 }), { type: 'cylinder', rt: 0.02, rb: 0.12, h: 0.15, offset: [0, -0.52, 0], color: 0xff3355 }],
+    name: 'Воздушный шар', category: 'Забавное', lift: 40, health: 1, damping: 0.4, angularDamping: 0.6,
+    parts: [{ mass: 0.3, model: 'balloon', modelArgs: { r: 0.5 }, shapes: [sph(0.5), { type: 'cylinder', rt: 0.02, rb: 0.12, h: 0.15, offset: [0, -0.52, 0] }] }],
     onDeath(ent, api) { api.fx('pop', api.pos(ent)); api.remove(ent.id); },
   });
   registerProp('dynamite', {
-    name: 'Динамит', icon: '🧨', category: 'Забавное', mass: 2, health: 10,
+    name: 'Динамит', category: 'Забавное', health: 10,
     explosive: { radius: 7, force: 1000, damage: 120 },
-    shapes: [cyl(0.12, 0.6, { color: 0xc02020, offset: [-0.13, 0, 0] }), cyl(0.12, 0.6, { color: 0xc02020, offset: [0.13, 0, 0] }), box([0.5, 0.08, 0.3], { color: 0x222222 })],
+    parts: [{ mass: 2, model: 'dynamite', shapes: [box([0.42, 0.2, 0.62])] }],
   });
   registerProp('grenade', {
-    name: 'Граната', icon: '💣', category: 'Забавное', mass: 1, fuse: 2.5, hidden: false,
+    name: 'Граната', category: 'Забавное', fuse: 2.5,
     explosive: { radius: 7, force: 1000, damage: 120 },
-    shapes: [sph(0.18, { color: 0x3d5a2a }), cyl(0.05, 0.12, { offset: [0, 0.2, 0], color: 0x888888 })],
+    parts: [{ mass: 1, model: 'grenade', shapes: [sph(0.17)] }],
   });
   registerProp('thruster', {
-    name: 'Ускоритель', icon: '🚀', category: 'Забавное', mass: 5,
-    shapes: [cyl(0.25, 0.6, { color: 0x888899, metal: 0.6 }), { type: 'cylinder', rt: 0.25, rb: 0.15, h: 0.2, offset: [0, -0.4, 0], color: 0xff6020, emissive: 0xff4010, tint: false }],
-    think(ent, dt) {
+    name: 'Ускоритель', category: 'Забавное',
+    parts: [{ mass: 5, model: 'thruster', shapes: [cyl(0.22, 0.6)] }],
+    think(ent) {
       const b = ent.parts[0].body;
       if (b.type !== CANNON.Body.DYNAMIC) return;
       const up = b.quaternion.vmult(new CANNON.Vec3(0, 1, 0));
@@ -89,19 +102,16 @@ export function registerBuiltins() {
   });
 
   // ----- Персонажи -----
-  const robotColor = 0x9aa7b5;
-  const robotParts = (c) => ({
-    torso: { mass: 25, offset: [0, 1.1, 0], shapes: [box([0.7, 0.8, 0.4], { color: c }), box([0.4, 0.15, 0.05], { offset: [0, 0.15, 0.21], color: 0xffcc00, emissive: 0x996600, tint: false })] },
-    head: { mass: 5, offset: [0, 1.75, 0], shapes: [box([0.45, 0.42, 0.42], { color: c }), box([0.36, 0.12, 0.05], { offset: [0, 0.03, 0.22], color: 0x22ddff, emissive: 0x22ddff, tint: false }), cyl(0.02, 0.25, { offset: [0, 0.32, 0], color: 0x555555, tint: false }), sph(0.05, { offset: [0, 0.46, 0], color: 0xff3030, emissive: 0xff2020, tint: false })] },
-    armL: { mass: 4, offset: [-0.5, 1.15, 0], shapes: [box([0.2, 0.75, 0.2], { color: c })] },
-    armR: { mass: 4, offset: [0.5, 1.15, 0], shapes: [box([0.2, 0.75, 0.2], { color: c })] },
-    legL: { mass: 6, offset: [-0.18, 0.37, 0], shapes: [box([0.24, 0.74, 0.26], { color: 0x4a5560, tint: false })] },
-    legR: { mass: 6, offset: [0.18, 0.37, 0], shapes: [box([0.24, 0.74, 0.26], { color: 0x4a5560, tint: false })] },
-  });
-  const rp = robotParts(robotColor);
   registerProp('ragdoll', {
-    name: 'Робот-манекен', icon: '🤖', category: 'Персонажи', damping: 0.1, angularDamping: 0.4,
-    parts: [rp.torso, rp.head, rp.armL, rp.armR, rp.legL, rp.legR],
+    name: 'Манекен', category: 'Персонажи', damping: 0.1, angularDamping: 0.4,
+    parts: [
+      { mass: 25, offset: [0, 1.1, 0], model: 'dummy_torso', shapes: [box([0.7, 0.8, 0.4])] },
+      { mass: 5, offset: [0, 1.75, 0], model: 'dummy_head', shapes: [sph(0.22)] },
+      { mass: 4, offset: [-0.5, 1.15, 0], model: 'dummy_arm', shapes: [box([0.16, 0.75, 0.16])] },
+      { mass: 4, offset: [0.5, 1.15, 0], model: 'dummy_arm', shapes: [box([0.16, 0.75, 0.16])] },
+      { mass: 6, offset: [-0.18, 0.37, 0], model: 'dummy_leg', shapes: [box([0.2, 0.74, 0.22])] },
+      { mass: 6, offset: [0.18, 0.37, 0], model: 'dummy_leg', shapes: [box([0.2, 0.74, 0.22])] },
+    ],
     joints: [
       { type: 'cone', a: 0, b: 1, pivotA: [0, 0.42, 0], pivotB: [0, -0.23, 0], angle: 0.6, twist: 0.6 },
       { type: 'cone', a: 0, b: 2, pivotA: [-0.4, 0.35, 0], pivotB: [0, 0.35, 0], axisA: [0, -1, 0], axisB: [0, -1, 0], angle: 1.6, twist: 0.5 },
@@ -111,15 +121,10 @@ export function registerBuiltins() {
     ],
   });
   registerProp('walker', {
-    name: 'Бот-бродяга', icon: '🚶', category: 'Персонажи', health: 60, fixedRotation: true, damping: 0.3,
+    name: 'Бот-бродяга', category: 'Персонажи', health: 60, fixedRotation: true, damping: 0.3,
     parts: [{
-      mass: 50, offset: [0, 1, 0],
-      shapes: [
-        box([0.7, 0.8, 0.4], { offset: [0, 0.1, 0], color: 0x6fb36a }),
-        box([0.45, 0.42, 0.42], { offset: [0, 0.75, 0], color: 0x6fb36a }),
-        box([0.36, 0.12, 0.05], { offset: [0, 0.78, 0.22], color: 0xffaa22, emissive: 0xff8800, tint: false }),
-        box([0.6, 0.65, 0.26], { offset: [0, -0.62, 0], color: 0x4a5560, tint: false }),
-      ],
+      mass: 50, offset: [0, 1, 0], model: 'dummy_full', modelColor: 0x5fa860,
+      shapes: [box([0.7, 0.8, 0.4], { offset: [0, 0.1, 0] }), box([0.45, 0.42, 0.42], { offset: [0, 0.75, 0] }), box([0.6, 0.65, 0.26], { offset: [0, -0.62, 0] })],
     }],
     think(ent, dt, api) {
       const b = ent.parts[0].body;
@@ -138,7 +143,7 @@ export function registerBuiltins() {
     },
     onDeath(ent, api, dir) {
       const p = api.pos(ent);
-      const r = api.spawn('ragdoll', [p[0], p[1] - 1, p[2]], api.quat(ent), { color: 0x6fb36a, owner: ent.owner, undo: false });
+      const r = api.spawn('ragdoll', [p[0], p[1] - 1, p[2]], api.quat(ent), { color: 0x5fa860, owner: ent.owner, undo: false });
       if (r && dir) for (const part of r.parts) part.body.velocity.set(dir[0] * 6, 2, dir[2] * 6);
       api.remove(ent.id);
     },
@@ -156,7 +161,7 @@ export function registerBuiltins() {
     },
   });
   registerTool('remove', {
-    icon: '🗑️', name: 'Удалитель', desc: 'ЛКМ / Огонь: удалить предмет. Альт: снять сварки и верёвки.',
+    name: 'Удалитель', desc: 'Огонь: удалить предмет. Альт: снять сварки и верёвки.',
     onPrimary(c) { if (c.ent) { hostFx('pop', c.hit.point); hostRemove(c.ent.id); } },
     onSecondary(c) {
       if (!c.ent) return;
@@ -164,7 +169,7 @@ export function registerBuiltins() {
     },
   });
   registerTool('weld', {
-    icon: '🔩', name: 'Сварка', desc: 'Огонь по первому предмету, затем по второму — они скрепятся. Альт: приварить к миру (заморозить).',
+    name: 'Сварка', desc: 'Огонь по первому предмету, затем по второму — они скрепятся. Альт: приварить к миру (заморозить).',
     onPrimary(c, api) {
       if (!c.ent) { c.state.first = null; return; }
       if (!c.state.first || !G.ents.has(c.state.first.id) || c.state.first.id === c.ent.id) {
@@ -179,7 +184,7 @@ export function registerBuiltins() {
     onSecondary(c) { if (c.ent) hostSetFrozen(c.ent, true); },
   });
   registerTool('rope', {
-    icon: '🪢', name: 'Верёвка', desc: 'Огонь по двум точкам — между ними натянется верёвка. Можно цеплять к стенам и полу.',
+    name: 'Верёвка', desc: 'Огонь по двум точкам — между ними натянется верёвка. Можно цеплять к стенам и полу.',
     onPrimary(c, api) {
       if (!c.hit) return;
       const pt = { id: c.ent ? c.ent.id : null, part: c.hit.part, local: c.hit.local, wp: c.hit.point };
@@ -196,7 +201,7 @@ export function registerBuiltins() {
     onSecondary(c) { c.state.first = null; },
   });
   registerTool('balloon', {
-    icon: '🎈', name: 'Шарики', desc: 'Огонь: привязать воздушный шар к предмету. Альт: просто выпустить шар.',
+    name: 'Шарики', desc: 'Огонь: привязать воздушный шар к предмету. Альт: просто выпустить шар.',
     onPrimary(c, api) {
       if (!c.hit) return;
       const p = c.hit.point;
@@ -213,16 +218,16 @@ export function registerBuiltins() {
     },
   });
   registerTool('color', {
-    icon: '🎨', name: 'Краска', desc: 'Огонь: покрасить предмет выбранным цветом. Альт: вернуть исходный цвет.',
+    name: 'Краска', desc: 'Огонь: покрасить предмет выбранным цветом. Альт: вернуть исходный цвет.',
     onPrimary(c) { if (c.ent) hostSetColor(c.ent, c.opts.color || randomColor()); },
     onSecondary(c) { if (c.ent) hostSetColor(c.ent, null); },
   });
   registerTool('freeze', {
-    icon: '❄️', name: 'Заморозка', desc: 'Огонь: заморозить/разморозить предмет на месте.',
+    name: 'Заморозка', desc: 'Огонь: заморозить/разморозить предмет на месте.',
     onPrimary(c) { if (c.ent) hostSetFrozen(c.ent, !c.ent.frozen); },
   });
   registerTool('dynamite', {
-    icon: '🧨', name: 'Динамит', desc: 'Огонь: заложить динамит (приваривается к предмету). Альт: взорвать весь свой динамит.',
+    name: 'Динамит', desc: 'Огонь: заложить динамит (приваривается к предмету). Альт: взорвать весь свой динамит.',
     onPrimary(c, api) {
       if (!c.hit) return;
       const p = c.hit.point, n = c.hit.normal;
@@ -235,7 +240,7 @@ export function registerBuiltins() {
     },
   });
   registerTool('thruster', {
-    icon: '🚀', name: 'Ускоритель', desc: 'Огонь: приварить реактивный ускоритель к предмету (толкает от поверхности).',
+    name: 'Ускоритель', desc: 'Огонь: приварить реактивный ускоритель к предмету (толкает от поверхности).',
     onPrimary(c, api) {
       if (!c.ent) return;
       const p = c.hit.point, n = c.hit.normal;

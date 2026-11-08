@@ -2,7 +2,8 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { G, GROUP, emit } from './state.js';
-import { getMaterial, physMat, spawnFx, playSound } from './world.js';
+import { physMat, spawnFx, playSound } from './world.js';
+import { shapeVisual, MODELS, applyTint } from './models.js';
 
 // ---------- Definitions ----------
 function normalizeDef(def) {
@@ -17,7 +18,6 @@ function normalizeDef(def) {
   }
   def.joints ||= [];
   def.category ||= 'Предметы';
-  def.icon ||= '📦';
   return def;
 }
 
@@ -34,19 +34,6 @@ export function registerTool(id, def) {
 }
 
 // ---------- Geometry helpers ----------
-const geoCache = new Map();
-function makeGeometry(s) {
-  const key = JSON.stringify([s.type, s.size, s.r, s.rt, s.rb, s.h]);
-  if (geoCache.has(key)) return geoCache.get(key);
-  let g;
-  if (s.type === 'box') g = new THREE.BoxGeometry(...s.size);
-  else if (s.type === 'sphere') g = new THREE.SphereGeometry(s.r, 20, 14);
-  else if (s.type === 'cylinder') g = new THREE.CylinderGeometry(s.rt ?? s.r, s.rb ?? s.r, s.h, 20);
-  else g = new THREE.BoxGeometry(1, 1, 1);
-  geoCache.set(key, g);
-  return g;
-}
-
 function makeCannonShape(s) {
   if (s.type === 'box') return new CANNON.Box(new CANNON.Vec3(s.size[0] / 2, s.size[1] / 2, s.size[2] / 2));
   if (s.type === 'sphere') return new CANNON.Sphere(s.r);
@@ -85,18 +72,21 @@ export function createEntity(desc) {
     });
     if (p.fixedRotation || def.fixedRotation) body.fixedRotation = true;
     for (const s of p.shapes) {
-      const mesh = new THREE.Mesh(makeGeometry(s), null);
-      mesh.userData.shape = s;
-      mesh.position.set(...(s.offset || [0, 0, 0]));
-      if (s.rot) mesh.quaternion.copy(eulerQuat(s.rot));
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-      mesh.userData.entId = ent.id;
-      mesh.userData.part = i;
-      group.add(mesh);
+      if (!p.model && !s.hidden) {
+        const vis = shapeVisual(s);
+        vis.position.set(...(s.offset || [0, 0, 0]));
+        if (s.rot) vis.quaternion.copy(eulerQuat(s.rot));
+        group.add(vis);
+      }
       const q = eulerQuat(s.rot);
       body.addShape(makeCannonShape(s), new CANNON.Vec3(...(s.offset || [0, 0, 0])), new CANNON.Quaternion(q.x, q.y, q.z, q.w));
     }
+    if (p.model && MODELS[p.model]) group.add(MODELS[p.model]({ color: p.modelColor, ...(p.modelArgs || {}) }));
+    group.traverse((o) => {
+      if (!o.isMesh) return;
+      o.userData.entId = ent.id;
+      o.userData.part = i;
+    });
     body.updateMassProperties();
     // place part
     let pos, quat;
@@ -151,16 +141,30 @@ export function createEntity(desc) {
   return ent;
 }
 
+// Visual-only model of a definition (used for spawn-menu previews)
+export function buildDefVisual(def, color) {
+  const root = new THREE.Group();
+  for (const p of def.parts) {
+    const group = new THREE.Group();
+    group.position.set(...p.offset);
+    for (const s of p.shapes) {
+      if (p.model || s.hidden) continue;
+      const vis = shapeVisual(s);
+      vis.position.set(...(s.offset || [0, 0, 0]));
+      if (s.rot) vis.quaternion.copy(eulerQuat(s.rot));
+      group.add(vis);
+    }
+    if (p.model && MODELS[p.model]) group.add(MODELS[p.model]({ color: p.modelColor, ...(p.modelArgs || {}) }));
+    root.add(group);
+  }
+  applyTint(root, color ?? null);
+  return root;
+}
+
 function safeCall(fn) { try { return fn(); } catch (e) { console.error(e); return undefined; } }
 
 export function applyColor(ent) {
-  for (const part of ent.parts) {
-    for (const mesh of part.group.children) {
-      const s = mesh.userData.shape;
-      const color = (ent.color && s.tint !== false) ? ent.color : (s.color ?? 0xffffff);
-      mesh.material = getMaterial(color, s.tex, { emissive: s.emissive, opacity: s.opacity, metal: s.metal });
-    }
-  }
+  for (const part of ent.parts) applyTint(part.group, ent.color);
 }
 
 export function setFrozen(ent, frozen) {

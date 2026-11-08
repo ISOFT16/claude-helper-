@@ -5,7 +5,7 @@ addon({
   version: '1.0',
   init(api) {
     api.registerProp('firework', {
-      name: 'Фейерверк', icon: '🎆', category: 'Забавное', mass: 1,
+      name: 'Фейерверк', category: 'Забавное', mass: 1,
       shapes: [
         { type: 'cylinder', r: 0.12, h: 0.8, color: 0xffcc00 },
         { type: 'cylinder', rt: 0.01, rb: 0.12, h: 0.25, offset: [0, 0.52, 0], color: 0xff2040 },

@@ -113,12 +113,21 @@ function initTouch() {
   const hold = { 'b-fire': 'fire', 'b-alt': 'alt', 'b-jump': 'jump', 'b-down': 'down', 'b-rot': 'rot', 'b-far': 'far', 'b-near': 'near' };
   for (const [id, name] of Object.entries(hold)) {
     const el = $(id);
+    // while a button is held, sliding the same finger turns the camera (aim while shooting/carrying)
+    let last = null;
     el.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       el.setPointerCapture(e.pointerId);
+      last = [e.clientX, e.clientY];
       input.held.add(name); el.classList.add('on'); H.press(name);
     });
-    const up = () => { if (input.held.has(name)) { input.held.delete(name); el.classList.remove('on'); H.release(name); } };
+    el.addEventListener('pointermove', (e) => {
+      if (!last) return;
+      input.look.dx += (e.clientX - last[0]) * 1.6;
+      input.look.dy += (e.clientY - last[1]) * 1.6;
+      last = [e.clientX, e.clientY];
+    });
+    const up = () => { last = null; if (input.held.has(name)) { input.held.delete(name); el.classList.remove('on'); H.release(name); } };
     el.addEventListener('pointerup', up);
     el.addEventListener('pointercancel', up);
   }

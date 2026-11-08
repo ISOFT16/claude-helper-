@@ -29,7 +29,7 @@ export function emit(name, ...args) {
 const DEFAULT_SETTINGS = {
   name: 'Игрок' + Math.floor(Math.random() * 900 + 100),
   color: '#3fa7ff',
-  quality: 'medium',
+  quality: 'high',
   sens: 1,
   serverAddons: true,
 };

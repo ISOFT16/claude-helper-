@@ -18,9 +18,9 @@
   <div id="chatlog"></div>
   <div id="notice"></div>
   <div id="topbtns">
-    <button id="b-pause" title="Меню (Esc)">☰</button>
-    <button id="b-spawn" title="Меню спавна (Q)">＋ Спавн</button>
-    <button id="b-chat" title="Чат (T)">💬</button>
+    <button id="b-pause" title="Меню (Esc)">Меню</button>
+    <button id="b-spawn" title="Меню спавна (Q)">Спавн</button>
+    <button id="b-chat" title="Чат (T)">Чат</button>
   </div>
   <div id="touch" class="hidden">
     <div id="lookzone"></div>
@@ -29,12 +29,12 @@
       <button class="tb big" id="b-fire">Огонь</button>
       <button class="tb" id="b-alt">Альт</button>
       <button class="tb" id="b-jump">Прыжок</button>
-      <button class="tb small" id="b-down">▼</button>
-      <button class="tb small" id="b-rot">⟲ Вращ.</button>
+      <button class="tb small" id="b-down">Вниз</button>
+      <button class="tb small" id="b-rot">Вращать</button>
       <button class="tb small" id="b-far">Дальше</button>
       <button class="tb small" id="b-near">Ближе</button>
       <button class="tb small" id="b-noclip">Полёт</button>
-      <button class="tb small" id="b-undo">↶ Отмена</button>
+      <button class="tb small" id="b-undo">Отмена</button>
       <button class="tb small" id="b-run">Бег</button>
     </div>
   </div>
@@ -45,7 +45,7 @@
 <div id="spawnmenu" class="panel hidden">
   <div class="panel-head">
     <div id="spawntabs" class="tabs"></div>
-    <button class="close" data-close="spawnmenu">✕</button>
+    <button class="close" data-close="spawnmenu">Закрыть</button>
   </div>
   <div id="spawncontent" class="panel-body"></div>
 </div>
@@ -53,7 +53,7 @@
 <!-- Chat input -->
 <div id="chatbox" class="hidden">
   <input id="chatinput" maxlength="200" placeholder="Сообщение или !команда (например !помощь)" autocomplete="off">
-  <button id="chatsend">➤</button>
+  <button id="chatsend">Отправить</button>
 </div>
 
 <!-- Main menu -->
@@ -61,14 +61,14 @@
   <div class="menu-card">
     <div class="logo">Sand<span>Forge</span></div>
     <div class="subtitle">физическая песочница · строй · экспериментируй · играй с друзьями</div>
-    <button class="mbtn primary" id="m-single">▶ Одиночная игра</button>
-    <button class="mbtn" id="m-host">🌐 Создать сервер</button>
+    <button class="mbtn primary" id="m-single">Одиночная игра</button>
+    <button class="mbtn" id="m-host">Создать сервер</button>
     <div class="row">
       <input id="m-code" maxlength="5" placeholder="Код комнаты" autocomplete="off">
       <button class="mbtn" id="m-join">Подключиться</button>
     </div>
-    <button class="mbtn" id="m-addons">🧩 Аддоны</button>
-    <button class="mbtn" id="m-settings">⚙ Настройки</button>
+    <button class="mbtn" id="m-addons">Аддоны</button>
+    <button class="mbtn" id="m-settings">Настройки</button>
     <div id="m-status" class="status"></div>
     <div class="ver">v1.0</div>
   </div>
@@ -80,10 +80,10 @@
     <div class="logo small">Пауза</div>
     <div id="p-room" class="roomcode"></div>
     <button class="mbtn primary" id="p-resume">Продолжить</button>
-    <button class="mbtn" id="p-open">🌐 Открыть сервер для друзей</button>
-    <button class="mbtn" id="p-players">👥 Игроки</button>
-    <button class="mbtn" id="p-addons">🧩 Аддоны</button>
-    <button class="mbtn" id="p-settings">⚙ Настройки</button>
+    <button class="mbtn" id="p-open">Открыть сервер для друзей</button>
+    <button class="mbtn" id="p-players">Игроки</button>
+    <button class="mbtn" id="p-addons">Аддоны</button>
+    <button class="mbtn" id="p-settings">Настройки</button>
     <button class="mbtn danger" id="p-quit">Выйти в главное меню</button>
   </div>
 </div>
@@ -91,7 +91,7 @@
 <!-- Addons manager -->
 <div id="addonsmenu" class="screen hidden">
   <div class="menu-card wide">
-    <div class="panel-head"><div class="logo small">Аддоны</div><button class="close" data-back="addonsmenu">✕</button></div>
+    <div class="panel-head"><div class="logo small">Аддоны</div><button class="close" data-back="addonsmenu">Закрыть</button></div>
     <div class="tabs" id="addontabs">
       <button data-tab="installed" class="active">Установленные</button>
       <button data-tab="workshop">Мастерская</button>
@@ -106,15 +106,16 @@
 <!-- Settings -->
 <div id="settingsmenu" class="screen hidden">
   <div class="menu-card">
-    <div class="panel-head"><div class="logo small">Настройки</div><button class="close" data-back="settingsmenu">✕</button></div>
+    <div class="panel-head"><div class="logo small">Настройки</div><button class="close" data-back="settingsmenu">Закрыть</button></div>
     <label>Имя игрока <input id="s-name" maxlength="16"></label>
     <label>Цвет робота</label>
     <div id="s-colors" class="swatches"></div>
     <label>Графика
       <select id="s-quality">
-        <option value="low">Низкая (быстро)</option>
+        <option value="low">Низкая (слабые телефоны)</option>
         <option value="medium">Средняя</option>
         <option value="high">Высокая</option>
+        <option value="ultra">Ультра (мощные устройства)</option>
       </select>
     </label>
     <label>Чувствительность <input type="range" id="s-sens" min="0.3" max="3" step="0.1"></label>
