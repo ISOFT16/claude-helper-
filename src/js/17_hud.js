@@ -146,9 +146,11 @@ function drawRadar() {
   const sx = radar.width / (MW * CELL), sz = radar.height / (MH * CELL);
   for (const a of agents) {
     if (!a.alive || !active(a)) continue;
-    if (a.team !== P.team && a.spot[P.team] <= 0) continue;
+    // «все игроки на радаре»: видны обе команды по всей карте, иначе враги — только замеченные
+    if (!SET.radarAll && a.team !== P.team && a.spot[P.team] <= 0) continue;
     rctx.fillStyle = a === P ? '#fff' : a.team ? '#ff8a3d' : '#4fb3ff';
-    rctx.beginPath(); rctx.arc(a.pos.x * sx, a.pos.z * sz, a === P ? 3.5 : 3, 0, 7); rctx.fill();
+    rctx.strokeStyle = a.team !== P.team ? '#3a0d00' : '#06121f'; rctx.lineWidth = 1.2;
+    rctx.beginPath(); rctx.arc(a.pos.x * sx, a.pos.z * sz, a === P ? 4 : 3.5, 0, 7); rctx.fill(); rctx.stroke();
     if (a === P) { rctx.strokeStyle = '#fff'; rctx.beginPath(); rctx.moveTo(a.pos.x * sx, a.pos.z * sz); rctx.lineTo(a.pos.x * sx - Math.sin(a.yaw) * 9, a.pos.z * sz - Math.cos(a.yaw) * 9); rctx.stroke(); }
   }
 }

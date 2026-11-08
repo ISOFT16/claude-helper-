@@ -36,10 +36,29 @@ function updatePlayer(dt) {
     if (!walking && !P.crouch && hs > 3.5 && bobT - lastStep > Math.PI) { lastStep = bobT; stepSound(null, 1); }
   }
   // стрельба (у оружия с отсечкой очередь дострeливается сама)
-  if ((mouseDown || P.burstLeft > 0) && G.state !== 'freeze' && !G.buyOpen) {
+  const autoShot = SET.autoFire && !mouseDown && autoFireTarget(W);
+  if ((mouseDown || autoShot || P.burstLeft > 0) && G.state !== 'freeze' && !G.buyOpen) {
     if (fire(P) && !W.auto && !W.melee && !TOUCH && !(P.burstLeft > 0)) mouseDown = false;
   }
   if (TOUCH && mouseDown && !W.melee && SET.aimAssist) aimAssist(dt);
+}
+// автострельба: стреляем сами, когда прицел наведён на видимого врага
+let autoSeenT = 0;
+function autoFireTarget(W) {
+  if (!P.alive || P.reloading > 0 || P.switchT > 0 || G.state === 'freeze' || G.buyOpen) { autoSeenT = 0; return false; }
+  P.eyePos(_e); P.forward(_d, P.yaw + P.punchY, P.pitch + P.punchP);
+  const range = W.melee ? 2.2 : W.cat === 'shotgun' ? 30 : 120;
+  rayWorld(_e.x, _e.y, _e.z, _d.x, _d.y, _d.z, range);
+  const wallT = RW.hit ? RW.t : range;
+  let target = null;
+  for (const b of agents) {
+    if (!b.alive || b.team === P.team || !active(b)) continue;
+    if (rayAgent(_e.x, _e.y, _e.z, _d.x, _d.y, _d.z, b) && RA.t < wallT) { target = b; break; }
+  }
+  if (target && smokeBlocks(_e, _a.copy(target.pos).setY(target.pos.y + 1))) target = null;
+  // небольшая задержка реакции, чтобы не стрелять от случайного касания прицелом
+  autoSeenT = target ? autoSeenT + 1 : 0;
+  return autoSeenT > 2;
 }
 function aimAssist(dt) {
   P.forward(_d, P.yaw, P.pitch); P.eyePos(_e);

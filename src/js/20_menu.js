@@ -110,13 +110,13 @@ const SCHEMA = {
   tCtl: [
     ['sens', 'range', 0.2, 4, 0.05, fx2], ['scopeSens', 'range', 0.1, 1.5, 0.05, fx2], ['invertY', 'toggle'], ['toggleCrouch', 'toggle'],
     ['keyLayout', 'select', [['en', 'kAuto'], ['ru', 'kRu']]],
-    ['touchSize', 'range', 0.7, 1.4, 0.05, pct, 'touch'], ['touchSens', 'range', 0.3, 3, 0.05, fx2, 'touch'], ['aimAssist', 'toggle', 'touch'], 'BINDS',
+    ['touchSize', 'range', 0.7, 1.4, 0.05, pct, 'touch'], ['touchSens', 'range', 0.3, 3, 0.05, fx2, 'touch'], ['aimAssist', 'toggle', 'touch'], ['autoFire', 'toggle'], 'BINDS',
   ],
   tCross: [
     ['xStyle', 'select', [['cross', 'xCross'], ['t', 'xT'], ['dot', 'xDot'], ['circle', 'xCircle']]], ['xColor', 'color'],
     ['xSize', 'range', 2, 24, 1, px], ['xThick', 'range', 1, 6, 1, px], ['xGap', 'range', 0, 20, 1, px], ['xCenter', 'toggle'], ['xDynamic', 'toggle'], ['xOutline', 'toggle'], 'XPREV',
   ],
-  tUi: [['radar', 'toggle'], ['killfeed', 'toggle'], ['hitmarkers', 'toggle'], ['dmgNumbers', 'toggle'], ['hudScale', 'range', 0.7, 1.3, 0.05, pct]],
+  tUi: [['radar', 'toggle'], ['radarAll', 'toggle'], ['killfeed', 'toggle'], ['hitmarkers', 'toggle'], ['dmgNumbers', 'toggle'], ['hudScale', 'range', 0.7, 1.3, 0.05, pct]],
   tLang: 'LANGS',
 };
 const XCOLORS = ['#7dffb0', '#00ff3c', '#ff3b3b', '#ffd85a', '#4fe6ff', '#ffffff', '#ff4fd8', '#000000'];
