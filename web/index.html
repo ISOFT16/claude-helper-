@@ -139,6 +139,7 @@
     <div id="s-botskininfo" class="note"></div>
     <label>Цвет свечения физпушки</label>
     <div id="s-glow" class="swatches"></div>
+    <button class="mbtn" id="s-sounds" type="button">Свои звуки…</button>
     <label>Свой сервер связи PeerJS (необязательно) <input id="s-peer" placeholder="например 192.168.0.10:9000/"></label>
     <button class="mbtn primary" id="s-save">Сохранить</button>
   </div>
@@ -184,6 +185,15 @@
       </div>
       <div id="devcontent" class="scroll"></div>
     </div>
+  </div>
+</div>
+
+<!-- Own sounds -->
+<div id="soundsmenu" class="screen hidden">
+  <div class="menu-card wide">
+    <div class="panel-head"><div class="logo small">Свои звуки</div><button class="close" data-back="soundsmenu">Закрыть</button></div>
+    <div class="note">Выберите для события звуковой файл с телефона (mp3, wav или ogg, до 20 секунд). Звуки хранятся только на этом устройстве. Без своего файла играет встроенный звук.</div>
+    <div id="soundlist" class="scroll"></div>
   </div>
 </div>
 

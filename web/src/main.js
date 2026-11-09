@@ -1,7 +1,7 @@
 // SandForge — entry point: game loop, weapons, networking glue.
 import * as THREE from 'three';
 import { G, loadSettings, saveSettings } from './state.js';
-import { initWorld, applyQuality, updateFx, unlockAudio, playSound, mapMeshes, render } from './world.js';
+import { initWorld, applyQuality, updateFx, unlockAudio, playSound, mapMeshes, render, audioContext } from './world.js';
 import * as E from './entities.js';
 import { registerBuiltins } from './content.js';
 import { createApi, loadEnabledAddons, runAddon, loadedAddons, addonsForClients } from './addons.js';
@@ -11,6 +11,7 @@ import * as UI from './ui.js';
 import { sanitizeAvatar } from './character.js';
 import { loadCustomModels } from './custommodels.js';
 import { initPhysics, physicsInfo } from './phys.js';
+import { initSounds } from './sounds.js';
 import { initEditors, openCharEditor, charEditorOpen, updateCharPreview, openDevMenu, devMenuOpen } from './editor.js';
 import { setTimeOfDay, setFog, env, updateEnvironment, adaptiveResolution } from './world.js';
 import { on } from './state.js';
@@ -46,6 +47,7 @@ function act(msg) {
 }
 
 function systemMessage(text, pid) {
+  if (/только/i.test(text) && (pid == null || pid === myId())) playSound('warning');
   if (pid == null) {
     UI.chatLine(null, text, null, true);
     if (G.isHost) G.net?.broadcast({ t: 'sys', text });
@@ -119,7 +121,7 @@ function selectWeapon(i) {
   if (grab) releaseGrab(false);
   weapon = w.id;
   P.setViewModel(weapon === 'hands' ? 'hands' : weapon);
-  playSound('click');
+  playSound('weapon');
   refreshHud();
 }
 
@@ -352,7 +354,7 @@ function sendChat(text) {
   if (G.isHost) { UI.chatLine(msg.name, text, msg.color); G.net?.broadcast(msg); } else G.net?.sendToHost(msg);
 }
 function runCommand(name, args = []) {
-  if (!G.commands.has(name)) { UI.chatLine(null, 'Неизвестная команда: !' + name + ' (см. !помощь)', null, true); return; }
+  if (!G.commands.has(name)) { playSound('denied'); UI.chatLine(null, 'Неизвестная команда: !' + name + ' (см. !помощь)', null, true); return; }
   act({ a: 'cmd', name, args });
 }
 
@@ -411,6 +413,7 @@ const netHandlers = {
   onDisconnect() {
     if (!G.inGame && !G.net) return;
     quit();
+    playSound('warning');
     UI.setStatus('Соединение с сервером потеряно');
   },
   onError(e) { console.warn('net', e); },
@@ -498,7 +501,7 @@ function clientData(d) {
       break;
     }
     case 'chat': UI.chatLine(d.name, d.text, d.color); break;
-    case 'sys': UI.chatLine(null, d.text, null, true); break;
+    case 'sys': UI.chatLine(null, d.text, null, true); if (/только/i.test(d.text)) playSound('warning'); break;
     case 'grav': G.world.gravity.set(0, d.y, 0); break;
     case 'av': if (d.id !== G.net.myId) P.setAvatarFor(d.id, d.a); break;
     case 'env': setTimeOfDay(d.tod); setFog(d.fog); break;
@@ -763,6 +766,7 @@ function boot() {
   applyPhysgun();
   applyBotSkin();
   const results = loadEnabledAddons();
+  initSounds(audioContext);
   loadCustomModels();
   initControls({
     key: onKey,
@@ -799,6 +803,7 @@ function boot() {
   });
   initEditors({
     toast: UI.toast,
+    sound: (k) => playSound(k),
     act,
     aim: () => aim(120),
     player: () => P.player,

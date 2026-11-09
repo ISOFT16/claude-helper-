@@ -177,7 +177,7 @@ function showPin(mode) {
     } else {
       let pin = null;
       try { pin = localStorage.getItem('sf_dev_pin'); } catch (e) { pin = null; }
-      if (v !== pin) { H.toast('Неверный PIN'); return; }
+      if (v !== pin) { H.sound('denied'); H.toast('Неверный PIN'); return; }
     }
     devUnlocked = true;
     $('devpin').classList.add('hidden');
@@ -218,7 +218,7 @@ function renderDev() {
     parts.push(rangeRow('d-fly', 'Скорость полёта', 0.5, 5, 0.1, P.flyMul, v => '×' + v.toFixed(1), v => { P.flyMul = v; }));
     parts.push(buttons([[P.thirdPerson ? 'Вид: от третьего лица' : 'Вид: от первого лица', () => { H.toggleView(); renderDev(); }], ['Полёт вкл/выкл', () => H.toggleNoclip()], ['Возродиться', () => H.respawn()]]));
   } else if (devTab === 'object') {
-    parts.push(buttons([['Выбрать то, на что смотрю', () => { const hit = H.aim(); selected = hit && hit.entId != null ? hit.entId : null; if (selected == null) H.toast('Прицел не наведён на предмет'); renderDev(); }]]));
+    parts.push(buttons([['Выбрать то, на что смотрю', () => { const hit = H.aim(); selected = hit && hit.entId != null ? hit.entId : null; if (selected == null) { H.sound('denied'); H.toast('Прицел не наведён на предмет'); } renderDev(); }]]));
     const ent = selected != null ? G.ents.get(selected) : null;
     if (!ent) parts.push(note('Закройте меню, наведите прицел на предмет, откройте снова и нажмите «Выбрать».'));
     else {
@@ -231,7 +231,7 @@ function renderDev() {
     const types = [...G.propDefs.values()].filter(d => !d.hidden);
     parts.push({ html: `<label>Предмет<select id="d-type">${types.map(d => `<option value="${esc(d.type)}">${esc(d.name)}</option>`).join('')}</select></label>`, bind: () => {} });
     parts.push(rangeRow('d-n', 'Количество', 1, 40, 1, 10, v => String(v), () => {}));
-    parts.push(buttons([['Дождь из предметов', () => devAct('rain', { type: $('d-type').value, n: Number($('d-n').value), at: H.playerPos() })], ['Очистить всю карту', () => devAct('clear')]]));
+    parts.push(buttons([['Дождь из предметов', () => devAct('rain', { type: $('d-type').value, n: Number($('d-n').value), at: H.playerPos() })], ['Очистить всю карту', () => { H.sound('warning'); devAct('clear'); }]]));
   } else if (devTab === 'debug') {
     parts.push(buttons([[H.fpsOn() ? 'Счётчик FPS: вкл' : 'Счётчик FPS: выкл', () => { H.toggleFps(); renderDev(); }], ['Сменить PIN', () => { try { localStorage.removeItem('sf_dev_pin'); } catch (e) { /* ignore */ } devUnlocked = false; showPin('create'); }]]));
     const rust = (G.settings.physics || 'rust') === 'rust';

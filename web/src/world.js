@@ -12,6 +12,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { G, GROUP } from './state.js';
 import { material, setTextureQuality, smokeTexture, leafTexture } from './textures.js';
 import { roundedBox, boxUV, bevelCylinder } from './models.js';
+import { customBuffer } from './sounds.js';
 
 export const physMat = {
   default: new CANNON.Material('default'),
@@ -466,6 +467,7 @@ export function spawnFx(kind, pos, extra = {}) {
     const l = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xffe6a0, transparent: true, blending: THREE.AdditiveBlending }));
     addFx(l, 0.08, (f, k) => { l.material.opacity = 1 - k; });
     sparks(to, 8, 5);
+    playSound('impact', to);
     const puff = sprite(0xb8b0a0, 0.5, 0.3);
     puff.position.copy(to);
     addFx(puff, 0.8, (f, k, dt) => { puff.position.y += dt * 0.4; puff.scale.setScalar(0.3 + k * 1.2); puff.material.opacity = 0.5 * (1 - k); });
@@ -523,6 +525,10 @@ export function updateFx(dt) {
 
 // ---------- sounds (synthesized) ----------
 let actx = null;
+export function audioContext() {
+  if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
+  return actx;
+}
 export function unlockAudio() {
   if (!actx) {
     try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
@@ -541,6 +547,16 @@ export function playSound(kind, pos) {
   const t = actx.currentTime;
   const gain = actx.createGain();
   gain.connect(actx.destination);
+  // the player's own sound for this event, if one was chosen in Settings
+  const custom = customBuffer(kind);
+  if (custom) {
+    gain.gain.value = Math.min(1, vol * 2.2);
+    const src = actx.createBufferSource();
+    src.buffer = custom;
+    src.connect(gain);
+    src.start(t);
+    return;
+  }
   const osc = (type, f0, f1, dur) => {
     const o = actx.createOscillator();
     o.type = type;
@@ -569,7 +585,12 @@ export function playSound(kind, pos) {
     case 'grab': gain.gain.setValueAtTime(vol * 0.3, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25); osc('triangle', 200, 520, 0.25); break;
     case 'drop': gain.gain.setValueAtTime(vol * 0.3, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2); osc('triangle', 500, 150, 0.2); break;
     case 'pop': gain.gain.setValueAtTime(vol, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1); noiseBurst(0.1, 5000); break;
-    case 'click': gain.gain.setValueAtTime(vol * 0.3, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05); osc('square', 1200, 800, 0.05); break;
+    case 'click': case 'ui': gain.gain.setValueAtTime(vol * 0.3, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05); osc('square', 1200, 800, 0.05); break;
+    case 'select': gain.gain.setValueAtTime(vol * 0.3, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08); osc('sine', 900, 1500, 0.08); break;
+    case 'weapon': gain.gain.setValueAtTime(vol * 0.35, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12); osc('triangle', 500, 700, 0.06); noiseBurst(0.05, 4000); break;
+    case 'denied': gain.gain.setValueAtTime(vol * 0.45, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3); osc('square', 180, 140, 0.3); break;
+    case 'warning': gain.gain.setValueAtTime(vol * 0.4, t); gain.gain.setValueAtTime(vol * 0.4, t + 0.3); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.55); osc('square', 880, 880, 0.15); { const o2 = actx.createOscillator(); o2.type = 'square'; o2.frequency.value = 660; o2.connect(gain); o2.start(t + 0.2); o2.stop(t + 0.4); } break;
+    case 'impact': gain.gain.setValueAtTime(vol * 0.5, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12); noiseBurst(0.12, 2500); break;
     default: break;
   }
 }

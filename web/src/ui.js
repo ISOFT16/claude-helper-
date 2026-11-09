@@ -4,6 +4,8 @@ import {
   WORKSHOP, utilities, loadedAddons, getInstalled, installAddon, setAddonEnabled, uninstallAddon,
 } from './addons.js';
 import { isTouch, releaseMouse, setControlMode } from './controls.js';
+import { SOUND_SLOTS, soundName, setSoundFile, clearSound } from './sounds.js';
+import { playSound } from './world.js';
 import { thumbnail } from './thumbs.js';
 import { customList, importModelFile, deleteCustomModel } from './custommodels.js';
 
@@ -32,6 +34,13 @@ export function initUI(handlers) {
   $('m-code').addEventListener('keydown', e => { if (e.key === 'Enter') $('m-join').click(); });
   $('m-addons').onclick = () => openScreen('addonsmenu');
   $('m-settings').onclick = () => openScreen('settingsmenu');
+  $('s-sounds').onclick = () => openScreen('soundsmenu');
+  // button sounds for the menus (not for the on-screen game controls)
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest && e.target.closest('button, .filebtn');
+    if (!b || b.closest('#touch') || b.closest('#topbtns')) return;
+    playSound(b.dataset.type || b.dataset.tool ? 'select' : 'ui');
+  }, true);
   $('m-char').onclick = () => { hideAllScreens(); H.openChar(); };
   // pause
   $('p-resume').onclick = () => H.resume();
@@ -82,14 +91,14 @@ export function setStatus(t) { $('m-status').textContent = t; }
 // ---------- Screens ----------
 export function showMain() {
   screenStack = [];
-  for (const id of ['pausemenu', 'addonsmenu', 'settingsmenu']) $(id).classList.add('hidden');
+  for (const id of ['pausemenu', 'addonsmenu', 'settingsmenu', 'soundsmenu']) $(id).classList.add('hidden');
   $('hud').classList.add('hidden');
   closeSpawnMenu();
   $('mainmenu').classList.remove('hidden');
 }
 export function hideAllScreens() {
   screenStack = [];
-  for (const id of ['mainmenu', 'pausemenu', 'addonsmenu', 'settingsmenu']) $(id).classList.add('hidden');
+  for (const id of ['mainmenu', 'pausemenu', 'addonsmenu', 'settingsmenu', 'soundsmenu']) $(id).classList.add('hidden');
 }
 export function showHud() { $('hud').classList.remove('hidden'); }
 
@@ -99,10 +108,11 @@ export function openScreen(id) {
   $(id).classList.remove('hidden');
   if (id === 'addonsmenu') renderAddons();
   if (id === 'settingsmenu') renderSettings();
+  if (id === 'soundsmenu') renderSounds();
   if (id === 'pausemenu') renderPause();
 }
 function currentScreen() {
-  return ['mainmenu', 'pausemenu', 'addonsmenu', 'settingsmenu'].find(id => !$(id).classList.contains('hidden')) || null;
+  return ['mainmenu', 'pausemenu', 'addonsmenu', 'settingsmenu', 'soundsmenu'].find(id => !$(id).classList.contains('hidden')) || null;
 }
 export function backScreen() {
   const cur = currentScreen();
@@ -186,6 +196,26 @@ function pictureSetting(key, inputId, resetId, infoId, apply) {
     $(infoId).textContent = 'Сейчас стандартная окраска.';
     apply();
   };
+}
+
+// ---------- Own sounds ----------
+function renderSounds() {
+  const box = $('soundlist');
+  box.innerHTML = SOUND_SLOTS.map(([slot, label]) => {
+    const n = soundName(slot);
+    return `<div class="addon"><div class="info"><div class="name">${esc(label)}</div><div class="desc">${n ? 'Свой: ' + esc(n) : 'Встроенный звук'}</div></div>
+      <div class="btns"><label class="mbtn sm filebtn">Выбрать<input type="file" accept="audio/*,.mp3,.wav,.ogg" data-slot="${slot}" hidden></label>
+      <button class="mbtn sm" data-play="${slot}">Прослушать</button>${n ? `<button class="mbtn sm danger" data-clear="${slot}">Убрать</button>` : ''}</div></div>`;
+  }).join('');
+  box.querySelectorAll('input[data-slot]').forEach(inp => {
+    inp.onchange = async () => {
+      const f = inp.files[0]; if (!f) return;
+      try { await setSoundFile(inp.dataset.slot, f); toast('Звук поставлен'); playSound(inp.dataset.slot); } catch (err) { toast(err.message || String(err)); }
+      renderSounds();
+    };
+  });
+  box.querySelectorAll('[data-play]').forEach(b => { b.onclick = (e) => { e.stopPropagation(); playSound(b.dataset.play); }; });
+  box.querySelectorAll('[data-clear]').forEach(b => { b.onclick = async () => { await clearSound(b.dataset.clear); renderSounds(); }; });
 }
 
 // ---------- Spawn menu ----------

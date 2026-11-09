@@ -171,3 +171,5 @@ textarea { min-height: 150px; font-family: monospace; font-size: 12px; resize: v
 }
 
 .item .item-btn { background: none; border: none; display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; font-size: 12px; }
+
+.filebtn { display: inline-flex; align-items: center; cursor: pointer; }
