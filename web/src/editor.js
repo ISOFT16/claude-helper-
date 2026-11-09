@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { G } from './state.js';
 import { OPTIONS, SKIN_TONES, PALETTE, DEFAULT_AVATAR, sanitizeAvatar, randomAvatar, buildCharacter, shrinkImage } from './character.js';
 import { env } from './world.js';
+import { releaseMouse } from './controls.js';
 import { physicsInfo } from './phys.js';
 import { saveSettings } from './state.js';
 
@@ -24,7 +25,7 @@ export function charEditorOpen() { return !$('charmenu').classList.contains('hid
 export function openCharEditor() {
   editing = JSON.parse(JSON.stringify(G.me.avatar));
   $('charmenu').classList.remove('hidden');
-  document.exitPointerLock?.();
+  releaseMouse();
   rebuildPreview();
   renderChar();
 }
@@ -151,7 +152,7 @@ let devUnlocked = false;
 let selected = null;
 
 export function openDevMenu() {
-  document.exitPointerLock?.();
+  releaseMouse();
   let pin = null;
   try { pin = localStorage.getItem('sf_dev_pin'); } catch (e) { pin = null; }
   $('devmenu').classList.remove('hidden');

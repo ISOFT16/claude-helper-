@@ -6,7 +6,7 @@ import * as E from './entities.js';
 import { registerBuiltins } from './content.js';
 import { createApi, loadEnabledAddons, runAddon, loadedAddons, addonsForClients } from './addons.js';
 import * as P from './player.js';
-import { initControls, input, isTouch, takeLook, takeWheel } from './controls.js';
+import { initControls, input, isTouch, takeLook, takeWheel, captureMouse, releaseMouse } from './controls.js';
 import * as UI from './ui.js';
 import { sanitizeAvatar } from './character.js';
 import { loadCustomModels } from './custommodels.js';
@@ -306,14 +306,14 @@ function quit() {
   G.inGame = false;
   G.isHost = true;
   resetWorld();
-  document.exitPointerLock?.();
+  releaseMouse();
   UI.showMain();
   UI.setStatus('');
 }
 
 function pause() {
   if (!G.inGame) return;
-  document.exitPointerLock?.();
+  releaseMouse();
   UI.closeSpawnMenu();
   UI.openScreen('pausemenu');
   paused = !G.net; // single player actually pauses physics
@@ -321,7 +321,7 @@ function pause() {
 function resume() {
   UI.hideAllScreens();
   paused = false;
-  if (!isTouch) $('game').requestPointerLock?.();
+  if (!isTouch) captureMouse();
 }
 
 function updateRoomInfo() {
@@ -769,6 +769,9 @@ function boot() {
     press: onPress,
     release: onRelease,
     canLock: () => G.inGame && !UI.anyScreenOpen() && !isTouch,
+    controlMode: () => G.settings.controls || 'auto',
+    notice: (t) => UI.toast(t),
+    modeChanged: () => { refreshHud(); UI.renderSpawnMenu(); },
     unlocked: () => { if (G.inGame && !UI.anyScreenOpen() && !isTouch) pause(); },
   });
   UI.initUI({

@@ -3,7 +3,7 @@ import { G, saveSettings } from './state.js';
 import {
   WORKSHOP, utilities, loadedAddons, getInstalled, installAddon, setAddonEnabled, uninstallAddon,
 } from './addons.js';
-import { isTouch } from './controls.js';
+import { isTouch, releaseMouse, setControlMode } from './controls.js';
 import { thumbnail } from './thumbs.js';
 import { customList, importModelFile, deleteCustomModel } from './custommodels.js';
 
@@ -65,6 +65,8 @@ export function initUI(handlers) {
   $('s-save').onclick = () => {
     G.settings.name = $('s-name').value.trim().slice(0, 16) || 'Игрок';
     G.settings.quality = $('s-quality').value;
+    G.settings.controls = $('s-controls').value;
+    setControlMode(G.settings.controls, true);
     G.settings.sens = Number($('s-sens').value);
     G.settings.serverAddons = $('s-serveraddons').checked;
     G.settings.peerServer = $('s-peer').value.trim();
@@ -73,7 +75,6 @@ export function initUI(handlers) {
     toast('Настройки сохранены');
     backScreen();
   };
-  if (!isTouch) $('pchint').classList.remove('hidden');
 }
 
 export function setStatus(t) { $('m-status').textContent = t; }
@@ -134,6 +135,7 @@ function showPlayers() {
 function renderSettings() {
   $('s-name').value = G.settings.name;
   $('s-quality').value = G.settings.quality;
+  $('s-controls').value = G.settings.controls || 'auto';
   $('s-sens').value = G.settings.sens;
   $('s-serveraddons').checked = G.settings.serverAddons;
   $('s-peer').value = G.settings.peerServer || '';
@@ -191,7 +193,7 @@ export function toggleSpawnMenu() {
   if ($('spawnmenu').classList.contains('hidden')) openSpawnMenu(); else closeSpawnMenu();
 }
 export function openSpawnMenu() {
-  document.exitPointerLock?.();
+  releaseMouse();
   $('spawnmenu').classList.remove('hidden');
   renderSpawnMenu();
 }
@@ -339,7 +341,7 @@ function renderAddons() {
 
 // ---------- Chat & messages ----------
 export function openChat() {
-  document.exitPointerLock?.();
+  releaseMouse();
   $('chatbox').classList.remove('hidden');
   $('chatinput').focus();
 }

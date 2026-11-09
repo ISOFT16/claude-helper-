@@ -1,5 +1,8 @@
-// Keyboard + mouse (PC) and on-screen touch controls (phones/tablets).
-export const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+// Keyboard + mouse (PC, or a phone with a Bluetooth / USB-OTG keyboard and mouse) and on-screen touch controls.
+const touchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+// Live binding: true while the on-screen touch controls are in use. Switches automatically when a
+// mouse moves / a key is pressed (-> PC mode) or the screen is touched (-> touch mode).
+export let isTouch = touchDevice;
 
 export const input = {
   move: { x: 0, y: 0 },   // joystick (x = strafe, y = forward)
@@ -12,55 +15,129 @@ export const input = {
 
 let H = null;
 const $ = id => document.getElementById(id);
+// Android app bridge (MainActivity): native mouse capture works even where the browser Pointer Lock API does not
+const bridge = () => window.SandForgeAndroid;
+
+// Physical key position, independent of keyboard layout (WASD works with a Russian layout too)
+const KEYCODES = { 8: 'Backspace', 9: 'Tab', 13: 'Enter', 16: 'ShiftLeft', 17: 'ControlLeft', 18: 'AltLeft', 27: 'Escape', 32: 'Space',
+  37: 'ArrowLeft', 38: 'ArrowUp', 39: 'ArrowRight', 40: 'ArrowDown', 112: 'F1', 113: 'F2', 114: 'F3', 115: 'F4', 116: 'F5' };
+export function keyCode(e) {
+  if (e.code && e.code !== 'Unidentified') return e.code;
+  const k = e.keyCode || e.which;
+  if (k >= 65 && k <= 90) return 'Key' + String.fromCharCode(k);
+  if (k >= 48 && k <= 57) return 'Digit' + String.fromCharCode(k);
+  return KEYCODES[k] || '';
+}
+
+// ----- control mode -----
+let modeLocked = false; // user forced a mode in settings
+export function setControlMode(mode, fromSettings = false) {
+  if (fromSettings) modeLocked = mode !== 'auto';
+  const touch = mode === 'auto' ? touchDevice : mode === 'touch';
+  if (touch === isTouch && !fromSettings) return;
+  isTouch = touch;
+  const t = $('touch');
+  if (t) t.classList.toggle('hidden', !isTouch);
+  const hint = $('pchint');
+  if (hint) hint.classList.toggle('hidden', isTouch);
+  if (isTouch && input.locked) releaseMouse();
+  H?.modeChanged?.(isTouch);
+}
+function autoMode(touch) {
+  if (modeLocked || touch === isTouch) return;
+  setControlMode(touch ? 'touch' : 'pc');
+  if (!touch) H?.notice?.('Мышь и клавиатура подключены. Нажмите на экран мышью, чтобы управлять камерой.');
+}
+
+// ----- mouse capture -----
+export function captureMouse() {
+  if (isTouch) return;
+  const b = bridge();
+  if (b && b.canCapture && b.canCapture()) { b.capturePointer(); return; }
+  $('game').requestPointerLock?.();
+}
+export function releaseMouse() {
+  const b = bridge();
+  if (b && b.canCapture && b.canCapture()) b.releasePointer();
+  if (document.pointerLockElement) document.exitPointerLock?.();
+}
+function setLocked(v) {
+  if (input.locked === v) return;
+  input.locked = v;
+  if (!v) {
+    if (input.held.has('fire')) { input.held.delete('fire'); H.release('fire'); }
+    if (input.held.has('alt')) { input.held.delete('alt'); H.release('alt'); }
+    H.unlocked();
+  }
+}
+
+// Called by the Android app ~60 times a second while the mouse is captured
+let nativeButtons = 0;
+window.sfMouse = (dx, dy, buttons, wheel) => {
+  input.look.dx += dx;
+  input.look.dy += dy;
+  if (wheel) input.wheel += Math.sign(wheel);
+  const changed = buttons ^ nativeButtons;
+  nativeButtons = buttons;
+  if (changed & 1) { if (buttons & 1) { input.held.add('fire'); H.press('fire'); } else if (input.held.has('fire')) { input.held.delete('fire'); H.release('fire'); } }
+  if (changed & 2) { if (buttons & 2) { input.held.add('alt'); H.press('alt'); } else if (input.held.has('alt')) { input.held.delete('alt'); H.release('alt'); } }
+};
+window.sfPointerCapture = (on) => { nativeButtons = 0; setLocked(!!on); };
 
 export function initControls(handlers) {
   H = handlers;
   // ----- keyboard -----
   window.addEventListener('keydown', (e) => {
-    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) {
-      if (e.code === 'Escape') H.key('Escape', e);
+    const code = keyCode(e);
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT')) {
+      if (code === 'Escape') H.key('Escape', e);
       return;
     }
-    if (!e.repeat) H.key(e.code, e);
-    input.keys.add(e.code);
-    if (e.code === 'KeyE') input.held.add('rot');
-    if (['Space', 'Tab'].includes(e.code)) e.preventDefault();
+    if (!code) return;
+    if (touchDevice && !e.repeat && code !== 'Escape') autoMode(false);
+    if (!e.repeat) H.key(code, e);
+    input.keys.add(code);
+    if (code === 'KeyE') input.held.add('rot');
+    if (['Space', 'Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Backspace'].includes(code)) e.preventDefault();
   });
   window.addEventListener('keyup', (e) => {
-    input.keys.delete(e.code);
-    if (e.code === 'KeyE') input.held.delete('rot');
+    const code = keyCode(e);
+    input.keys.delete(code);
+    if (code === 'KeyE') input.held.delete('rot');
   });
   window.addEventListener('blur', () => { input.keys.clear(); input.held.clear(); });
 
   // ----- mouse -----
   const canvasArea = $('game');
-  canvasArea.addEventListener('click', () => { if (H.canLock()) canvasArea.requestPointerLock?.(); });
-  document.addEventListener('pointerlockchange', () => {
-    input.locked = document.pointerLockElement === canvasArea;
-    if (!input.locked) { input.held.delete('fire'); input.held.delete('alt'); H.unlocked(); }
-  });
+  canvasArea.addEventListener('click', () => { if (H.canLock()) captureMouse(); });
+  // switch modes by the kind of pointer that is used
+  window.addEventListener('pointerdown', (e) => { if (touchDevice) autoMode(e.pointerType === 'touch'); }, true);
+  window.addEventListener('pointermove', (e) => { if (touchDevice && e.pointerType === 'mouse' && (e.movementX || e.movementY)) autoMode(false); }, true);
+  document.addEventListener('pointerlockchange', () => setLocked(document.pointerLockElement === canvasArea));
   document.addEventListener('mousemove', (e) => {
-    if (!input.locked) return;
+    if (!input.locked || !document.pointerLockElement) return;
     input.look.dx += e.movementX;
     input.look.dy += e.movementY;
   });
   document.addEventListener('mousedown', (e) => {
-    if (!input.locked) return;
+    if (!input.locked || !document.pointerLockElement) return;
     if (e.button === 0) { input.held.add('fire'); H.press('fire'); }
     if (e.button === 2) { input.held.add('alt'); H.press('alt'); }
   });
   document.addEventListener('mouseup', (e) => {
+    if (!document.pointerLockElement) return;
     if (e.button === 0 && input.held.has('fire')) { input.held.delete('fire'); H.release('fire'); }
     if (e.button === 2 && input.held.has('alt')) { input.held.delete('alt'); H.release('alt'); }
   });
   document.addEventListener('contextmenu', e => e.preventDefault());
   document.addEventListener('wheel', (e) => { if (input.locked) input.wheel += Math.sign(e.deltaY); }, { passive: true });
 
-  if (isTouch) initTouch();
+  if (touchDevice) initTouch();
+  const pref = handlers.controlMode ? handlers.controlMode() : 'auto';
+  setControlMode(pref || 'auto', true);
 }
 
 function initTouch() {
-  $('touch').classList.remove('hidden');
   // joystick
   const zone = $('joyzone'), joy = $('joy'), knob = $('joyknob');
   let joyId = null, cx = 0, cy = 0;
