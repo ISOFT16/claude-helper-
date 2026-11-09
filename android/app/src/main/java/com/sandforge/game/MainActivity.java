@@ -39,6 +39,7 @@ public class MainActivity extends Activity {
     // ---- physical mouse (Bluetooth / USB-OTG): captured relative motion is sent to the game ----
     private float mouseDx = 0, mouseDy = 0, mouseWheel = 0;
     private int mouseButtons = 0, sentButtons = 0;
+    private volatile boolean keepAlive = false;   // a multiplayer room is open: don't freeze the game in the background
     private boolean flushPending = false;
 
     /** WebView that tells the game when Android grants or drops mouse capture. */
@@ -61,6 +62,9 @@ public class MainActivity extends Activity {
             if (Build.VERSION.SDK_INT < 26) return;
             runOnUiThread(() -> { webView.requestFocus(); webView.requestPointerCapture(); });
         }
+
+        @JavascriptInterface
+        public void setKeepAlive(boolean on) { keepAlive = on; }
 
         @JavascriptInterface
         public void releasePointer() {
@@ -245,7 +249,8 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
-        webView.onPause();
+        // While hosting or playing online, keep JavaScript and the network running so the room stays reachable
+        if (!keepAlive) webView.onPause();
     }
 
     @Override

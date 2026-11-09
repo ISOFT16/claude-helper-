@@ -305,6 +305,7 @@ async function joinGame(code) {
 
 function quit() {
   if (G.net) { G.net.close(); G.net = null; }
+  window.SandForgeAndroid?.setKeepAlive?.(false);
   G.inGame = false;
   G.isHost = true;
   resetWorld();
@@ -329,7 +330,9 @@ function resume() {
 function updateRoomInfo() {
   if (!G.inGame) return;
   if (!G.net) UI.setRoomInfo('Одиночная игра');
-  else UI.setRoomInfo(`Комната ${G.net.code} · игроков: ${G.players.size + 1}${G.isHost ? ' · вы хост' : ''}`);
+  else UI.setRoomInfo(`Комната ${G.net.code} · игроков: ${G.players.size + 1}${G.isHost ? ' · вы хост' : ''}${G.isHost && G.net.status === 'reconnecting' ? ' · нет связи, восстанавливаю…' : ''}`);
+  // keep the Android app awake in the background while a room is open
+  window.SandForgeAndroid?.setKeepAlive?.(!!G.net);
 }
 
 function listPlayers() {
@@ -417,6 +420,12 @@ const netHandlers = {
     UI.setStatus('Соединение с сервером потеряно');
   },
   onError(e) { console.warn('net', e); },
+  onStatus(s) {
+    if (s === 'reconnecting') UI.toast('Связь с сервером потеряна, восстанавливаю комнату…');
+    if (s === 'online' && G.net && G.net.status === 'online' && G.inGame) updateRoomInfo();
+    if (s.startsWith('attempt:') && s !== 'attempt:1') UI.setStatus(`Подключаюсь… попытка ${s.slice(8)}`);
+    updateRoomInfo();
+  },
 };
 
 function hostData(pid, d) {
@@ -821,6 +830,7 @@ function boot() {
   const bad = results.filter(r => !r.ok);
   if (bad.length) UI.toast('Ошибка аддона: ' + bad.map(b => b.name + ' — ' + b.error).join('; '));
   window.addEventListener('pointerdown', unlockAudio, { once: true });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) G.net?.wake?.(); });
   frame();
   // Android back button
   window.sfBack = () => {

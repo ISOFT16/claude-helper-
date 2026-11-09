@@ -4,6 +4,7 @@ import {
   WORKSHOP, utilities, loadedAddons, getInstalled, installAddon, setAddonEnabled, uninstallAddon,
 } from './addons.js';
 import { isTouch, releaseMouse, setControlMode } from './controls.js';
+import { normalizeCode } from './net.js';
 import { SOUND_SLOTS, soundName, setSoundFile, clearSound } from './sounds.js';
 import { playSound } from './world.js';
 import { thumbnail } from './thumbs.js';
@@ -27,11 +28,13 @@ export function initUI(handlers) {
   $('m-single').onclick = () => H.startSingle();
   $('m-host').onclick = () => H.startHost();
   $('m-join').onclick = () => {
-    const code = $('m-code').value.trim().toUpperCase();
+    const code = normalizeCode($('m-code').value);
     if (code.length < 5) { setStatus('Введите код комнаты из 5 символов'); return; }
     H.join(code);
   };
   $('m-code').addEventListener('keydown', e => { if (e.key === 'Enter') $('m-join').click(); });
+  // Russian look-alike letters are converted to Latin while typing
+  $('m-code').addEventListener('input', () => { const v = normalizeCode($('m-code').value).slice(0, 5); if (v !== $('m-code').value) $('m-code').value = v; });
   $('m-addons').onclick = () => openScreen('addonsmenu');
   $('m-settings').onclick = () => openScreen('settingsmenu');
   $('s-sounds').onclick = () => openScreen('soundsmenu');
@@ -129,8 +132,16 @@ export function anyScreenOpen() {
 export function pauseOpen() { return !$('pausemenu').classList.contains('hidden'); }
 
 function renderPause() {
-  const room = G.net ? `Код комнаты: <b>${esc(G.net.code)}</b><br><small>Друзья вводят этот код в «Подключиться»</small>` : 'Одиночная игра';
+  const room = G.net ? `Код комнаты: <b>${esc(G.net.code)}</b><br><small>Друзья вводят этот код в «Подключиться». Не сворачивайте игру надолго, пока друзья подключаются.</small>
+    <div class="row" style="justify-content:center;margin-top:6px"><button class="mbtn sm" id="p-copy">Скопировать код</button>${navigator.share ? '<button class="mbtn sm" id="p-share">Поделиться</button>' : ''}</div>` : 'Одиночная игра';
   $('p-room').innerHTML = room;
+  if (G.net) {
+    $('p-copy').onclick = async () => {
+      try { await navigator.clipboard.writeText(G.net.code); toast('Код скопирован: ' + G.net.code); }
+      catch (e) { toast('Код: ' + G.net.code); }
+    };
+    if ($('p-share')) $('p-share').onclick = () => navigator.share({ text: `Заходи ко мне в SandForge! Код комнаты: ${G.net.code}` }).catch(() => {});
+  }
   $('p-open').classList.toggle('hidden', !!G.net);
 }
 
