@@ -24,11 +24,12 @@ jobs:
         with:
           name: VigilLauncher-android
           path: app/build/outputs/apk/release/app-release.apk
+      # У релиза свой тег: в репозитории есть релизы других проектов (latest, latest-apk).
       - name: Выложить APK в Releases
         run: |
           cp app/build/outputs/apk/release/app-release.apk VigilLauncher.apk
-          gh release delete latest --yes --cleanup-tag || true
-          gh release create latest VigilLauncher.apk --target "$GITHUB_SHA" \
+          gh release delete vigil-launcher --yes --cleanup-tag || true
+          gh release create vigil-launcher VigilLauncher.apk --target "$GITHUB_SHA" --prerelease \
             --title "Vigil Launcher (последняя сборка)" \
             --notes "Скачайте VigilLauncher.apk и установите на Android 8.0 или новее."
         env:
