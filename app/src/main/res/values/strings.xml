@@ -41,4 +41,6 @@
     <string name="grid_rows_title">Rows</string>
     <string name="animations">Animations</string>
     <string name="animations_summary">Icons fly in after unlocking and returning from an app</string>
+    <string name="hide_nav">Hide navigation buttons</string>
+    <string name="hide_nav_summary">On the Home screen a thin line replaces the buttons; swipe up from the bottom edge to bring them back</string>
 </resources>

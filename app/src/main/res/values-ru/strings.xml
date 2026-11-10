@@ -40,4 +40,6 @@
     <string name="grid_rows_title">Строки</string>
     <string name="animations">Анимации</string>
     <string name="animations_summary">Значки слетаются после разблокировки и возврата из приложения</string>
+    <string name="hide_nav">Скрывать кнопки навигации</string>
+    <string name="hide_nav_summary">На главном экране вместо кнопок тонкая полоска; кнопки появляются свайпом от нижнего края</string>
 </resources>

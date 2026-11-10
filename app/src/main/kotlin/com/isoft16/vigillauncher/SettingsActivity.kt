@@ -148,6 +148,11 @@ class SettingsActivity : Activity() {
             Prefs.setHomeLabels(this, it)
         }
 
+        toggle(
+            getString(R.string.hide_nav), getString(R.string.hide_nav_summary),
+            Prefs.hideNavBar(this)
+        ) { Prefs.setHideNavBar(this, it) }
+
         // Анимации
         header(R.string.section_motion)
         toggle(

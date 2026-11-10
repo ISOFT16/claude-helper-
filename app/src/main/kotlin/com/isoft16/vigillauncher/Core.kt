@@ -70,6 +70,10 @@ object Prefs {
     fun animations(context: Context): Boolean = prefs(context).getBoolean("animations", true)
     fun setAnimations(context: Context, value: Boolean) = putBoolean(context, "animations", value)
 
+    /** Прятать системные кнопки навигации на главном экране. */
+    fun hideNavBar(context: Context): Boolean = prefs(context).getBoolean("hideNav", true)
+    fun setHideNavBar(context: Context, value: Boolean) = putBoolean(context, "hideNav", value)
+
     /** Пакет выбранного набора значков; пустая строка — значки самих приложений. */
     fun iconPack(context: Context): String = prefs(context).getString("iconPack", "") ?: ""
     fun setIconPack(context: Context, value: String) {

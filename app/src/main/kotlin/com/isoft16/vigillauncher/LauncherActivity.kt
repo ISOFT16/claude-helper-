@@ -88,6 +88,7 @@ class LauncherActivity : Activity(), HomeRoot.Host, AllAppsSheet.Host {
     private var progress = 0f
 
     private lateinit var searchPill: View
+    private lateinit var navLine: View
     private var pendingUnlock = false
     private var returning = false
     private var launchDimmed = false
@@ -183,7 +184,36 @@ class LauncherActivity : Activity(), HomeRoot.Host, AllAppsSheet.Host {
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) playUnlockIfReady()
+        if (hasFocus) {
+            applyNavBar()
+            playUnlockIfReady()
+        }
+    }
+
+    /**
+     * Прячет системные кнопки навигации на главном экране (они выезжают свайпом от нижнего
+     * края) и показывает вместо них полоску. В других приложениях кнопки остаются.
+     */
+    @Suppress("DEPRECATION")
+    private fun applyNavBar() {
+        val hide = Prefs.hideNavBar(this)
+        navLine.visibility = if (hide) View.VISIBLE else View.GONE
+        if (Build.VERSION.SDK_INT >= 30) {
+            val controller = window.insetsController ?: return
+            if (hide) {
+                controller.systemBarsBehavior =
+                    WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                controller.hide(WindowInsets.Type.navigationBars())
+            } else {
+                controller.show(WindowInsets.Type.navigationBars())
+            }
+        } else {
+            val mask = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            val flags = window.decorView.systemUiVisibility
+            window.decorView.systemUiVisibility =
+                if (hide) flags or mask else flags and mask.inv()
+        }
     }
 
     override fun onDestroy() {
@@ -202,6 +232,7 @@ class LauncherActivity : Activity(), HomeRoot.Host, AllAppsSheet.Host {
 
     override fun onResume() {
         super.onResume()
+        applyNavBar()
         playUnlockIfReady()
         if (launchDimmed) {
             // Приложение не открылось поверх (например, показало диалог) — возвращаем экран.
@@ -286,6 +317,21 @@ class LauncherActivity : Activity(), HomeRoot.Host, AllAppsSheet.Host {
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpi(52)).apply {
                 setMargins(dpi(20), dpi(6), dpi(20), dpi(14))
             }
+        )
+        // Полоска на месте скрытых кнопок навигации.
+        navLine = FrameLayout(this).apply {
+            addView(
+                View(this@LauncherActivity).apply {
+                    background = GradientDrawable().apply {
+                        cornerRadius = dp(3f)
+                        setColor(0xDDFFFFFF.toInt())
+                    }
+                },
+                FrameLayout.LayoutParams(dpi(116), dpi(4)).apply { gravity = Gravity.CENTER }
+            )
+        }
+        homeContent.addView(
+            navLine, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpi(20))
         )
         root.addView(homeContent, matchParent())
 
@@ -709,6 +755,7 @@ class LauncherActivity : Activity(), HomeRoot.Host, AllAppsSheet.Host {
         store.normalize(cols, rows)
         if (store.initialized) store.save()
         sheet.setColumns(cols)
+        applyNavBar()
         bindHome()
         repo.reload()
     }
