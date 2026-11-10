@@ -9,7 +9,7 @@
 ## Скачать
 
 Готовый APK после каждой сборки лежит здесь:
-**https://github.com/ISOFT16/claude-helper-/releases/download/latest/VigilVoice.apk**
+**https://github.com/ISOFT16/claude-helper-/releases/download/vigil-voice/VigilVoice.apk**
 
 ## Первая настройка (нужен помощник, один раз)
 

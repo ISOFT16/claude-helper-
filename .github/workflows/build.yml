@@ -26,8 +26,9 @@ jobs:
       - name: Выложить APK в Releases
         run: |
           cp app/build/outputs/apk/release/app-release.apk VigilVoice.apk
-          gh release delete latest --yes --cleanup-tag || true
-          gh release create latest VigilVoice.apk --target "$GITHUB_SHA" \
+          # В репозитории лежат релизы и других проектов — у этого свой тег.
+          gh release delete vigil-voice --yes --cleanup-tag || true
+          gh release create vigil-voice VigilVoice.apk --target "$GITHUB_SHA" \
             --title "Vigil Voice (последняя сборка)" \
             --notes "Скачайте VigilVoice.apk и установите на Android."
         env:
