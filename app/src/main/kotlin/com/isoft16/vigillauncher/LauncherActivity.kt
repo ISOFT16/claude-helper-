@@ -324,7 +324,8 @@ class LauncherActivity : Activity(), HomeRoot.Host, AllAppsSheet.Host {
     private fun onAppsLoaded() {
         if (!store.initialized) {
             store.populateDefaults(repo.apps, cols, GRID_ROWS)
-        } else if (store.prune(repo.byKey.keys)) {
+        } else if (repo.apps.isNotEmpty() && store.prune(repo.byKey.keys)) {
+            // Пустой список означает сбой загрузки, а не удаление всех приложений.
             store.compactPages()
             store.save()
         }
