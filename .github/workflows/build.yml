@@ -1,0 +1,38 @@
+name: Build VigilBoard
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  android:
+    name: Android (APK)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Собрать APK
+        run: gradle assembleRelease
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VigilBoard-android
+          path: app/build/outputs/apk/release/app-release.apk
+      - name: Выложить APK в Releases
+        if: github.ref == 'refs/heads/claude/custom-keyboard-google-pixel-is9w5p' || github.ref == 'refs/heads/main'
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk VigilBoard.apk
+          gh release delete vigilboard --yes --cleanup-tag || true
+          gh release create vigilboard VigilBoard.apk --target "$GITHUB_SHA" \
+            --title "VigilBoard — клавиатура (последняя сборка)" \
+            --notes "Скачайте VigilBoard.apk, установите, затем откройте приложение и включите клавиатуру."
+        env:
+          GH_TOKEN: ${{ github.token }}
