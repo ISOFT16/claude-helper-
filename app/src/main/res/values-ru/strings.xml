@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="search_hint">Поиск</string>
+    <string name="search_apps">Поиск приложений</string>
+    <string name="web_search">Искать в интернете «%1$s»</string>
+    <string name="app_info">О приложении</string>
+    <string name="uninstall">Удалить</string>
+    <string name="remove_from_home">Убрать с главного экрана</string>
+    <string name="add_to_home">Добавить на главный экран</string>
+    <string name="wallpaper">Обои и стиль</string>
+    <string name="home_settings">Настройки главного экрана</string>
+    <string name="themed_icons_on">Тематические значки: вкл.</string>
+    <string name="themed_icons_off">Тематические значки: выкл.</string>
+    <string name="grid_columns">Столбцов в сетке: %1$d</string>
+    <string name="set_default">Лаунчер по умолчанию</string>
+    <string name="set_default_banner">Сделать Vigil Launcher главным экраном</string>
+    <string name="no_room">На этом экране нет места</string>
+    <string name="cannot_open">Не удалось открыть приложение</string>
+</resources>

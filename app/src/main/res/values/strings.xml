@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Vigil Launcher</string>
+    <string name="search_hint">Search</string>
+    <string name="search_apps">Search apps</string>
+    <string name="web_search">Search the web for “%1$s”</string>
+    <string name="app_info">App info</string>
+    <string name="uninstall">Uninstall</string>
+    <string name="remove_from_home">Remove from Home screen</string>
+    <string name="add_to_home">Add to Home screen</string>
+    <string name="wallpaper">Wallpaper &amp; style</string>
+    <string name="home_settings">Home settings</string>
+    <string name="themed_icons_on">Themed icons: on</string>
+    <string name="themed_icons_off">Themed icons: off</string>
+    <string name="grid_columns">Grid columns: %1$d</string>
+    <string name="set_default">Default home app</string>
+    <string name="set_default_banner">Set Vigil Launcher as the home app</string>
+    <string name="no_room">No room on this screen</string>
+    <string name="cannot_open">Can\'t open this app</string>
+</resources>
