@@ -18,6 +18,8 @@ import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.DecelerateInterpolator
+import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.OverScroller
@@ -37,7 +39,7 @@ class BubbleView(context: Context) : View(context) {
         private set
 
     private var showLabel = true
-    private val iconSize = context.dpi(ICON_DP)
+    private val iconSize = context.dpi(Prefs.iconSizeDp(context))
     private val gap = context.dp(6f)
     private val iconPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
     private val pressedFilter = PorterDuffColorFilter(0x33000000, PorterDuff.Mode.SRC_ATOP)
@@ -50,6 +52,9 @@ class BubbleView(context: Context) : View(context) {
     }
     private val iconRect = RectF()
     private var label: String? = null
+    private var pressedShown = false
+    private val pressIn = DecelerateInterpolator()
+    private val pressOut = OvershootInterpolator(2.5f)
 
     init {
         isClickable = true
@@ -76,9 +81,18 @@ class BubbleView(context: Context) : View(context) {
         label = null
     }
 
+    /** При нажатии значок слегка сжимается и пружинит обратно. */
     override fun drawableStateChanged() {
         super.drawableStateChanged()
         invalidate()
+        if (isPressed == pressedShown) return
+        pressedShown = isPressed
+        val target = if (isPressed) 0.9f else 1f
+        animate().scaleX(target).scaleY(target)
+            .setStartDelay(0)
+            .setDuration(if (isPressed) 110L else 260L)
+            .setInterpolator(if (isPressed) pressIn else pressOut)
+            .start()
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -178,7 +192,7 @@ class CellLayout(context: Context, val cols: Int, val rows: Int) : ViewGroup(con
         if (highlightX < 0 || highlightY < 0) return
         val cw = cellWidth
         val ch = cellHeight
-        val size = context.dp(ICON_DP + 16f)
+        val size = context.dp(Prefs.iconSizeDp(context) + 16f)
         val centerX = paddingLeft + cw * (highlightX + 0.5f)
         val centerY = paddingTop + ch * (highlightY + 0.5f)
         highlightRect.set(
@@ -328,6 +342,9 @@ class LauncherPopup(private val context: Context, private val palette: Palette) 
     }
     private var window: PopupWindow? = null
 
+    /** Вызывается, когда меню закрылось любым способом. */
+    var onDismiss: (() -> Unit)? = null
+
     fun add(label: CharSequence, action: () -> Unit) {
         val row = TextView(context).apply {
             text = label
@@ -363,14 +380,33 @@ class LauncherPopup(private val context: Context, private val palette: Palette) 
         )
         popup.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         popup.isOutsideTouchable = true
+        popup.animationStyle = 0
+        popup.setOnDismissListener { onDismiss?.invoke() }
         window = popup
         return popup
+    }
+
+    /** Меню «вырастает» из точки появления. */
+    private fun animateIn(pivotCenter: Boolean) {
+        list.animate().cancel()
+        list.alpha = 0f
+        list.scaleX = 0.6f
+        list.scaleY = 0.6f
+        list.post {
+            list.pivotX = if (pivotCenter) list.width / 2f else 0f
+            list.pivotY = 0f
+            list.animate().alpha(1f).scaleX(1f).scaleY(1f)
+                .setDuration(260)
+                .setInterpolator(OvershootInterpolator(1.4f))
+                .start()
+        }
     }
 
     /** Показывает меню рядом с иконкой. */
     fun show(anchor: View) {
         try {
             create().showAsDropDown(anchor, 0, -anchor.height / 5)
+            animateIn(false)
         } catch (e: Exception) {
             window = null
         }
@@ -380,6 +416,7 @@ class LauncherPopup(private val context: Context, private val palette: Palette) 
     fun showAt(parent: View, x: Int, y: Int) {
         try {
             create().showAtLocation(parent, Gravity.NO_GRAVITY, x, y)
+            animateIn(false)
         } catch (e: Exception) {
             window = null
         }

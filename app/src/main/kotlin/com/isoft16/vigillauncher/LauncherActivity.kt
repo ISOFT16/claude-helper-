@@ -6,12 +6,16 @@ import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.ActivityOptions
+import android.app.KeyguardManager
 import android.app.SearchManager
 import android.app.WallpaperManager
 import android.app.role.RoleManager
+import android.content.BroadcastReceiver
 import android.content.ClipData
 import android.content.ContentUris
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
 import android.graphics.Color
@@ -34,6 +38,8 @@ import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.view.WindowManager
 import android.view.animation.DecelerateInterpolator
+import android.view.animation.OvershootInterpolator
+import android.view.animation.PathInterpolator
 import android.view.inputmethod.InputMethodManager
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -77,7 +83,34 @@ class LauncherActivity : Activity(), HomeRoot.Host, AllAppsSheet.Host {
 
     private val handler = Handler(Looper.getMainLooper())
     private var cols = 4
+    private var rows = 5
+    private var settingsVersion = 0
     private var progress = 0f
+
+    private lateinit var searchPill: View
+    private var pendingUnlock = false
+    private var returning = false
+    private var launchDimmed = false
+    private var started = false
+    private val entrance = PathInterpolator(0.16f, 1f, 0.3f, 1f)
+
+    /** Следит за выключением и разблокировкой экрана, чтобы проиграть анимацию появления. */
+    private val screenReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                Intent.ACTION_SCREEN_OFF -> {
+                    if (!Prefs.animations(this@LauncherActivity)) return
+                    popup?.dismiss()
+                    drawerAnimator?.cancel()
+                    setProgress(0f)
+                    pendingUnlock = true
+                    homeContent.alpha = 0f
+                }
+
+                Intent.ACTION_USER_PRESENT, Intent.ACTION_SCREEN_ON -> playUnlockIfReady()
+            }
+        }
+    }
     private var drawerAnimator: ValueAnimator? = null
     private var popup: LauncherPopup? = null
 
@@ -101,7 +134,9 @@ class LauncherActivity : Activity(), HomeRoot.Host, AllAppsSheet.Host {
         store = HomeStore(this)
         store.load()
         cols = Prefs.columns(this)
-        store.normalize(cols, GRID_ROWS)
+        rows = Prefs.rows(this)
+        settingsVersion = Prefs.version(this)
+        store.normalize(cols, rows)
         launcherApps = getSystemService(LauncherApps::class.java)
 
         setupWindow()
@@ -112,6 +147,43 @@ class LauncherActivity : Activity(), HomeRoot.Host, AllAppsSheet.Host {
         repo.listener = { onAppsLoaded() }
         repo.start()
         bindHome()
+
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_USER_PRESENT)
+        }
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(screenReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(screenReceiver, filter)
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        started = true
+        applySettingsIfChanged()
+        if (pendingUnlock) {
+            playUnlockIfReady()
+        } else if (returning && progress == 0f) {
+            // Возврат из приложения: значки мягко сходятся на свои места.
+            hideForEntrance()
+            root.post { playEntrance(0.16f, 1.12f, 420L, 40L) }
+        }
+        returning = false
+    }
+
+    override fun onStop() {
+        super.onStop()
+        started = false
+        returning = true
+        resetHomeTransform()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) playUnlockIfReady()
     }
 
     override fun onDestroy() {
@@ -119,12 +191,23 @@ class LauncherActivity : Activity(), HomeRoot.Host, AllAppsSheet.Host {
         popup?.dismiss()
         drawerAnimator?.cancel()
         handler.removeCallbacksAndMessages(null)
+        try {
+            unregisterReceiver(screenReceiver)
+        } catch (e: Exception) {
+            // Уже снят.
+        }
         repo.listener = null
         repo.stop()
     }
 
     override fun onResume() {
         super.onResume()
+        playUnlockIfReady()
+        if (launchDimmed) {
+            // Приложение не открылось поверх (например, показало диалог) — возвращаем экран.
+            launchDimmed = false
+            homeContent.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(220).start()
+        }
         banner.visibility = if (isDefaultHome()) View.GONE else View.VISIBLE
     }
 
@@ -197,8 +280,9 @@ class LauncherActivity : Activity(), HomeRoot.Host, AllAppsSheet.Host {
             dockHolder, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpi(84))
         )
 
+        searchPill = buildSearchPill()
         homeContent.addView(
-            buildSearchPill(),
+            searchPill,
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dpi(52)).apply {
                 setMargins(dpi(20), dpi(6), dpi(20), dpi(14))
             }
@@ -323,7 +407,7 @@ class LauncherActivity : Activity(), HomeRoot.Host, AllAppsSheet.Host {
 
     private fun onAppsLoaded() {
         if (!store.initialized) {
-            store.populateDefaults(repo.apps, cols, GRID_ROWS)
+            store.populateDefaults(repo.apps, cols, rows)
         } else if (repo.apps.isNotEmpty() && store.prune(repo.byKey.keys)) {
             // Пустой список означает сбой загрузки, а не удаление всех приложений.
             store.compactPages()
@@ -339,12 +423,13 @@ class LauncherActivity : Activity(), HomeRoot.Host, AllAppsSheet.Host {
         workspace.removeAllViews()
         val pages = store.pageCount()
         for (page in 0 until pages) {
-            val layout = CellLayout(this, cols, GRID_ROWS)
+            val layout = CellLayout(this, cols, rows)
             layout.setPadding(dpi(8), dpi(4), dpi(8), 0)
             if (page == 0) layout.addItem(glance, 0, 0, cols, 1)
             workspace.addView(layout)
         }
 
+        val labels = Prefs.homeLabels(this)
         dockHolder.removeAllViews()
         dock = CellLayout(this, cols, 1)
         dock.setPadding(dpi(8), 0, dpi(8), 0)
@@ -354,7 +439,7 @@ class LauncherActivity : Activity(), HomeRoot.Host, AllAppsSheet.Host {
             val entry = repo.byKey[item.key] ?: continue
             val view = BubbleView(this)
             val onDesktop = item.container == HomeStore.DESKTOP
-            view.bind(entry, item, onDesktop, Color.WHITE, true)
+            view.bind(entry, item, onDesktop && labels, Color.WHITE, true)
             view.setOnClickListener { launch(entry, view) }
             view.setOnLongClickListener { startAppDrag(view) }
             if (onDesktop) {
@@ -401,6 +486,12 @@ class LauncherActivity : Activity(), HomeRoot.Host, AllAppsSheet.Host {
                     .toBundle()
             }
             launcherApps.startMainActivity(entry.component, entry.user, bounds, options)
+            if (progress == 0f && Prefs.animations(this)) {
+                // Пока приложение раскрывается из значка, главный экран отступает назад.
+                launchDimmed = true
+                homeContent.animate().scaleX(0.9f).scaleY(0.9f).alpha(0.35f)
+                    .setDuration(320).setInterpolator(entrance).start()
+            }
         } catch (e: Exception) {
             toast(R.string.cannot_open)
         }
@@ -419,7 +510,7 @@ class LauncherActivity : Activity(), HomeRoot.Host, AllAppsSheet.Host {
         val height = root.height.toFloat()
         sheet.translationY = (1f - p) * height
         sheet.visibility = if (p > 0f && height > 0f) View.VISIBLE else View.INVISIBLE
-        homeContent.alpha = 1f - min(1f, p * 1.6f)
+        homeContent.alpha = if (pendingUnlock) 0f else 1f - min(1f, p * 1.6f)
         val scale = 1f - 0.06f * p
         homeContent.scaleX = scale
         homeContent.scaleY = scale
@@ -502,36 +593,124 @@ class LauncherActivity : Activity(), HomeRoot.Host, AllAppsSheet.Host {
         }
     }
 
+    /** Долгое нажатие на пустом месте: экран отступает назад, из точки касания вырастает меню. */
     override fun onEmptyLongPress(x: Float, y: Float) {
         popup?.dismiss()
         val menu = LauncherPopup(this, palette)
         menu.add(getString(R.string.wallpaper)) { openWallpaperPicker() }
-        menu.add(getString(R.string.home_settings)) { showSettings(x, y) }
+        menu.add(getString(R.string.home_settings)) {
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
+        val animate = Prefs.animations(this)
+        if (animate) {
+            homeContent.animate().scaleX(0.9f).scaleY(0.9f)
+                .setStartDelay(0).setDuration(380)
+                .setInterpolator(OvershootInterpolator(1.6f)).start()
+        }
+        menu.onDismiss = {
+            if (animate && progress == 0f && !launchDimmed) {
+                homeContent.animate().scaleX(1f).scaleY(1f)
+                    .setStartDelay(0).setDuration(320)
+                    .setInterpolator(OvershootInterpolator(1.2f)).start()
+            }
+        }
         menu.showAt(root, x.toInt(), y.toInt())
         popup = menu
     }
 
-    private fun showSettings(x: Float, y: Float) {
-        popup?.dismiss()
-        val menu = LauncherPopup(this, palette)
-        val themed = Prefs.themedIcons(this)
-        menu.add(
-            getString(if (themed) R.string.themed_icons_on else R.string.themed_icons_off)
-        ) {
-            Prefs.setThemedIcons(this, !themed)
-            repo.reload()
+    // ---------------------------------------------------------------- анимации появления
+
+    /** Возвращает главный экран в обычное состояние после затемнения или масштабирования. */
+    private fun resetHomeTransform() {
+        launchDimmed = false
+        homeContent.animate().cancel()
+        if (pendingUnlock) {
+            homeContent.scaleX = 1f
+            homeContent.scaleY = 1f
+            homeContent.alpha = 0f
+        } else {
+            setProgress(progress)
         }
-        menu.add(getString(R.string.grid_columns, cols)) {
-            cols = if (cols == 4) 5 else 4
-            Prefs.setColumns(this, cols)
-            store.normalize(cols, GRID_ROWS)
-            store.save()
-            sheet.setColumns(cols)
-            bindHome()
+    }
+
+    private fun isLocked(): Boolean = try {
+        getSystemService(KeyguardManager::class.java)?.isKeyguardLocked ?: false
+    } catch (e: Exception) {
+        false
+    }
+
+    /** После разблокировки значки слетаются с краёв экрана на свои места. */
+    private fun playUnlockIfReady() {
+        if (!pendingUnlock || !started || isLocked()) return
+        pendingUnlock = false
+        homeContent.animate().cancel()
+        hideForEntrance()
+        setProgress(progress)
+        root.post { playEntrance(0.85f, 1.7f, 620L, 110L) }
+    }
+
+    /** Прячет значки на один кадр до старта анимации, чтобы они не мигнули на местах. */
+    private fun hideForEntrance() {
+        if (!Prefs.animations(this)) return
+        for (view in entranceViews()) view.alpha = 0f
+    }
+
+    private fun entranceViews(): List<View> {
+        val views = ArrayList<View>()
+        if (workspace.pageCount > 0) {
+            val page = workspace.page(workspace.currentPage)
+            for (i in 0 until page.childCount) views.add(page.getChildAt(i))
         }
-        menu.add(getString(R.string.set_default)) { requestDefaultHome() }
-        menu.showAt(root, x.toInt(), y.toInt())
-        popup = menu
+        for (i in 0 until dock.childCount) views.add(dock.getChildAt(i))
+        views.add(searchPill)
+        return views
+    }
+
+    /**
+     * Каждый значок стартует смещённым от центра экрана наружу, увеличенным и прозрачным,
+     * и плавно приходит на место; дальние значки чуть запаздывают.
+     */
+    private fun playEntrance(spread: Float, startScale: Float, duration: Long, stagger: Long) {
+        if (!Prefs.animations(this) || root.width == 0 || root.height == 0) {
+            for (view in entranceViews()) view.alpha = 1f
+            return
+        }
+        val centerX = root.width / 2f
+        val centerY = root.height / 2f
+        val reach = hypot(centerX, centerY)
+        for (view in entranceViews()) {
+            val bounds = boundsInRoot(view)
+            val dx = bounds.exactCenterX() - centerX
+            val dy = bounds.exactCenterY() - centerY
+            val distance = (hypot(dx, dy) / reach).coerceIn(0f, 1f)
+            view.animate().cancel()
+            view.translationX = dx * spread
+            view.translationY = dy * spread
+            view.scaleX = startScale
+            view.scaleY = startScale
+            view.alpha = 0f
+            view.animate()
+                .translationX(0f).translationY(0f)
+                .scaleX(1f).scaleY(1f).alpha(1f)
+                .setStartDelay((distance * stagger).toLong())
+                .setDuration(duration)
+                .setInterpolator(entrance)
+                .start()
+        }
+    }
+
+    /** Применяет изменения, сделанные на экране настроек. */
+    private fun applySettingsIfChanged() {
+        val version = Prefs.version(this)
+        if (version == settingsVersion) return
+        settingsVersion = version
+        cols = Prefs.columns(this)
+        rows = Prefs.rows(this)
+        store.normalize(cols, rows)
+        if (store.initialized) store.save()
+        sheet.setColumns(cols)
+        bindHome()
+        repo.reload()
     }
 
     // ---------------------------------------------------------------- жесты меню приложений
@@ -642,7 +821,7 @@ class LauncherActivity : Activity(), HomeRoot.Host, AllAppsSheet.Host {
     }
 
     private fun addToHome(entry: AppEntry) {
-        val cell = store.firstFreeDesktop(workspace.currentPage, cols, GRID_ROWS)
+        val cell = store.firstFreeDesktop(workspace.currentPage, cols, rows)
         store.items.add(HomeItem(entry.key, HomeStore.DESKTOP, cell[0], cell[1], cell[2]))
         store.save()
         bindHome()
@@ -726,7 +905,7 @@ class LauncherActivity : Activity(), HomeRoot.Host, AllAppsSheet.Host {
             it.container == HomeStore.DESKTOP && it.page == last
         }
         if (!lastHasItems) return
-        val layout = CellLayout(this, cols, GRID_ROWS)
+        val layout = CellLayout(this, cols, rows)
         layout.setPadding(dpi(8), dpi(4), dpi(8), 0)
         workspace.addView(layout)
         indicator.set(workspace.pageCount, workspace.currentPage)
@@ -783,7 +962,7 @@ class LauncherActivity : Activity(), HomeRoot.Host, AllAppsSheet.Host {
         val source = info.item
         val existing = store.itemAt(target.container, target.page, target.x, target.y)
         val free = store.isFree(
-            target.container, target.page, target.x, target.y, cols, GRID_ROWS
+            target.container, target.page, target.x, target.y, cols, rows
         )
         if (source != null) {
             if (existing === source) return
@@ -805,7 +984,7 @@ class LauncherActivity : Activity(), HomeRoot.Host, AllAppsSheet.Host {
             var y = target.y
             if (!free) {
                 val cell = store.nearestFree(
-                    target.container, target.page, x, y, cols, GRID_ROWS
+                    target.container, target.page, x, y, cols, rows
                 )
                 if (cell == null) {
                     toast(R.string.no_room)

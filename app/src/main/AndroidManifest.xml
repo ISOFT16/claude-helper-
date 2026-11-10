@@ -40,5 +40,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".SettingsActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:label="@string/settings_title"
+            android:theme="@style/SettingsTheme" />
     </application>
 </manifest>

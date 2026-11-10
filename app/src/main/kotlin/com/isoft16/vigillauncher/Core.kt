@@ -8,9 +8,6 @@ import android.graphics.Typeface
 import android.os.Build
 import android.os.UserHandle
 
-const val ICON_DP = 58
-const val GRID_ROWS = 5
-
 fun Context.dp(value: Float): Float = value * resources.displayMetrics.density
 
 fun Context.dpi(value: Int): Int = (value * resources.displayMetrics.density + 0.5f).toInt()
@@ -26,21 +23,58 @@ class AppEntry(
     val key: String = component.flattenToShortString()
 }
 
-/** Настройки лаунчера. */
+/** Настройки лаунчера. Любое изменение увеличивает счётчик, по которому главный экран обновляется. */
 object Prefs {
+    const val SHAPE_CIRCLE = 0
+    const val SHAPE_SQUIRCLE = 1
+    const val SHAPE_ROUNDED = 2
+    const val SHAPE_SQUARE = 3
+
     private fun prefs(context: Context) =
         context.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
-    fun themedIcons(context: Context): Boolean = prefs(context).getBoolean("themed", false)
-
-    fun setThemedIcons(context: Context, value: Boolean) {
-        prefs(context).edit().putBoolean("themed", value).apply()
+    private fun putBoolean(context: Context, key: String, value: Boolean) {
+        val p = prefs(context)
+        p.edit().putBoolean(key, value).putInt("version", p.getInt("version", 0) + 1).apply()
     }
 
-    fun columns(context: Context): Int = prefs(context).getInt("columns", 4).coerceIn(4, 5)
+    private fun putInt(context: Context, key: String, value: Int) {
+        val p = prefs(context)
+        p.edit().putInt(key, value).putInt("version", p.getInt("version", 0) + 1).apply()
+    }
 
-    fun setColumns(context: Context, value: Int) {
-        prefs(context).edit().putInt("columns", value).apply()
+    fun version(context: Context): Int = prefs(context).getInt("version", 0)
+
+    fun themedIcons(context: Context): Boolean = prefs(context).getBoolean("themed", false)
+    fun setThemedIcons(context: Context, value: Boolean) = putBoolean(context, "themed", value)
+
+    /** Одноцветные значки даже для приложений, у которых их нет. */
+    fun themedAll(context: Context): Boolean = prefs(context).getBoolean("themedAll", true)
+    fun setThemedAll(context: Context, value: Boolean) = putBoolean(context, "themedAll", value)
+
+    fun columns(context: Context): Int = prefs(context).getInt("columns", 4).coerceIn(4, 5)
+    fun setColumns(context: Context, value: Int) = putInt(context, "columns", value)
+
+    fun rows(context: Context): Int = prefs(context).getInt("rows", 5).coerceIn(5, 6)
+    fun setRows(context: Context, value: Int) = putInt(context, "rows", value)
+
+    fun iconShape(context: Context): Int = prefs(context).getInt("shape", SHAPE_CIRCLE)
+    fun setIconShape(context: Context, value: Int) = putInt(context, "shape", value)
+
+    fun iconSizeDp(context: Context): Int = prefs(context).getInt("iconSize", 58).coerceIn(48, 68)
+    fun setIconSizeDp(context: Context, value: Int) = putInt(context, "iconSize", value)
+
+    fun homeLabels(context: Context): Boolean = prefs(context).getBoolean("homeLabels", true)
+    fun setHomeLabels(context: Context, value: Boolean) = putBoolean(context, "homeLabels", value)
+
+    fun animations(context: Context): Boolean = prefs(context).getBoolean("animations", true)
+    fun setAnimations(context: Context, value: Boolean) = putBoolean(context, "animations", value)
+
+    /** Пакет выбранного набора значков; пустая строка — значки самих приложений. */
+    fun iconPack(context: Context): String = prefs(context).getString("iconPack", "") ?: ""
+    fun setIconPack(context: Context, value: String) {
+        val p = prefs(context)
+        p.edit().putString("iconPack", value).putInt("version", p.getInt("version", 0) + 1).apply()
     }
 }
 
