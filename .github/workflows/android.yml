@@ -1,9 +1,10 @@
 # Собирает APK «Умный урок» при каждом push и выкладывает его в Releases.
-# Скачать с телефона: https://github.com/<владелец>/<репозиторий>/releases/latest
+# Скачать с телефона: https://github.com/ISOFT16/claude-helper-/releases/download/umny-urok/UmnyUrok.apk
 name: Android APK
 
 on:
   push:
+    branches: [claude/ai-school-app-dev-pbfj2s]
   workflow_dispatch:
 
 permissions:
@@ -37,8 +38,8 @@ jobs:
           path: UmnyUrok.apk
       - name: Выложить APK в Releases
         run: |
-          gh release delete latest --yes --cleanup-tag || true
-          gh release create latest UmnyUrok.apk --target "$GITHUB_SHA" \
+          gh release delete umny-urok --yes --cleanup-tag || true
+          gh release create umny-urok UmnyUrok.apk --latest=false --target "$GITHUB_SHA" \
             --title "Умный урок (последняя сборка)" \
             --notes "Скачайте UmnyUrok.apk на телефон Android и установите (разрешите установку из этого источника)."
         env:
