@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.ClipboardManager
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.inputmethodservice.InputMethodService
@@ -23,6 +24,7 @@ import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.ExtractedTextRequest
 import android.widget.ImageButton
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import com.vigil.keyboard.Prefs.keySound
 import com.vigil.keyboard.Prefs.lang
@@ -39,7 +41,10 @@ class VigilImeService : InputMethodService(), PixelKeyboardView.Listener {
     private lateinit var translatePanel: LinearLayout
     private lateinit var translateDirBtn: TextView
     private lateinit var kbView: PixelKeyboardView
+    private lateinit var clipScroll: ScrollView
+    private lateinit var clipList: LinearLayout
     private var micBtn: ImageButton? = null
+    private var clipListener: ClipboardManager.OnPrimaryClipChangedListener? = null
 
     private var theme: KbTheme? = null
     private var lastShiftTap = 0L
@@ -52,6 +57,20 @@ class VigilImeService : InputMethodService(), PixelKeyboardView.Listener {
         googleSans = try {
             Typeface.createFromAsset(assets, "fonts/GoogleSans-Medium.ttf")
         } catch (e: Exception) { null }
+        // Следим за буфером обмена, пока клавиатура активна
+        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipListener = ClipboardManager.OnPrimaryClipChangedListener { captureClip() }
+        cm.addPrimaryClipChangedListener(clipListener)
+    }
+
+    private fun captureClip() {
+        try {
+            val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+            val text = cm.primaryClip?.getItemAt(0)?.coerceToText(this)?.toString()
+            if (!text.isNullOrBlank()) ClipStore.add(this, text)
+        } catch (e: Exception) {
+            // На Android 10+ чтение буфера доступно не всегда — тихо пропускаем
+        }
     }
 
     override fun onCreateInputView(): View {
@@ -85,6 +104,7 @@ class VigilImeService : InputMethodService(), PixelKeyboardView.Listener {
             startActivity(i)
         })
         toolbar.addView(toolBtn(R.drawable.ic_translate) { toggleTranslatePanel() })
+        toolbar.addView(toolBtn(R.drawable.ic_clipboard) { toggleClipPanel() })
         micBtn = toolBtn(R.drawable.ic_mic) { toggleVoice() }
         toolbar.addView(micBtn)
 
@@ -161,10 +181,26 @@ class VigilImeService : InputMethodService(), PixelKeyboardView.Listener {
         translatePanel.addView(hint)
         root.addView(translatePanel)
 
+        // ---------- Панель буфера обмена (вместо клавиш, как у Gboard) ----------
+        clipList = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding((10 * d).toInt(), (6 * d).toInt(), (10 * d).toInt(), (10 * d).toInt())
+        }
+        clipScroll = ScrollView(this).apply {
+            visibility = View.GONE
+            addView(clipList)
+        }
+        root.addView(clipScroll)
+
         // ---------- Сама клавиатура ----------
         kbView = PixelKeyboardView(this, this)
         kbView.theme = t
         root.addView(kbView)
+        // Панель буфера — той же высоты, что клавиатура
+        clipScroll.layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            (Prefs.sp(this).getInt("keyHeight", 56) * 4 * d + 14 * d).toInt()
+        )
 
         updateLangUi()
         updateTranslateDir()
@@ -315,6 +351,7 @@ class VigilImeService : InputMethodService(), PixelKeyboardView.Listener {
     // ---------------- Переводчик ----------------
 
     private fun toggleTranslatePanel() {
+        closeClipPanel()
         translatePanel.visibility =
             if (translatePanel.visibility == View.GONE) View.VISIBLE else View.GONE
         updateTranslateDir()
@@ -347,6 +384,119 @@ class VigilImeService : InputMethodService(), PixelKeyboardView.Listener {
                 }
             }
         }
+    }
+
+    // ---------------- Буфер обмена ----------------
+
+    private fun toggleClipPanel() {
+        if (clipScroll.visibility == View.VISIBLE) { closeClipPanel(); return }
+        captureClip()
+        buildClipList()
+        translatePanel.visibility = View.GONE
+        clipScroll.visibility = View.VISIBLE
+        kbView.visibility = View.GONE
+    }
+
+    private fun closeClipPanel() {
+        clipScroll.visibility = View.GONE
+        kbView.visibility = View.VISIBLE
+    }
+
+    private fun buildClipList() {
+        val t = theme ?: return
+        val d = resources.displayMetrics.density
+        clipList.removeAllViews()
+
+        // Шапка: заголовок, «Очистить», закрыть
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 0, (6 * d).toInt())
+        }
+        header.addView(TextView(this).apply {
+            text = "Буфер обмена"
+            typeface = googleSans
+            textSize = 15f
+            setTextColor(t.text)
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        })
+        header.addView(TextView(this).apply {
+            text = "Очистить"
+            typeface = googleSans
+            textSize = 14f
+            setTextColor(t.accent)
+            setPadding((12 * d).toInt(), (6 * d).toInt(), (12 * d).toInt(), (6 * d).toInt())
+            setOnClickListener {
+                feedback()
+                ClipStore.clear(this@VigilImeService)
+                buildClipList()
+            }
+        })
+        header.addView(TextView(this).apply {
+            text = "✕"
+            typeface = googleSans
+            textSize = 16f
+            setTextColor(t.textSec)
+            setPadding((12 * d).toInt(), (6 * d).toInt(), (6 * d).toInt(), (6 * d).toInt())
+            setOnClickListener { feedback(); closeClipPanel() }
+        })
+        clipList.addView(header)
+
+        val items = ClipStore.list(this)
+        if (items.isEmpty()) {
+            clipList.addView(TextView(this).apply {
+                text = "Пока пусто.\nСкопируйте любой текст — он появится здесь."
+                typeface = googleSans
+                textSize = 14f
+                setTextColor(t.textSec)
+                gravity = Gravity.CENTER
+                setPadding(0, (40 * d).toInt(), 0, 0)
+            })
+            return
+        }
+
+        for (item in items) {
+            clipList.addView(TextView(this).apply {
+                text = item
+                typeface = googleSans
+                textSize = 14f
+                setTextColor(t.text)
+                maxLines = 3
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                background = GradientDrawable().apply {
+                    cornerRadius = 14 * d
+                    setColor(t.key)
+                }
+                val pad = (12 * d).toInt()
+                setPadding(pad, pad, pad, pad)
+                val lp = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                lp.bottomMargin = (6 * d).toInt()
+                layoutParams = lp
+                setOnClickListener {
+                    feedback()
+                    currentInputConnection?.commitText(item, 1)
+                    closeClipPanel()
+                }
+                setOnLongClickListener {
+                    feedback()
+                    ClipStore.remove(this@VigilImeService, item)
+                    buildClipList()
+                    true
+                }
+            })
+        }
+
+        clipList.addView(TextView(this).apply {
+            text = "Нажмите — вставить · Долгое нажатие — удалить"
+            typeface = googleSans
+            textSize = 12f
+            setTextColor(t.textSec)
+            gravity = Gravity.CENTER
+            setPadding(0, (4 * d).toInt(), 0, 0)
+        })
     }
 
     // ---------------- Голосовой ввод ----------------
@@ -428,6 +578,10 @@ class VigilImeService : InputMethodService(), PixelKeyboardView.Listener {
 
     override fun onDestroy() {
         stopVoice()
+        clipListener?.let {
+            (getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
+                .removePrimaryClipChangedListener(it)
+        }
         super.onDestroy()
     }
 }
