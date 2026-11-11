@@ -11,7 +11,10 @@ import type {
   ServerStatus,
   TranscribeResponse,
 } from '../shared/types.ts';
+import { segmentsToMarkedText } from '../shared/types.ts';
+import { claudeAi } from './claudeAi.ts';
 import { loadSettings } from './db.ts';
+import { STANDALONE } from './env.ts';
 
 export class ApiError extends Error {
   constructor(public code: string) {
@@ -69,9 +72,22 @@ export const api = {
     return call<TranscribeResponse>('/api/transcribe', { method: 'POST', body: form });
   },
 
-  notes: (segments: Segment[], subject: string, lang: Lang) =>
-    call<NotesResponse>('/api/notes', json({ segments, subject, lang })),
+  async notes(segments: Segment[], subject: string, lang: Lang): Promise<NotesResponse> {
+    if (STANDALONE) return { notes: await claudeAi.notes(segments, subject, lang), demo: false };
+    return call<NotesResponse>('/api/notes', json({ segments, subject, lang }));
+  },
 
-  chat: (segments: Segment[], notes: Notes, subject: string, lang: Lang, history: ChatTurn[]) =>
-    call<ChatResponse>('/api/chat', json({ segments, notesText: notesToText(notes), subject, lang, history })),
+  async chat(
+    segments: Segment[],
+    notes: Notes,
+    subject: string,
+    lang: Lang,
+    history: ChatTurn[],
+  ): Promise<ChatResponse> {
+    if (STANDALONE) {
+      const material = `КОНСПЕКТ:\n${notesToText(notes)}\n\nРАСШИФРОВКА:\n${segmentsToMarkedText(segments)}`;
+      return { answer: await claudeAi.chat(material, subject, lang, history), demo: false };
+    }
+    return call<ChatResponse>('/api/chat', json({ segments, notesText: notesToText(notes), subject, lang, history }));
+  },
 };

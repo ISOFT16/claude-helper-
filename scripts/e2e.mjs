@@ -249,6 +249,7 @@ try {
   // --- Удаление всех данных ---
   await page2.getByRole('navigation').getByRole('button', { name: 'Баптау' }).click();
   await page2.getByRole('button', { name: 'Барлық деректерімді жою' }).click();
+  await page2.getByRole('dialog').getByRole('button', { name: 'Барлық деректерімді жою' }).click();
   await page2.getByText('Все данные удалены').waitFor();
   await page2.getByRole('navigation').getByRole('button', { name: 'Дневник' }).click();
   await page2.getByPlaceholder('Поиск по темам…').waitFor();

@@ -1,9 +1,10 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App.tsx';
+import { STANDALONE } from './env.ts';
 import './styles.css';
 
-if (!location.hash) location.hash = '/home';
+if (!STANDALONE && !location.hash) location.hash = '/home';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -12,7 +13,7 @@ createRoot(document.getElementById('root')!).render(
 );
 
 // Service worker делает из сайта приложение (PWA): его можно установить на телефон.
-if ('serviceWorker' in navigator && import.meta.env.PROD) {
+if (!STANDALONE && 'serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(console.error);
   });

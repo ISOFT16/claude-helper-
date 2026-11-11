@@ -6,8 +6,10 @@ import { saveDraftMeta, store, type DraftMeta } from './db.ts';
 
 export type RecState = 'idle' | 'recording' | 'paused';
 
+/** Результат записи: аудио (обычная версия) или сразу текст (диктовка на claude.ai). */
 export interface Recorded {
-  blob: Blob;
+  blob?: Blob;
+  text?: string;
   durationSec: number;
   subject: string;
 }
@@ -23,6 +25,13 @@ export interface Recorder {
   resume(): void;
   stop(): Promise<Recorded>;
   discard(): Promise<void>;
+  /** Только для диктовки: распознанный текст прямо во время записи. */
+  live?: {
+    text: string;
+    partial: string;
+    note: string | null;
+    available: boolean | null;
+  };
 }
 
 interface Internals {

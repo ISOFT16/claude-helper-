@@ -57,7 +57,11 @@ export const store = {
   async wipeEverything() {
     const d = await db();
     await Promise.all([d.clear('lessons'), d.clear('audio'), d.clear('draft')]);
-    localStorage.clear();
+    try {
+      localStorage.clear();
+    } catch {
+      // хранилище недоступно
+    }
   },
 };
 
@@ -72,7 +76,11 @@ export function loadSettings(): Settings {
 }
 
 export function saveSettings(s: Settings) {
-  localStorage.setItem('settings', JSON.stringify(s));
+  try {
+    localStorage.setItem('settings', JSON.stringify(s));
+  } catch {
+    // хранилище недоступно (например, приватный режим) — просто не запоминаем
+  }
 }
 
 export interface DraftMeta {
@@ -80,6 +88,8 @@ export interface DraftMeta {
   startedAt: number;
   elapsedMs: number;
   mime: string;
+  /** Для диктовки: уже распознанный текст. */
+  text?: string;
 }
 
 export function loadDraftMeta(): DraftMeta | null {
@@ -91,6 +101,10 @@ export function loadDraftMeta(): DraftMeta | null {
 }
 
 export function saveDraftMeta(meta: DraftMeta | null) {
-  if (meta) localStorage.setItem('draft', JSON.stringify(meta));
-  else localStorage.removeItem('draft');
+  try {
+    if (meta) localStorage.setItem('draft', JSON.stringify(meta));
+    else localStorage.removeItem('draft');
+  } catch {
+    // хранилище недоступно
+  }
 }

@@ -25,7 +25,7 @@ const STAGES: { id: Stage; label: Key }[] = [
 ];
 
 export function LessonPage({ id, tab = 'notes' }: { id?: string; tab?: string }) {
-  const { t, settings, lessons, loaded, stages, processLesson, deleteLesson, saveLesson } = useApp();
+  const { t, settings, lessons, loaded, stages, processLesson, deleteLesson, saveLesson, ask } = useApp();
   const lesson = lessons.find((l) => l.id === id);
 
   if (!lesson) {
@@ -38,7 +38,7 @@ export function LessonPage({ id, tab = 'notes' }: { id?: string; tab?: string })
   }
   const subj = subjectOf(lesson.subject);
   const remove = async () => {
-    if (!confirm(t('deleteLessonConfirm'))) return;
+    if (!(await ask(t('deleteLessonConfirm'), t('deleteLesson')))) return;
     await deleteLesson(lesson.id);
     go('/diary');
   };

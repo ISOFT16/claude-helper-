@@ -10,7 +10,9 @@ import { HomeworkPage } from './pages/HomeworkPage.tsx';
 import { LessonPage } from './pages/LessonPage.tsx';
 import { RecordPage } from './pages/RecordPage.tsx';
 import { SettingsPage } from './pages/SettingsPage.tsx';
-import { formatTime, useRecorder, type Recorder } from './recorder.ts';
+import { useDictationRecorder } from './dictation.ts';
+import { STANDALONE } from './env.ts';
+import { formatTime, useRecorder, type Recorded, type Recorder } from './recorder.ts';
 import type { Lesson, Settings, Stage } from './types.ts';
 
 interface AppCtx {
@@ -24,14 +26,16 @@ interface AppCtx {
   status: ServerStatus | null;
   rec: Recorder;
   stages: Record<string, Stage>;
-  /** Создать урок из аудио и запустить обработку. */
-  createLesson(blob: Blob, subject: string, durationSec: number): Promise<void>;
+  /** Создать урок из аудио или готового текста и запустить обработку. */
+  createLesson(source: Pick<Recorded, 'blob' | 'text'>, subject: string, durationSec: number): Promise<void>;
   processLesson(id: string): Promise<void>;
   finishRecording(): Promise<void>;
   draft: DraftMeta | null;
   restoreDraft(): Promise<void>;
   discardDraft(): Promise<void>;
   wipe(): Promise<void>;
+  /** Окно подтверждения «Да / Отмена» (обычный confirm() на claude.ai не показывается). */
+  ask(text: string, yes: string): Promise<boolean>;
 }
 
 const Ctx = createContext<AppCtx | null>(null);
@@ -42,25 +46,41 @@ export function useApp(): AppCtx {
   return ctx;
 }
 
-/** Переход на другой экран. Адрес хранится после # — так работает кнопка «Назад». */
+// Какой экран открыт. В обычной версии адрес хранится после # — так работает кнопка
+// «Назад». На claude.ai такие адреса запрещены, поэтому там экран хранится в памяти.
+let memoryRoute = '/home';
+const routeListeners = new Set<() => void>();
+const readRoute = () => (STANDALONE ? memoryRoute : location.hash);
+
+/** Переход на другой экран. */
 export function go(path: string) {
-  location.hash = path;
+  if (STANDALONE) {
+    memoryRoute = path;
+    routeListeners.forEach((f) => f());
+  } else {
+    location.hash = path;
+  }
 }
 
-/** Сменить адрес без новой записи в истории (для вкладок внутри урока). */
+/** Сменить экран без новой записи в истории (для вкладок внутри урока). */
 export function swap(path: string) {
+  if (STANDALONE) return go(path);
   history.replaceState(null, '', `#${path}`);
   window.dispatchEvent(new HashChangeEvent('hashchange'));
 }
 
 function useRoute(): string[] {
-  const [hash, setHash] = useState(location.hash);
+  const [hash, setHash] = useState(readRoute);
   useEffect(() => {
-    const on = () => setHash(location.hash);
+    const on = () => setHash(readRoute());
     window.addEventListener('hashchange', on);
-    return () => window.removeEventListener('hashchange', on);
+    routeListeners.add(on);
+    return () => {
+      window.removeEventListener('hashchange', on);
+      routeListeners.delete(on);
+    };
   }, []);
-  return hash.replace(/^#\/?/, '').split('/').map(decodeURIComponent);
+  return hash.replace(/^#?\/?/, '').split('/').map(decodeURIComponent);
 }
 
 export function App() {
@@ -73,7 +93,13 @@ export function App() {
   const lessonsRef = useRef<Lesson[]>([]);
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
-  const rec = useRecorder();
+  // Вариант сборки не меняется во время работы, поэтому выбор хука здесь безопасен.
+  const rec = STANDALONE ? useDictationRecorder(settings.lang) : useRecorder();
+  const [question, setQuestion] = useState<{ text: string; yes: string; done(v: boolean): void } | null>(null);
+  const ask = useCallback(
+    (text: string, yes: string) => new Promise<boolean>((done) => setQuestion({ text, yes, done })),
+    [],
+  );
   const route = useRoute();
   const t = useMemo(() => makeT(settings.lang), [settings.lang]);
 
@@ -106,13 +132,16 @@ export function App() {
       setLessons(all);
       setLoaded(true);
     })();
-    api.status().then(setStatus).catch(() => setStatus(null));
+    if (!STANDALONE) api.status().then(setStatus).catch(() => setStatus(null));
   }, []);
 
   // Тема и язык страницы.
   useEffect(() => {
     const root = document.documentElement;
-    if (settings.theme === 'auto') root.removeAttribute('data-theme');
+    // На claude.ai тему «как в телефоне» задаёт сама платформа — её не трогаем.
+    if (settings.theme === 'auto') {
+      if (!STANDALONE) root.removeAttribute('data-theme');
+    }
     else root.setAttribute('data-theme', settings.theme);
     root.lang = settings.lang;
     document.title = `${t('appName')} — AI School`;
@@ -171,21 +200,21 @@ export function App() {
   );
 
   const createLesson = useCallback(
-    async (blob: Blob, subject: string, durationSec: number) => {
+    async (source: Pick<Recorded, 'blob' | 'text'>, subject: string, durationSec: number) => {
       const lesson: Lesson = {
         id: crypto.randomUUID?.() ?? String(Date.now()),
         subject,
         createdAt: Date.now(),
         durationSec,
         status: 'processing',
-        segments: [],
-        hasAudio: true,
+        segments: source.text ? [{ text: source.text }] : [],
+        hasAudio: !!source.blob,
         homeworkDone: false,
         chat: [],
         quizResults: [],
         cards: {},
       };
-      await store.saveAudio(lesson.id, blob);
+      if (source.blob) await store.saveAudio(lesson.id, source.blob);
       await saveLesson(lesson);
       // Аудио уже в уроке — черновик записи больше не нужен.
       await store.clearDraft();
@@ -202,8 +231,8 @@ export function App() {
     if (finishing.current) return;
     finishing.current = true;
     try {
-      const { blob, durationSec, subject } = await rec.stop();
-      await createLesson(blob, subject, durationSec);
+      const { blob, text, durationSec, subject } = await rec.stop();
+      await createLesson({ blob, text }, subject, durationSec);
     } finally {
       finishing.current = false;
     }
@@ -217,8 +246,10 @@ export function App() {
 
   const restoreDraft = useCallback(async () => {
     if (!draft) return;
-    const blob = await store.draftBlob(draft.mime);
-    if (blob.size) await createLesson(blob, draft.subject, Math.round(draft.elapsedMs / 1000));
+    const seconds = Math.round(draft.elapsedMs / 1000);
+    if (draft.text?.trim()) return createLesson({ text: draft.text.trim() }, draft.subject, seconds);
+    const blob = draft.mime === 'text' ? null : await store.draftBlob(draft.mime);
+    if (blob?.size) await createLesson({ blob }, draft.subject, seconds);
     else {
       saveDraftMeta(null);
       setDraft(null);
@@ -237,6 +268,7 @@ export function App() {
     lessonsRef.current = [];
     setLessons([]);
     setDraft(null);
+    saveDraftMeta(null);
     setSettings(loadSettings());
   }, [rec]);
 
@@ -244,7 +276,7 @@ export function App() {
     lessons, loaded, saveLesson, deleteLesson, settings, updateSettings, t, status, rec, stages,
     createLesson, processLesson, finishRecording,
     draft: rec.state === 'idle' ? draft : null,
-    restoreDraft, discardDraft, wipe,
+    restoreDraft, discardDraft, wipe, ask,
   };
 
   const page = route[0] || 'home';
@@ -283,6 +315,21 @@ export function App() {
         <NavButton to="/homework" icon="check" label={t('navHomework')} active={page === 'homework'} />
         <NavButton to="/settings" icon="gear" label={t('navSettings')} active={page === 'settings'} />
       </nav>
+      {question && (
+        <div className="sheet-backdrop" onClick={() => (question.done(false), setQuestion(null))}>
+          <div className="sheet" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <p className="sheet-text">{question.text}</p>
+            <div className="btn-row">
+              <button className="btn ghost" onClick={() => (question.done(false), setQuestion(null))}>
+                {t('cancel')}
+              </button>
+              <button className="btn danger" onClick={() => (question.done(true), setQuestion(null))}>
+                {question.yes}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Ctx.Provider>
   );
 }

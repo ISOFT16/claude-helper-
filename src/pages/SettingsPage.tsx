@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useApp } from '../App.tsx';
+import { STANDALONE } from '../env.ts';
 import { SUBJECTS, subjectOf } from '../i18n.ts';
 
 /** Настройки: язык, тема, расписание, приватность и удаление данных. */
 export function SettingsPage() {
-  const { t, settings, updateSettings, status, wipe } = useApp();
+  const { t, settings, updateSettings, status, wipe, ask } = useApp();
   const [deleted, setDeleted] = useState(false);
   const days = t('days').split(',');
   const lang = settings.lang;
@@ -84,7 +85,8 @@ export function SettingsPage() {
 
       <section className="card">
         <h2>{t('privacy')}</h2>
-        <p className="muted">{t('privacyText')}</p>
+        <p className="muted">{t(STANDALONE ? 'privacyTextLink' : 'privacyText')}</p>
+        {!STANDALONE && (<>
         <label className="check big">
           <input
             type="checkbox"
@@ -94,10 +96,11 @@ export function SettingsPage() {
           {t('keepAudio')}
         </label>
         <p className="muted small">{t('keepAudioHint')}</p>
+        </>)}
         <button
           className="btn danger-outline"
           onClick={async () => {
-            if (!confirm(t('deleteAllConfirm'))) return;
+            if (!(await ask(t('deleteAllConfirm'), t('deleteAll')))) return;
             await wipe();
             setDeleted(true);
           }}
@@ -107,6 +110,12 @@ export function SettingsPage() {
         {deleted && <p className="ok">{t('deleted')}</p>}
       </section>
 
+      {STANDALONE ? (
+        <section className="card">
+          <h2>{t('aiTitle')}</h2>
+          <p className="muted">{t('aiLinkText')}</p>
+        </section>
+      ) : (
       <section className="card">
         <h2>{t('server')}</h2>
         {status ? (
@@ -133,6 +142,7 @@ export function SettingsPage() {
         </label>
         <p className="muted small">{t('accessCodeHint')}</p>
       </section>
+      )}
 
       <p className="muted small center">Умный урок — AI School · v0.1</p>
     </>
