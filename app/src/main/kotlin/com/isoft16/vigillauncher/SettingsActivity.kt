@@ -8,6 +8,7 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.RippleDrawable
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -160,6 +161,52 @@ class SettingsActivity : Activity() {
             Prefs.animations(this)
         ) { Prefs.setAnimations(this, it) }
 
+        // Экран блокировки
+        header(R.string.section_lock)
+        val lockOn = Prefs.lockEnabled(this)
+        toggle(getString(R.string.lock_enable), getString(R.string.lock_enable_summary), lockOn) {
+            Prefs.setLockEnabled(this, it)
+            if (it && !Settings.canDrawOverlays(this)) openOverlayPermission()
+        }
+        if (lockOn) {
+            val clocks = listOf(
+                R.string.clock_stacked, R.string.clock_line, R.string.clock_duo,
+                R.string.clock_analog, R.string.clock_analog_numbers,
+                R.string.clock_seconds, R.string.clock_outline,
+            ).map { getString(it) }
+            val clockIndex = Prefs.lockClock(this).coerceIn(0, clocks.size - 1)
+            row(getString(R.string.lock_clock), clocks[clockIndex]) {
+                choose(R.string.lock_clock, clocks, clockIndex) { Prefs.setLockClock(this, it) }
+            }
+            val effects = listOf(
+                R.string.effect_zoom, R.string.effect_slide,
+                R.string.effect_ring, R.string.effect_flash,
+            ).map { getString(it) }
+            val effectIndex = Prefs.lockEffect(this).coerceIn(0, effects.size - 1)
+            row(getString(R.string.lock_effect), effects[effectIndex]) {
+                choose(R.string.lock_effect, effects, effectIndex) {
+                    Prefs.setLockEffect(this, it)
+                }
+            }
+            row(getString(R.string.lock_preview), null) {
+                startActivity(
+                    Intent(this, LockActivity::class.java)
+                        .putExtra(LockActivity.EXTRA_PREVIEW, true)
+                )
+            }
+            row(
+                getString(R.string.lock_permission_overlay),
+                getString(
+                    if (Settings.canDrawOverlays(this)) R.string.lock_permission_granted
+                    else R.string.lock_permission_needed
+                )
+            ) { openOverlayPermission() }
+            row(
+                getString(R.string.lock_permission_xiaomi),
+                getString(R.string.lock_permission_xiaomi_summary)
+            ) { openXiaomiPermissions() }
+        }
+
         // Система
         header(R.string.section_system)
         row(getString(R.string.set_default), null) { requestDefaultHome() }
@@ -171,6 +218,44 @@ class SettingsActivity : Activity() {
                     )
                 )
             } catch (e: Exception) {
+                Toast.makeText(this, R.string.cannot_open, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    /** Без этого разрешения Android не даёт открыть экран блокировки при выключении экрана. */
+    private fun openOverlayPermission() {
+        try {
+            startActivity(
+                Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")
+                )
+            )
+        } catch (e: Exception) {
+            Toast.makeText(this, R.string.cannot_open, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /** На Xiaomi отдельно включаются «Экран блокировки» и «Всплывающие окна в фоне». */
+    private fun openXiaomiPermissions() {
+        try {
+            startActivity(
+                Intent("miui.intent.action.APP_PERM_EDITOR")
+                    .setClassName(
+                        "com.miui.securitycenter",
+                        "com.miui.permcenter.permissions.PermissionsEditorActivity"
+                    )
+                    .putExtra("extra_pkgname", packageName)
+            )
+        } catch (e: Exception) {
+            try {
+                startActivity(
+                    Intent(
+                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.parse("package:$packageName")
+                    )
+                )
+            } catch (e2: Exception) {
                 Toast.makeText(this, R.string.cannot_open, Toast.LENGTH_SHORT).show()
             }
         }

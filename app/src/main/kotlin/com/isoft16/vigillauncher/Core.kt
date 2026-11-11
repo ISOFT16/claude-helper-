@@ -74,6 +74,16 @@ object Prefs {
     fun hideNavBar(context: Context): Boolean = prefs(context).getBoolean("hideNav", true)
     fun setHideNavBar(context: Context, value: Boolean) = putBoolean(context, "hideNav", value)
 
+    /** Свой экран блокировки поверх системного. */
+    fun lockEnabled(context: Context): Boolean = prefs(context).getBoolean("lock", false)
+    fun setLockEnabled(context: Context, value: Boolean) = putBoolean(context, "lock", value)
+
+    fun lockClock(context: Context): Int = prefs(context).getInt("lockClock", 0)
+    fun setLockClock(context: Context, value: Int) = putInt(context, "lockClock", value)
+
+    fun lockEffect(context: Context): Int = prefs(context).getInt("lockEffect", 0)
+    fun setLockEffect(context: Context, value: Int) = putInt(context, "lockEffect", value)
+
     /** Пакет выбранного набора значков; пустая строка — значки самих приложений. */
     fun iconPack(context: Context): String = prefs(context).getString("iconPack", "") ?: ""
     fun setIconPack(context: Context, value: String) {
