@@ -14,7 +14,7 @@ import type {
 import { segmentsToMarkedText } from '../shared/types.ts';
 import { claudeAi } from './claudeAi.ts';
 import { loadSettings } from './db.ts';
-import { STANDALONE } from './env.ts';
+import { NATIVE, STANDALONE } from './env.ts';
 
 export class ApiError extends Error {
   constructor(public code: string) {
@@ -74,6 +74,7 @@ export const api = {
 
   async notes(segments: Segment[], subject: string, lang: Lang): Promise<NotesResponse> {
     if (STANDALONE) return { notes: await claudeAi.notes(segments, subject, lang), demo: false };
+    if (NATIVE) return (await import('./deviceAi.ts')).deviceAi.notes(segments, subject, lang);
     return call<NotesResponse>('/api/notes', json({ segments, subject, lang }));
   },
 
@@ -84,6 +85,10 @@ export const api = {
     lang: Lang,
     history: ChatTurn[],
   ): Promise<ChatResponse> {
+    if (NATIVE) {
+      const material = `КОНСПЕКТ:\n${notesToText(notes)}\n\nРАСШИФРОВКА:\n${segmentsToMarkedText(segments)}`;
+      return (await import('./deviceAi.ts')).deviceAi.chat(material, subject, lang, history);
+    }
     if (STANDALONE) {
       const material = `КОНСПЕКТ:\n${notesToText(notes)}\n\nРАСШИФРОВКА:\n${segmentsToMarkedText(segments)}`;
       return { answer: await claudeAi.chat(material, subject, lang, history), demo: false };

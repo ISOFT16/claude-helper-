@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../App.tsx';
 import { Icon } from '../components/Icon.tsx';
-import { STANDALONE } from '../env.ts';
+import { NATIVE, STANDALONE, TEXT_RECORDER } from '../env.ts';
 import { SUBJECTS, subjectOf, type Key } from '../i18n.ts';
 import { formatTime } from '../recorder.ts';
 
@@ -13,6 +13,7 @@ const START_ERRORS = [
   'dictNoKazakh',
   'dictDismissed',
   'dictFailed',
+  'nativeNoSpeech',
 ];
 
 /** Экран записи урока. Перед записью обязательно спрашиваем про разрешение учителя. */
@@ -32,7 +33,7 @@ export function RecordPage({ presetSubject }: { presetSubject?: string }) {
   // Диктовка на claude.ai длится не больше 60 минут за раз.
   const maxMinutes = STANDALONE ? 60 : (status?.maxMinutes ?? 75);
   const live = rec.live;
-  const noDictation = STANDALONE && live?.available === false;
+  const noDictation = TEXT_RECORDER && live?.available === false;
 
   useEffect(() => {
     const el = liveRef.current;
@@ -207,7 +208,7 @@ export function RecordPage({ presetSubject }: { presetSubject?: string }) {
         ))}
       </div>
 
-      {noDictation && <p className="card warn">{t('dictUnavailable')}</p>}
+      {noDictation && <p className="card warn">{t(NATIVE ? 'nativeNoSpeech' : 'dictUnavailable')}</p>}
       {error && <p className="error">{error}</p>}
 
       <div className="sticky-actions">
@@ -216,7 +217,7 @@ export function RecordPage({ presetSubject }: { presetSubject?: string }) {
             <Icon name="mic" /> {t('startLesson')}
           </button>
         )}
-        {!STANDALONE && (
+        {!TEXT_RECORDER && (
           <button className="btn ghost" onClick={() => setConsentFor('upload')}>
             <Icon name="upload" /> {t('uploadAudio')}
           </button>
@@ -224,7 +225,7 @@ export function RecordPage({ presetSubject }: { presetSubject?: string }) {
         <button className={`btn ${noDictation ? 'primary huge' : 'ghost'}`} onClick={() => setPasting(true)}>
           <Icon name="book" /> {t('pasteText')}
         </button>
-        {!STANDALONE && <p className="muted small center">{t('uploadHint')}</p>}
+        {!TEXT_RECORDER && <p className="muted small center">{t('uploadHint')}</p>}
       </div>
       <input
         ref={fileRef}
@@ -241,7 +242,7 @@ export function RecordPage({ presetSubject }: { presetSubject?: string }) {
         <div className="sheet-backdrop" onClick={() => setConsentFor(null)}>
           <div className="sheet" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
             <h2>🎙️ {t('consentTitle')}</h2>
-            <p>{t(STANDALONE ? 'consentTextLink' : 'consentText')}</p>
+            <p>{t(STANDALONE ? 'consentTextLink' : NATIVE ? 'consentTextNative' : 'consentText')}</p>
             <label className="check big">
               <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
               {t('consentCheck')}

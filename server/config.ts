@@ -19,6 +19,8 @@ export interface Config {
   llm: {
     provider: 'anthropic' | 'openai' | 'demo';
     anthropicKey: string;
+    /** Запрос к Claude идёт прямо из приложения на телефоне (ключ ввёл сам пользователь). */
+    browser: boolean;
     anthropicModel: string;
     apiKey: string;
     baseUrl: string;
@@ -73,6 +75,7 @@ export function loadConfig(env: Env = process.env): Config {
     llm: {
       provider: llmProvider,
       anthropicKey: str('ANTHROPIC_API_KEY'),
+      browser: str('LLM_FROM_DEVICE') === '1',
       anthropicModel: str('AI_MODEL', 'claude-opus-5-5'),
       apiKey: str('LLM_API_KEY'),
       baseUrl: str('LLM_BASE_URL', 'https://api.openai.com/v1').replace(/\/$/, ''),

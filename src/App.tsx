@@ -11,7 +11,8 @@ import { LessonPage } from './pages/LessonPage.tsx';
 import { RecordPage } from './pages/RecordPage.tsx';
 import { SettingsPage } from './pages/SettingsPage.tsx';
 import { useDictationRecorder } from './dictation.ts';
-import { STANDALONE } from './env.ts';
+import { NATIVE, STANDALONE } from './env.ts';
+import { useNativeSpeechRecorder } from './nativeSpeech.ts';
 import { formatTime, useRecorder, type Recorded, type Recorder } from './recorder.ts';
 import type { Lesson, Settings, Stage } from './types.ts';
 
@@ -94,7 +95,11 @@ export function App() {
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
   // Вариант сборки не меняется во время работы, поэтому выбор хука здесь безопасен.
-  const rec = STANDALONE ? useDictationRecorder(settings.lang) : useRecorder();
+  const rec = STANDALONE
+    ? useDictationRecorder(settings.lang)
+    : NATIVE
+      ? useNativeSpeechRecorder(settings.lang)
+      : useRecorder();
   const [question, setQuestion] = useState<{ text: string; yes: string; done(v: boolean): void } | null>(null);
   const ask = useCallback(
     (text: string, yes: string) => new Promise<boolean>((done) => setQuestion({ text, yes, done })),
@@ -132,7 +137,7 @@ export function App() {
       setLessons(all);
       setLoaded(true);
     })();
-    if (!STANDALONE) api.status().then(setStatus).catch(() => setStatus(null));
+    if (!STANDALONE && !NATIVE) api.status().then(setStatus).catch(() => setStatus(null));
   }, []);
 
   // Тема и язык страницы.

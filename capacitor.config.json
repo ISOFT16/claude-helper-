@@ -1,0 +1,8 @@
+{
+  "appId": "kz.umnyurok.app",
+  "appName": "Умный урок",
+  "webDir": "dist-native",
+  "android": {
+    "allowMixedContent": false
+  }
+}

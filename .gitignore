@@ -4,3 +4,4 @@ data/
 .env
 *.log
 standalone/dist/
+dist-native/

@@ -62,7 +62,7 @@ function anthropicError(e: unknown): HttpError {
 
 function createAnthropic(cfg: Config): Llm {
   // Ключ берётся из ANTHROPIC_API_KEY в файле .env — он есть только на сервере.
-  const client = new Anthropic({ apiKey: cfg.llm.anthropicKey });
+  const client = new Anthropic({ apiKey: cfg.llm.anthropicKey, dangerouslyAllowBrowser: cfg.llm.browser });
 
   async function call<S extends z.ZodType>(c: Call<S>): Promise<z.infer<S>> {
     try {

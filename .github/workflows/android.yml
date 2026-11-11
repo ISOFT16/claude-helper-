@@ -1,0 +1,45 @@
+# Собирает APK «Умный урок» при каждом push и выкладывает его в Releases.
+# Скачать с телефона: https://github.com/<владелец>/<репозиторий>/releases/latest
+name: Android APK
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci
+      - name: Проверки
+        run: npx tsc --noEmit && npm test
+      - name: Собрать приложение и Android-проект
+        run: npm run build:native
+      - name: Собрать APK
+        working-directory: android
+        run: chmod +x gradlew && ./gradlew assembleRelease --no-daemon
+      - run: cp android/app/build/outputs/apk/release/app-release.apk UmnyUrok.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: UmnyUrok-android
+          path: UmnyUrok.apk
+      - name: Выложить APK в Releases
+        run: |
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest UmnyUrok.apk --target "$GITHUB_SHA" \
+            --title "Умный урок (последняя сборка)" \
+            --notes "Скачайте UmnyUrok.apk на телефон Android и установите (разрешите установку из этого источника)."
+        env:
+          GH_TOKEN: ${{ github.token }}

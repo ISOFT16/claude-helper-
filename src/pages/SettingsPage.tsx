@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../App.tsx';
-import { STANDALONE } from '../env.ts';
+import { NATIVE, STANDALONE, TEXT_RECORDER } from '../env.ts';
 import { SUBJECTS, subjectOf } from '../i18n.ts';
 
 /** Настройки: язык, тема, расписание, приватность и удаление данных. */
@@ -85,8 +85,10 @@ export function SettingsPage() {
 
       <section className="card">
         <h2>{t('privacy')}</h2>
-        <p className="muted">{t(STANDALONE ? 'privacyTextLink' : 'privacyText')}</p>
-        {!STANDALONE && (<>
+        <p className="muted">
+          {t(STANDALONE ? 'privacyTextLink' : NATIVE ? 'privacyTextNative' : 'privacyText')}
+        </p>
+        {!TEXT_RECORDER && (<>
         <label className="check big">
           <input
             type="checkbox"
@@ -110,7 +112,30 @@ export function SettingsPage() {
         {deleted && <p className="ok">{t('deleted')}</p>}
       </section>
 
-      {STANDALONE ? (
+      {NATIVE ? (
+        <section className="card">
+          <h2>{t('aiTitle')}</h2>
+          <p className="kv">
+            <span>{t('serverLlm')}</span>
+            <b className={settings.claudeKey ? 'tag on' : 'tag demo'}>
+              {settings.claudeKey ? t('modeOn') : t('modeDemo')}
+            </b>
+          </p>
+          <p className="muted">{t('aiNativeText')}</p>
+          <label className="field">
+            <span>{t('claudeKey')}</span>
+            <input
+              id="claude-key"
+              type="password"
+              value={settings.claudeKey ?? ''}
+              onChange={(e) => updateSettings({ claudeKey: e.target.value.trim() })}
+              autoComplete="off"
+              placeholder="sk-ant-…"
+            />
+          </label>
+          <p className="muted small">{t('claudeKeyHint')}</p>
+        </section>
+      ) : STANDALONE ? (
         <section className="card">
           <h2>{t('aiTitle')}</h2>
           <p className="muted">{t('aiLinkText')}</p>

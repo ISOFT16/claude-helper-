@@ -1162,3 +1162,11 @@ mark.unsure {
   font-size: 1.05rem;
   font-weight: 600;
 }
+
+/* ---------- Android-приложение: контент не заходит под строку состояния ---------- */
+.native .page {
+  padding-top: calc(16px + env(safe-area-inset-top, 0px));
+}
+.native .rec-banner {
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
+}

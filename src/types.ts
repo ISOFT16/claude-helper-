@@ -37,6 +37,8 @@ export interface Settings {
   theme: 'auto' | 'light' | 'dark';
   keepAudio: boolean;
   accessCode: string;
+  /** Только в APK: ключ Claude API, который ввёл пользователь. Хранится лишь в телефоне. */
+  claudeKey?: string;
   /** Расписание: день недели (1 = понедельник … 6 = суббота) -> предметы. */
   schedule: Record<number, string[]>;
 }
