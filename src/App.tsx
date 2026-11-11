@@ -47,13 +47,16 @@ export function go(path: string) {
   location.hash = path;
 }
 
+/** Сменить адрес без новой записи в истории (для вкладок внутри урока). */
+export function swap(path: string) {
+  history.replaceState(null, '', `#${path}`);
+  window.dispatchEvent(new HashChangeEvent('hashchange'));
+}
+
 function useRoute(): string[] {
   const [hash, setHash] = useState(location.hash);
   useEffect(() => {
-    const on = () => {
-      setHash(location.hash);
-      window.scrollTo(0, 0);
-    };
+    const on = () => setHash(location.hash);
     window.addEventListener('hashchange', on);
     return () => window.removeEventListener('hashchange', on);
   }, []);
@@ -245,6 +248,10 @@ export function App() {
   };
 
   const page = route[0] || 'home';
+  const screen = route.slice(0, 2).join('/');
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [screen]);
   const isRecording = rec.state !== 'idle';
 
   return (
@@ -255,7 +262,7 @@ export function App() {
           {rec.state === 'paused' ? t('paused') : t('recording')} · {formatTime(rec.elapsedMs)}
         </button>
       )}
-      <main className="page" key={route.join('/')}>
+      <main className="page" key={screen}>
         {page === 'home' && <Home />}
         {page === 'record' && <RecordPage presetSubject={route[1]} />}
         {page === 'diary' && <Diary />}

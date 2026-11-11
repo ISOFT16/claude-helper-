@@ -49,6 +49,14 @@ function sameCode(a: string, b: string): boolean {
   return crypto.timingSafeEqual(ha, hb);
 }
 
+function readCode(header: unknown): string {
+  try {
+    return decodeURIComponent(String(header ?? ''));
+  } catch {
+    return '';
+  }
+}
+
 export function createApp(cfg: Config) {
   const app = express();
   const limits = new Limits(cfg);
@@ -75,7 +83,7 @@ export function createApp(cfg: Config) {
   // Всё остальное в /api — только с кодом доступа (если он задан) и с ограничением частоты.
   app.use('/api', (req, _res, next) => {
     limits.rate(req.ip ?? 'unknown');
-    if (cfg.accessCode && !sameCode(String(req.headers['x-access-code'] ?? ''), cfg.accessCode)) {
+    if (cfg.accessCode && !sameCode(readCode(req.headers['x-access-code']), cfg.accessCode)) {
       throw new HttpError(401, 'bad_code', 'Неверный код доступа.');
     }
     next();

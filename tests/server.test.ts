@@ -88,6 +88,8 @@ test('демо-режим: аудио -> текст -> конспект -> ча�
   assert.match(notes.homework.task, /571/);
   assert.match(notes.homework.due, /четвергу/);
   assert.ok(notes.keyPoints.some((k) => k.uncertain), 'неуверенная фраза должна быть помечена');
+  assert.ok(notes.quiz.length >= 5, 'в тесте не меньше 5 вопросов');
+  assert.ok(notes.flashcards.length >= 5);
   for (const q of notes.quiz) {
     assert.equal(q.options.length, 4);
     assert.equal(new Set(q.options).size, 4);

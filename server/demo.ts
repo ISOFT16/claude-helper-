@@ -13,6 +13,8 @@ const SAMPLE: Record<Lang, Segment[]> = {
     { text: 'Чтобы найти площадь прямоугольника, нужно длину умножить на ширину. Формула: S = a · b.' },
     { text: 'Площадь квадрата равна стороне, умноженной на саму себя. Формула: S = a · a.' },
     { text: 'Площадь измеряется в квадратных единицах: квадратных сантиметрах, квадратных метрах.' },
+    { text: 'Квадратный метр — это площадь квадрата со стороной один метр.' },
+    { text: 'Периметр — это сумма длин всех сторон фигуры.' },
     { text: 'Например, если длина комнаты 5 метров, а ширина 4 метра, то её площадь равна 20 квадратным метрам.' },
     { text: 'Например, у квадрата со стороной 3 сантиметра площадь равна 9 квадратным сантиметрам.' },
     { text: 'Периметр квадрата со стороной кажется шесть будет двадцать с чем-то.', uncertain: true },
@@ -28,6 +30,8 @@ const SAMPLE: Record<Lang, Segment[]> = {
     { text: 'Тіктөртбұрыштың ауданын табу үшін ұзындығын еніне көбейту керек. Формула: S = a · b.' },
     { text: 'Шаршының ауданы қабырғасын өзіне көбейткенге тең. Формула: S = a · a.' },
     { text: 'Аудан квадрат бірліктермен өлшенеді: квадрат сантиметр, квадрат метр.' },
+    { text: 'Квадрат метр — бұл қабырғасы бір метр шаршының ауданы.' },
+    { text: 'Периметр — бұл фигураның барлық қабырғаларының ұзындықтарының қосындысы.' },
     { text: 'Мысалы, бөлменің ұзындығы 5 метр, ені 4 метр болса, оның ауданы 20 квадрат метрге тең.' },
     { text: 'Мысалы, қабырғасы 3 сантиметр шаршының ауданы 9 квадрат сантиметрге тең.' },
     { text: 'Қабырғасы алты сияқты шаршының периметрі жиырма шамасында болады.', uncertain: true },
@@ -109,7 +113,8 @@ export function demoNotes(segments: Segment[], subject: string, lang: Lang): Not
     if (/[=]/.test(s.text)) facts.push({ kind: 'formula', text: s.text, uncertain });
     else if (/\b1\d{3}\b|\b20\d{2}\b/.test(s.text)) facts.push({ kind: 'date', text: s.text, uncertain });
     else if (l.rule.test(s.text)) facts.push({ kind: 'rule', text: s.text, uncertain });
-    if (s.text.length > 25 && keyPoints.length < 8) keyPoints.push({ text: s.text, uncertain });
+    // Определения уже попали в свой раздел — в основные мысли их не дублируем.
+    if (!def && s.text.length > 25 && keyPoints.length < 10) keyPoints.push({ text: s.text, uncertain });
   }
 
   const sure = definitions.filter((d) => !d.uncertain);
@@ -158,7 +163,9 @@ export function demoChat(question: string, lessonText: string, lang: Lang): Chat
     .split(/[^\p{L}\p{N}]+/u)
     .filter((w) => w.length > 3)
     .map((w) => w.slice(0, 5));
-  const sentences = lessonText.split(/(?<=[.!?])\s+/).filter((s) => s.trim());
+  // Ищем только в расшифровке (конспект повторяет те же фразы).
+  const transcript = (lessonText.split('РАСШИФРОВКА:\n')[1] ?? lessonText).replace(/⟦\?|⟧/g, '');
+  const sentences = transcript.split(/(?<=[.!?])\s+/).filter((s) => s.trim());
   const scored = sentences
     .map((s) => ({ s, score: words.filter((w) => s.toLowerCase().includes(w)).length }))
     .filter((x) => x.score > 0)
