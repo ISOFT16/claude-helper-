@@ -40,6 +40,10 @@ class PixelKeyboardView(
     var theme: KbTheme = KbTheme.resolve(context)
         set(v) { field = v; invalidate() }
 
+    /** Надпись на пробеле (название языка, как у Gboard). */
+    var spaceLabel: String = ""
+        set(v) { field = v; invalidate() }
+
     private data class DrawnKey(val key: Layouts.Key, val rect: RectF)
 
     private var drawn: List<DrawnKey> = emptyList()
@@ -148,6 +152,7 @@ class PixelKeyboardView(
 
             // Подпись
             var label = k.label
+            if (k.code == Layouts.CODE_SPACE) label = spaceLabel
             if (k.code == Layouts.CODE_TEXT && label.length == 1 && shiftState > 0 &&
                 (mode == Layouts.Mode.EN || mode == Layouts.Mode.RU) && label[0].isLetter()
             ) label = label.uppercase()
@@ -155,10 +160,15 @@ class PixelKeyboardView(
 
             textPaint.color = when {
                 isEnter || isActiveShift -> theme.onAccent
+                k.code == Layouts.CODE_SPACE -> theme.textSec
                 else -> theme.text
             }
-            textPaint.textSize = if (label.length > 2) letterSize * 0.62f
-                else if (k.code != Layouts.CODE_TEXT) letterSize * 0.9f else letterSize
+            textPaint.textSize = when {
+                k.code == Layouts.CODE_SPACE -> letterSize * 0.55f
+                label.length > 2 -> letterSize * 0.62f
+                k.code != Layouts.CODE_TEXT -> letterSize * 0.9f
+                else -> letterSize
+            }
             val y = dk.rect.centerY() - (textPaint.descent() + textPaint.ascent()) / 2
             canvas.drawText(label, dk.rect.centerX(), y, textPaint)
 

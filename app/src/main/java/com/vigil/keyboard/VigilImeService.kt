@@ -21,7 +21,6 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.ExtractedTextRequest
-import android.view.inputmethod.InputMethodManager
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -108,6 +107,7 @@ class VigilImeService : InputMethodService(), PixelKeyboardView.Listener {
             setOnClickListener { feedback(); switchLang() }
         }
         toolbar.addView(langLabel)
+        toolbar.addView(toolBtn(R.drawable.ic_hide) { requestHideSelf(0) })
         root.addView(toolbar)
 
         // ---------- Панель переводчика ----------
@@ -168,6 +168,23 @@ class VigilImeService : InputMethodService(), PixelKeyboardView.Listener {
 
         updateLangUi()
         updateTranslateDir()
+
+        // Android 15+: окно клавиатуры рисуется от края до края, и системные кнопки
+        // (скрыть клавиатуру / смена раскладки) ложатся поверх нижнего ряда.
+        // Резервируем место под жестовую панель — клавиатура поднимается выше.
+        root.setOnApplyWindowInsetsListener { v, insets ->
+            val bottom = if (Build.VERSION.SDK_INT >= 30)
+                insets.getInsets(android.view.WindowInsets.Type.navigationBars()).bottom
+            else @Suppress("DEPRECATION") insets.systemWindowInsetBottom
+            if (v.paddingBottom != bottom) v.setPadding(0, 0, 0, bottom)
+            insets
+        }
+        root.requestApplyInsets()
+        @Suppress("DEPRECATION")
+        window?.window?.let { w ->
+            w.navigationBarColor = t.bg
+            if (Build.VERSION.SDK_INT >= 29) w.isNavigationBarContrastEnforced = false
+        }
         return root
     }
 
@@ -251,9 +268,8 @@ class VigilImeService : InputMethodService(), PixelKeyboardView.Listener {
     }
 
     override fun onSpaceLongPress() {
-        // Долгое нажатие пробела — системный выбор клавиатуры
-        (getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager)
-            .showInputMethodPicker()
+        // Долгое нажатие пробела — переключение языка (как глобус)
+        switchLang()
     }
 
     private fun switchLang() {
@@ -266,6 +282,9 @@ class VigilImeService : InputMethodService(), PixelKeyboardView.Listener {
 
     private fun updateLangUi() {
         langLabel.text = if (lang == "ru") "РУС" else "ENG"
+        if (::kbView.isInitialized) {
+            kbView.spaceLabel = if (lang == "ru") "Русский" else "English"
+        }
     }
 
     private fun autoCapitalize() {

@@ -28,8 +28,7 @@ object Layouts {
     private fun bottomRow(symLabel: String, symCode: Int) = listOf(
         Key(symLabel, symCode, 1.5f),
         Key(","),
-        Key("🌐", CODE_LANG, 1f),
-        Key("", CODE_SPACE, 4f),
+        Key("", CODE_SPACE, 5f),
         Key("."),
         Key("⏎", CODE_ENTER, 1.5f)
     )
