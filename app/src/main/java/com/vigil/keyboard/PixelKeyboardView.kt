@@ -44,6 +44,10 @@ class PixelKeyboardView(
     var spaceLabel: String = ""
         set(v) { field = v; invalidate() }
 
+    /** Надпись на кнопке возврата из символов: «АБВ» или «ABC», как у Gboard. */
+    var abcLabel: String = "АБВ"
+        set(v) { field = v; invalidate() }
+
     private data class DrawnKey(val key: Layouts.Key, val rect: RectF)
 
     private var drawn: List<DrawnKey> = emptyList()
@@ -161,6 +165,7 @@ class PixelKeyboardView(
             // Подпись
             var label = k.label
             if (k.code == Layouts.CODE_SPACE) label = spaceLabel
+            if (k.code == Layouts.CODE_ABC) label = abcLabel
             if (k.code == Layouts.CODE_TEXT && label.length == 1 && shiftState > 0 &&
                 (mode == Layouts.Mode.EN || mode == Layouts.Mode.RU) && label[0].isLetter()
             ) label = label.uppercase()

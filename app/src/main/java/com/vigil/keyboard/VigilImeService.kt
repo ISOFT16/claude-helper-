@@ -212,15 +212,28 @@ class VigilImeService : InputMethodService(), PixelKeyboardView.Listener {
         middle.addView(clipChip)
         toolbar.addView(middle)
 
+        // Значок языка в рамке («RU» / «EN»), как в Gboard
         langLabel = TextView(this).apply {
             setTextColor(t.textSec)
-            textSize = 13f
+            textSize = 11f
             typeface = googleSans
+            letterSpacing = 0.08f
             gravity = Gravity.CENTER
-            setPadding((10 * d).toInt(), 0, (10 * d).toInt(), 0)
+            minWidth = (30 * d).toInt()
+            background = GradientDrawable().apply {
+                cornerRadius = 5 * d
+                setStroke((1.5f * d).toInt(), t.textSec)
+            }
+            setPadding((6 * d).toInt(), (2 * d).toInt(), (6 * d).toInt(), (2 * d).toInt())
             setOnClickListener { feedback(); switchLang() }
         }
-        toolbar.addView(langLabel)
+        val langBox = android.widget.FrameLayout(this).apply {
+            // Увеличенная область нажатия вокруг маленького значка
+            setPadding((8 * d).toInt(), (8 * d).toInt(), (8 * d).toInt(), (8 * d).toInt())
+            setOnClickListener { feedback(); switchLang() }
+            addView(langLabel)
+        }
+        toolbar.addView(langBox)
         toolbar.addView(toolBtn(R.drawable.ic_hide) { requestHideSelf(0) })
         root.addView(toolbar)
 
@@ -413,9 +426,10 @@ class VigilImeService : InputMethodService(), PixelKeyboardView.Listener {
     }
 
     private fun updateLangUi() {
-        langLabel.text = if (lang == "ru") "РУС" else "ENG"
+        langLabel.text = if (lang == "ru") "RU" else "EN"
         if (::kbView.isInitialized) {
             kbView.spaceLabel = if (lang == "ru") "Русский" else "English"
+            kbView.abcLabel = if (lang == "ru") "АБВ" else "ABC"
         }
     }
 
