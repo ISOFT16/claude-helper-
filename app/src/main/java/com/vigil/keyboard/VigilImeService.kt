@@ -114,7 +114,7 @@ class VigilImeService : InputMethodService(), PixelKeyboardView.Listener {
         }
         val preview = if (rc.sensitive) "••••••" else
             rc.text.replace(Regex("\\s+"), " ").trim()
-        clipChip.text = "📋  $preview"
+        clipChip.text = preview
         clipChip.tag = rc.text
         clipChip.visibility = View.VISIBLE
     }
@@ -454,7 +454,7 @@ class VigilImeService : InputMethodService(), PixelKeyboardView.Listener {
     }
 
     private fun updateTranslateDir() {
-        translateDirBtn.text = if (translateTo == "en") "Авто → EN" else "Авто → РУ"
+        translateDirBtn.text = if (translateTo == "en") "Перевод на EN" else "Перевод на РУ"
     }
 
     private fun doTranslate() {
@@ -528,12 +528,11 @@ class VigilImeService : InputMethodService(), PixelKeyboardView.Listener {
                 buildClipList()
             }
         })
-        header.addView(TextView(this).apply {
-            text = "✕"
-            typeface = googleSans
-            textSize = 16f
-            setTextColor(t.textSec)
-            setPadding((12 * d).toInt(), (6 * d).toInt(), (6 * d).toInt(), (6 * d).toInt())
+        header.addView(ImageButton(this).apply {
+            setImageResource(R.drawable.ic_close)
+            background = null
+            imageTintList = android.content.res.ColorStateList.valueOf(t.textSec)
+            layoutParams = LinearLayout.LayoutParams((40 * d).toInt(), (36 * d).toInt())
             setOnClickListener { feedback(); closeClipPanel() }
         })
         clipList.addView(header)

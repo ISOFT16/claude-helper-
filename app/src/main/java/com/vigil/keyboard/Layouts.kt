@@ -23,14 +23,14 @@ object Layouts {
 
     enum class Mode { EN, RU, SYM1, SYM2 }
 
-    private fun shiftKey() = Key("⇧", CODE_SHIFT, 1.5f)
-    private fun delKey() = Key("⌫", CODE_DELETE, 1.5f)
+    private fun shiftKey() = Key("", CODE_SHIFT, 1.5f)
+    private fun delKey() = Key("", CODE_DELETE, 1.5f)
     private fun bottomRow(symLabel: String, symCode: Int) = listOf(
         Key(symLabel, symCode, 1.5f),
         Key(","),
         Key("", CODE_SPACE, 5f),
         Key("."),
-        Key("⏎", CODE_ENTER, 1.5f)
+        Key("", CODE_ENTER, 1.5f)
     )
 
     val numberRow = "1234567890".map { Key(it.toString()) }
@@ -95,7 +95,7 @@ object Layouts {
         ),
         listOf(
             Key("?123", CODE_SYM1, 1.5f), Key("%"), Key("©"), Key("®"),
-            Key("™"), Key("✓"), Key("["), Key("]"), delKey()
+            Key("™"), Key("§"), Key("["), Key("]"), delKey()
         ),
         bottomRow("АБВ", CODE_ABC)
     )

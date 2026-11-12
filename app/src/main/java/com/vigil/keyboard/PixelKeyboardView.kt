@@ -60,6 +60,14 @@ class PixelKeyboardView(
         Typeface.createFromAsset(context.assets, "fonts/GoogleSans-Medium.ttf")
     } catch (e: Exception) { Typeface.DEFAULT }
 
+    // Иконки служебных клавиш рисуются векторами, а не символами шрифта
+    private fun icon(id: Int) = context.getDrawable(id)!!.mutate()
+    private val icShift = icon(R.drawable.ic_key_shift)
+    private val icShiftOn = icon(R.drawable.ic_key_shift_on)
+    private val icCaps = icon(R.drawable.ic_key_capslock)
+    private val icBackspace = icon(R.drawable.ic_key_backspace)
+    private val icEnter = icon(R.drawable.ic_key_enter)
+
     private val keyPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.CENTER
@@ -156,7 +164,6 @@ class PixelKeyboardView(
             if (k.code == Layouts.CODE_TEXT && label.length == 1 && shiftState > 0 &&
                 (mode == Layouts.Mode.EN || mode == Layouts.Mode.RU) && label[0].isLetter()
             ) label = label.uppercase()
-            if (k.code == Layouts.CODE_SHIFT && shiftState == 2) label = "⇪"
 
             textPaint.color = when {
                 isEnter || isActiveShift -> theme.onAccent
@@ -169,8 +176,27 @@ class PixelKeyboardView(
                 k.code != Layouts.CODE_TEXT -> letterSize * 0.9f
                 else -> letterSize
             }
-            val y = dk.rect.centerY() - (textPaint.descent() + textPaint.ascent()) / 2
-            canvas.drawText(label, dk.rect.centerX(), y, textPaint)
+            val keyIcon = when (k.code) {
+                Layouts.CODE_SHIFT -> when (shiftState) {
+                    2 -> icCaps
+                    1 -> icShiftOn
+                    else -> icShift
+                }
+                Layouts.CODE_DELETE -> icBackspace
+                Layouts.CODE_ENTER -> icEnter
+                else -> null
+            }
+            if (keyIcon != null) {
+                val half = (11 * density).toInt()
+                val cx = dk.rect.centerX().toInt()
+                val cy = dk.rect.centerY().toInt()
+                keyIcon.setBounds(cx - half, cy - half, cx + half, cy + half)
+                keyIcon.setTint(textPaint.color)
+                keyIcon.draw(canvas)
+            } else {
+                val y = dk.rect.centerY() - (textPaint.descent() + textPaint.ascent()) / 2
+                canvas.drawText(label, dk.rect.centerX(), y, textPaint)
+            }
 
             // Подсказка в углу
             if (showHints && k.alt != null) {

@@ -246,9 +246,9 @@ class SettingsActivity : AppCompatActivity() {
 
         c.addView(section("Подсказки"))
         c.addView(caption(
-            "• Глобус 🌐 или надпись РУС/ENG — переключение языка.\n" +
+            "• Надпись РУС/ENG на верхней панели — переключение языка.\n" +
             "• Долгое нажатие на букву — символ из уголка (ё — на «е», ъ — на «ь»).\n" +
-            "• Долгое нажатие на пробел — смена клавиатуры.\n" +
+            "• Долгое нажатие на пробел — тоже переключение языка.\n" +
             "• Кнопка перевода на верхней панели переводит весь набранный текст.\n" +
             "• Микрофон — голосовой ввод на текущем языке.\n\n" +
             "Все изменения настроек применяются при следующем открытии клавиатуры.\n\n" +
@@ -260,7 +260,7 @@ class SettingsActivity : AppCompatActivity() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
             == PackageManager.PERMISSION_GRANTED
         ) {
-            Toast.makeText(this, "Микрофон уже разрешён ✓", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Микрофон уже разрешён", Toast.LENGTH_SHORT).show()
         } else {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 1)
         }
@@ -275,7 +275,7 @@ class SettingsActivity : AppCompatActivity() {
                     grantResults[0] == PackageManager.PERMISSION_GRANTED
             Toast.makeText(
                 this,
-                if (ok) "Микрофон разрешён — голосовой ввод работает ✓"
+                if (ok) "Микрофон разрешён, голосовой ввод работает"
                 else "Без микрофона голосовой ввод работать не будет",
                 Toast.LENGTH_LONG
             ).show()
