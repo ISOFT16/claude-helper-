@@ -34,6 +34,11 @@ import com.vigil.keyboard.Prefs.vibrationMs
 
 class VigilImeService : InputMethodService(), PixelKeyboardView.Listener {
 
+    companion object {
+        // Сколько показывать «таблетку» после копирования
+        private const val CLIP_FRESH_MS = 5 * 60 * 1000L
+    }
+
     private lateinit var root: LinearLayout
     private lateinit var toolbar: LinearLayout
     private lateinit var statusText: TextView
@@ -43,8 +48,11 @@ class VigilImeService : InputMethodService(), PixelKeyboardView.Listener {
     private lateinit var kbView: PixelKeyboardView
     private lateinit var clipScroll: ScrollView
     private lateinit var clipList: LinearLayout
+    private lateinit var clipChip: TextView
     private var micBtn: ImageButton? = null
     private var clipListener: ClipboardManager.OnPrimaryClipChangedListener? = null
+    // Текст, который уже вставили или смахнули из «таблетки», — больше её не показываем
+    private var dismissedClip: String? = null
 
     private var theme: KbTheme? = null
     private var lastShiftTap = 0L
@@ -71,6 +79,44 @@ class VigilImeService : InputMethodService(), PixelKeyboardView.Listener {
         } catch (e: Exception) {
             // На Android 10+ чтение буфера доступно не всегда — тихо пропускаем
         }
+        if (::clipChip.isInitialized) clipChip.post { updateClipChip() }
+    }
+
+    private data class RecentClip(val text: String, val sensitive: Boolean)
+
+    /** Свежий (скопирован не раньше CLIP_FRESH_MS назад) текст из буфера, или null. */
+    private fun recentClip(): RecentClip? = try {
+        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clip = cm.primaryClip
+        val text = clip?.getItemAt(0)?.coerceToText(this)?.toString()
+        val desc = clip?.description
+        if (text.isNullOrBlank() || desc == null || text == dismissedClip) null
+        else {
+            // Время копирования хранится то по часам, то от загрузки — проверяем оба варианта
+            val ts = desc.timestamp
+            val ageWall = System.currentTimeMillis() - ts
+            val ageBoot = android.os.SystemClock.elapsedRealtime() - ts
+            val fresh = ts > 0 && (ageWall in 0..CLIP_FRESH_MS || ageBoot in 0..CLIP_FRESH_MS)
+            val sensitive = Build.VERSION.SDK_INT >= 33 &&
+                    desc.extras?.getBoolean(android.content.ClipDescription.EXTRA_IS_SENSITIVE) == true
+            if (fresh) RecentClip(text, sensitive) else null
+        }
+    } catch (e: Exception) {
+        null
+    }
+
+    private fun updateClipChip() {
+        if (!::clipChip.isInitialized) return
+        val rc = if (statusText.text.isNullOrEmpty()) recentClip() else null
+        if (rc == null) {
+            clipChip.visibility = View.GONE
+            return
+        }
+        val preview = if (rc.sensitive) "••••••" else
+            rc.text.replace(Regex("\\s+"), " ").trim()
+        clipChip.text = "📋  $preview"
+        clipChip.tag = rc.text
+        clipChip.visibility = View.VISIBLE
     }
 
     override fun onCreateInputView(): View {
@@ -108,15 +154,63 @@ class VigilImeService : InputMethodService(), PixelKeyboardView.Listener {
         micBtn = toolBtn(R.drawable.ic_mic) { toggleVoice() }
         toolbar.addView(micBtn)
 
+        // Середина панели: либо статус (перевод/голос), либо «таблетка» с последним скопированным
+        val middle = android.widget.FrameLayout(this).apply {
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
         statusText = TextView(this).apply {
             setTextColor(t.textSec)
             textSize = 13f
             typeface = googleSans
             gravity = Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            layoutParams = android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER
+            )
             maxLines = 1
         }
-        toolbar.addView(statusText)
+        clipChip = TextView(this).apply {
+            setTextColor(t.text)
+            textSize = 13f
+            typeface = googleSans
+            maxLines = 1
+            ellipsize = android.text.TextUtils.TruncateAt.END
+            visibility = View.GONE
+            background = GradientDrawable().apply {
+                cornerRadius = 18 * d
+                setColor(t.keySpecial)
+            }
+            setPadding((12 * d).toInt(), (7 * d).toInt(), (12 * d).toInt(), (7 * d).toInt())
+            layoutParams = android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER
+            )
+            // Одно нажатие — вставить скопированное
+            setOnClickListener {
+                val text = tag as? String ?: return@setOnClickListener
+                feedback()
+                currentInputConnection?.commitText(text, 1)
+                dismissedClip = text
+                visibility = View.GONE
+            }
+            // Долгое нажатие — убрать подсказку
+            setOnLongClickListener {
+                feedback()
+                dismissedClip = tag as? String
+                visibility = View.GONE
+                true
+            }
+        }
+        statusText.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) { updateClipChip() }
+        })
+        middle.addView(statusText)
+        middle.addView(clipChip)
+        toolbar.addView(middle)
 
         langLabel = TextView(this).apply {
             setTextColor(t.textSec)
@@ -230,6 +324,8 @@ class VigilImeService : InputMethodService(), PixelKeyboardView.Listener {
         setInputView(onCreateInputView())
         applyModeForInput(info)
         autoCapitalize()
+        // Подхватываем то, что скопировали, пока клавиатура была закрыта
+        captureClip()
     }
 
     override fun onEvaluateFullscreenMode(): Boolean = false
@@ -478,7 +574,9 @@ class VigilImeService : InputMethodService(), PixelKeyboardView.Listener {
                 setOnClickListener {
                     feedback()
                     currentInputConnection?.commitText(item, 1)
+                    dismissedClip = item
                     closeClipPanel()
+                    updateClipChip()
                 }
                 setOnLongClickListener {
                     feedback()
